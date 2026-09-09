@@ -55,6 +55,7 @@ export default function Home() {
   const [loginMode, setLoginMode] = useState(false);
   const [receipt, setReceipt] = useState<RecoveryReceipt | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [freshStamp, setFreshStamp] = useState<string | null>(null);
   const reload = useCallback(async () => {
     setLoading(true);
     try {
@@ -105,6 +106,7 @@ export default function Home() {
       duplicate: boolean;
     };
     if (!r.ok) throw new Error(d.error);
+    if (!d.duplicate) setFreshStamp(d.spotId);
     setData((current) => ({
       ...current,
       stamps: current.stamps.some((s) => s.spotId === d.spotId)
@@ -249,7 +251,10 @@ export default function Home() {
             </div>
             <section
               className={
-                complete ? 'mobile-progress achieved' : 'mobile-progress'
+                complete
+                  ? 'mobile-progress achieved' +
+                    (freshStamp ? ' just-completed' : '')
+                  : 'mobile-progress'
               }
             >
               <div>
@@ -310,9 +315,14 @@ export default function Home() {
                   return (
                     <article
                       className={
-                        has(spot.id) ? 'stamp-card collected' : 'stamp-card'
+                        (has(spot.id) ? 'stamp-card collected' : 'stamp-card') +
+                        (freshStamp === spot.id ? ' freshly-stamped' : '')
                       }
                       key={spot.id}
+                      onAnimationEnd={(e) => {
+                        if (e.animationName === 'festival-stamp')
+                          setFreshStamp(null);
+                      }}
                     >
                       <span className="spot-number">
                         {String(i + 1).padStart(2, '0')}
