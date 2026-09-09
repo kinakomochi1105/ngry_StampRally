@@ -2078,3 +2078,292 @@ html[lang='en'] .kind-grid small {
     transition: none !important;
   }
 }
+
+.stamp-editor {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 15px;
+  margin: 12px 0 20px;
+}
+.stamp-editor h3 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.stamp-editor > p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted-ink);
+  margin: 8px 0;
+}
+.stamp-editor ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 300px;
+  overflow: auto;
+}
+.stamp-editor li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+.stamp-editor li > div {
+  min-width: 0;
+}
+.stamp-editor strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.stamp-editor small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted-ink);
+  margin: 4px 0;
+}
+.stamp-editor button {
+  flex-shrink: 0;
+}
+.stamp-state {
+  font-size: 12px;
+  color: var(--muted-ink);
+}
+.stamp-state.done,
+.stamp-editor-message {
+  color: var(--accent-ink);
+  font-size: 13px;
+}
+.replay-demo {
+  margin-top: 24px;
+  min-height: 44px;
+}
+.tutorial-top,
+.tutorial-bottom,
+.tutorial-bottom > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tutorial-top > span {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--muted-ink);
+}
+.tutorial-dialog {
+  max-width: 480px !important;
+}
+.tutorial-screen {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  background: var(--page-bg);
+  min-height: 265px;
+  overflow: hidden;
+}
+.tutorial-appbar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--accent-ink);
+  padding-bottom: 15px;
+}
+.tutorial-appbar > span {
+  margin-left: auto;
+  font-size: 10px;
+  border: 1px solid var(--line);
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+.tutorial-tabs {
+  display: flex;
+  justify-content: space-around;
+  font-size: 12px;
+  padding-bottom: 12px;
+  color: var(--muted-ink);
+}
+.tutorial-tabs strong {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent-ink);
+}
+.tutorial-place {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: 9px;
+  margin: 6px 0;
+  padding: 11px;
+  font-size: 13px;
+}
+.tutorial-place b {
+  color: var(--accent-ink);
+}
+.tutorial-place div {
+  flex: 1;
+}
+.tutorial-place small {
+  display: block;
+  color: var(--muted-ink);
+  font-size: 11px;
+  margin-top: 3px;
+}
+.tutorial-camera {
+  position: relative;
+  background: #14213d;
+  color: white;
+  height: 150px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.tutorial-scan-line {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background: #80caff;
+  top: 45%;
+  box-shadow: 0 0 12px #80caff;
+}
+.tutorial-success {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--accent-ink);
+  padding: 10px 0;
+}
+.tutorial-scan-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: #294aee;
+  color: white;
+  border-radius: 9px;
+  padding: 10px;
+  font-size: 13px;
+}
+.tutorial-complete {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: #294aee;
+  color: white;
+  border-radius: 11px;
+  padding: 16px;
+}
+.tutorial-complete span {
+  display: block;
+  font-size: 23px;
+  font-weight: 800;
+}
+.tutorial-stamps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+.tutorial-stamps > div {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 10px 4px;
+  background: var(--soft-bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--accent-ink);
+}
+.tutorial-stamps span {
+  display: grid;
+  place-items: center;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  width: 46px;
+  height: 46px;
+}
+.tutorial-stamps small {
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  gap: 2px;
+}
+.tutorial-dialog .tutorial-note {
+  font-size: 12px;
+  color: var(--muted-ink);
+  margin: 0;
+}
+.tutorial-dialog .tutorial-congrats {
+  font-size: 12px;
+  text-align: center;
+  margin: 12px 0 0;
+  color: var(--accent-ink);
+}
+.tutorial-bottom > span {
+  display: flex;
+  gap: 6px;
+}
+.tutorial-bottom i {
+  width: 6px;
+  height: 6px;
+  background: var(--line);
+  border-radius: 6px;
+}
+.tutorial-bottom i.active {
+  width: 20px;
+  background: var(--accent-ink);
+}
+@keyframes demo-scan {
+  from {
+    translate: 0 -45px;
+  }
+  to {
+    translate: 0 45px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tutorial-screen {
+    animation: festival-enter 240ms ease-out;
+  }
+  .tutorial-place {
+    animation: festival-enter 350ms backwards;
+  }
+  .tutorial-place:nth-child(4) {
+    animation-delay: 120ms;
+  }
+  .tutorial-place:nth-child(5) {
+    animation-delay: 240ms;
+  }
+  .tutorial-scan-line {
+    animation: demo-scan 1200ms ease-in-out 2 alternate;
+  }
+  .tutorial-success {
+    animation: festival-enter 350ms 1200ms backwards;
+  }
+  .tutorial-stamps > div {
+    animation: festival-stamp 450ms backwards;
+  }
+  .tutorial-stamps > div:nth-child(2) {
+    animation-delay: 160ms;
+  }
+  .tutorial-stamps > div:nth-child(3) {
+    animation-delay: 320ms;
+  }
+  .tutorial-complete svg {
+    animation: festival-celebrate 480ms 400ms backwards;
+  }
+}
+@media print {
+  .tutorial-dialog,
+  .replay-demo {
+    display: none !important;
+  }
+}

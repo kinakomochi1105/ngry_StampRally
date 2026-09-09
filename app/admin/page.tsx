@@ -2,6 +2,7 @@
 import { useI18n, LanguageSelect } from '@/components/language';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { AdminStamps } from '@/components/admin-stamps';
 import QRCode from 'qrcode';
 import {
   Users,
@@ -881,6 +882,17 @@ export default function Admin() {
           </DialogDescription>
           {editingPerson && (
             <>
+              <AdminStamps
+                key={editingPerson.id}
+                id={editingPerson.id}
+                onUpdated={async () => {
+                  const d = await api('participants?id=' + editingPerson.id);
+                  setPersonStamps(
+                    d.stamps as { name: string; createdAt: number }[],
+                  );
+                  await load();
+                }}
+              />
               <ul className="stamp-history">
                 {personStamps.length ? (
                   personStamps.map((s, i) => (

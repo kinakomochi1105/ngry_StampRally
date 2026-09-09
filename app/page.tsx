@@ -2,6 +2,7 @@
 import { useI18n, LanguageSelect } from '@/components/language';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { RallyDemo } from '@/components/rally-demo';
 import { Scanner } from '@/components/scanner';
 import { Enrollment } from '@/components/enrollment';
 import {
@@ -42,6 +43,8 @@ type Passport = {
 };
 export default function Home() {
   const { t, locale } = useI18n();
+  const [demo, setDemo] = useState(false);
+  const [demoPending, setDemoPending] = useState(false);
   const [tab, setTab] = useState('book');
   const [data, setData] = useState<Passport>({
     profile: null,
@@ -225,7 +228,13 @@ export default function Home() {
             {loginMode ? (
               <RecoveryLogin onRestored={reload} />
             ) : (
-              <Enrollment settings={settings} onRegistered={registered} />
+              <Enrollment
+                settings={settings}
+                onRegistered={async (value) => {
+                  if (value) setDemoPending(true);
+                  await registered(value);
+                }}
+              />
             )}
           </>
         ) : profile ? (
@@ -376,6 +385,13 @@ export default function Home() {
                 </Button>
               </section>
             )}
+            <Button
+              className="replay-demo"
+              variant="outline"
+              onClick={() => setDemo(true)}
+            >
+              {locale === 'en' ? 'Show how to play' : '使い方デモを見る'}
+            </Button>
             <RecoverySetup
               nickname={profile.nickname}
               onIssued={registered}
@@ -406,9 +422,16 @@ export default function Home() {
         {receipt && (
           <RecoveryCodeDialog
             receipt={receipt}
-            onClose={() => setReceipt(null)}
+            onClose={() => {
+              setReceipt(null);
+              if (demoPending) {
+                setDemo(true);
+                setDemoPending(false);
+              }
+            }}
           />
         )}
+        {demo && !receipt && <RallyDemo onClose={() => setDemo(false)} />}
         <footer>
           <span>{t('文化祭実行委員会')}</span>
           <span>{t('歩きスマホはお控えください。')}</span>

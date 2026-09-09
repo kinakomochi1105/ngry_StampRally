@@ -293,5 +293,7 @@
   "復旧コードを発行できませんでした。": "Could not issue a recovery code.",
   "ニックネームまたは復旧コードが一致しません。": "Nickname or recovery code does not match.",
   "別の再ログイン操作が完了しました。もう一度お試しください。": "Another sign-in has completed. Please try again.",
-  "再ログインできませんでした。通信を確認してお試しください。": "Could not sign in. Check your connection and retry."
+  "再ログインできませんでした。通信を確認してお試しください。": "Could not sign in. Check your connection and retry.",
+  "スタンプの指定を確認してください。": "Check the stamp selection.",
+  "設置場所が見つかりません。": "Location not found."
 }

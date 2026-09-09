@@ -68,6 +68,91 @@ try {
     assert.equal((await adm('spots', { action: 'seed' })).status, 200);
   const managed = (await adm('spots')).data.spots.filter((s) => s.active);
   assert.ok(managed.length > 0);
+  const editorGuest = await register({ kind: 'guest' });
+  const patch = {
+    id: editorGuest.profile.id,
+    action: 'stamp',
+    spotId: managed[0].id,
+    collected: true,
+  };
+  assert.equal(
+    (
+      await req('/api/admin/participants', {
+        data: patch,
+        cookie: editorGuest.cookie,
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await req('/api/admin/participants', {
+        data: patch,
+        cookie: adminCookie,
+        origin: 'https://attacker.invalid',
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await adm('participants', { ...patch, spotId: 'missing-location' }))
+      .status,
+    404,
+  );
+  assert.equal(
+    (await adm('participants', { ...patch, collected: 'true' })).status,
+    400,
+  );
+  assert.equal((await adm('participants', patch)).status, 200);
+  const afterGrant = (
+    await req('/api/passport', { cookie: editorGuest.cookie })
+  ).data;
+  assert.equal(afterGrant.stamps.length, 1);
+  const originalTime = afterGrant.stamps[0].createdAt;
+  assert.equal((await adm('participants', patch)).status, 200);
+  assert.equal(
+    (await req('/api/passport', { cookie: editorGuest.cookie })).data.stamps[0]
+      .createdAt,
+    originalTime,
+  );
+  const editorView = (await adm('participants?id=' + editorGuest.profile.id))
+    .data;
+  assert.equal(
+    editorView.spots.find((s) => s.id === managed[0].id).collected,
+    1,
+  );
+  const progress = (await adm('participants')).data.rows.find(
+    (p) => p.id === editorGuest.profile.id,
+  );
+  assert.equal(progress.stampCount, 1);
+  assert.ok(progress.ranking > 0);
+  assert.equal(
+    (await adm('participants', { ...patch, collected: false })).status,
+    200,
+  );
+  assert.equal(
+    (await req('/api/passport', { cookie: editorGuest.cookie })).data.stamps
+      .length,
+    0,
+  );
+  assert.equal(
+    (await adm('participants?id=' + editorGuest.profile.id)).data.spots.find(
+      (s) => s.id === managed[0].id,
+    ).collected,
+    0,
+  );
+  const audit = (await adm('settings')).data.logs;
+  assert.ok(
+    audit.some(
+      (l) =>
+        l.action === 'stamp_grant' &&
+        l.target === String(editorGuest.profile.id) + ':' + managed[0].id,
+    ),
+  );
+  assert.ok(audit.some((l) => l.action === 'stamp_revoke'));
+  console.log(
+    'PASS: admin individual stamp grant/revoke, idempotent timestamp, participant progress/rank, audit, authorization and CSRF.',
+  );
   const studentInput = {
     nickname: '文化祭テスト',
     kind: 'student',

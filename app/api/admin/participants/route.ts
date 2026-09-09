@@ -1,6 +1,6 @@
 import { database } from '@/db';
 import { event } from '@/lib/event';
-import { json } from '@/lib/server';
+import { json, retentionSeconds } from '@/lib/server';
 import { guard } from '@/lib/admin';
 import { bodyJson, configuration, studentFields } from '@/lib/data';
 import { progressSql, progressArgs, statistics } from '@/lib/progress';
@@ -22,7 +22,13 @@ export async function GET(request: Request) {
         )
         .bind(event.id, row.hash)
         .all();
-      return json({ stamps: stamps.results });
+      const spots = await database()
+        .prepare(
+          'SELECT l.id,l.name,l.location,l.active,CASE WHEN s.created_at>? THEN 1 ELSE 0 END AS collected FROM locations l LEFT JOIN participants p ON p.id=? AND p.event_id=l.event_id LEFT JOIN stamps s ON s.spot_id=l.id AND s.event_id=l.event_id AND s.participant_hash=p.hash WHERE l.event_id=? ORDER BY l.sort_order,l.id',
+        )
+        .bind(Math.floor(Date.now() / 1000) - retentionSeconds, id, event.id)
+        .all();
+      return json({ stamps: stamps.results, spots: spots.results });
     }
     const page = Math.max(
       1,
@@ -76,7 +82,42 @@ export async function POST(request: Request) {
         'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
       )
       .bind(String(data.action), String(id), Math.floor(Date.now() / 1000));
-    if (data.action === 'edit') {
+    if (data.action === 'stamp') {
+      if (
+        typeof data.spotId !== 'string' ||
+        typeof data.collected !== 'boolean'
+      )
+        return json({ error: 'スタンプの指定を確認してください。' }, 400);
+      const spot = await database()
+        .prepare('SELECT id FROM locations WHERE id=? AND event_id=?')
+        .bind(data.spotId, event.id)
+        .first();
+      if (!spot) return json({ error: '設置場所が見つかりません。' }, 404);
+      const now = Math.floor(Date.now() / 1000);
+      const change = data.collected
+        ? database()
+            .prepare(
+              'INSERT INTO stamps (event_id,participant_hash,spot_id,created_at) SELECT event_id,hash,?,? FROM participants WHERE id=? AND event_id=? ON CONFLICT(event_id,participant_hash,spot_id) DO UPDATE SET created_at=excluded.created_at WHERE stamps.created_at<=?',
+            )
+            .bind(data.spotId, now, id, event.id, now - retentionSeconds)
+        : database()
+            .prepare(
+              'DELETE FROM stamps WHERE event_id=? AND spot_id=? AND participant_hash=(SELECT hash FROM participants WHERE id=? AND event_id=?)',
+            )
+            .bind(event.id, data.spotId, id, event.id);
+      await database().batch([
+        change,
+        database()
+          .prepare(
+            'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
+          )
+          .bind(
+            data.collected ? 'stamp_grant' : 'stamp_revoke',
+            String(id) + ':' + data.spotId,
+            now,
+          ),
+      ]);
+    } else if (data.action === 'edit') {
       if (row.kind !== 'student')
         return json({ error: '一般客のIDは変更できません。' }, 400);
       const f = studentFields(data, await configuration());
