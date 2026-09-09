@@ -24,6 +24,7 @@ export async function GET(request: Request) {
       [
         '管理番号',
         '種別',
+        'ニックネーム',
         '学年',
         '組',
         '出席番号',
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
       ...rows.map((r) => [
         r.id,
         r.kind === 'student' ? '生徒' : '一般客',
+        r.nickname,
         r.grade,
         r.className,
         r.number,

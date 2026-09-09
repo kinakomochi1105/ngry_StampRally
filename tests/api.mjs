@@ -37,12 +37,18 @@ async function adm(path, data) {
   return req('/api/admin/' + path, { data, cookie: adminCookie });
 }
 async function register(data) {
-  const r = await req('/api/register', { data });
+  const r = await req('/api/register', {
+    data: { nickname: '文化祭テスト', ...data },
+  });
   assert.equal(r.status, 201, JSON.stringify(r.data));
   assert.match(r.headers.get('set-cookie'), /HttpOnly/);
   const pass = await req('/api/passport', { cookie: r.cookie });
   tracked.push(pass.data.profile.id);
-  return { cookie: r.cookie, profile: pass.data.profile };
+  return {
+    cookie: r.cookie,
+    profile: pass.data.profile,
+    recoveryCode: r.data.recoveryCode,
+  };
 }
 let original;
 try {
@@ -63,6 +69,7 @@ try {
   const managed = (await adm('spots')).data.spots.filter((s) => s.active);
   assert.ok(managed.length > 0);
   const studentInput = {
+    nickname: '文化祭テスト',
     kind: 'student',
     grade: original.grades[0],
     className: original.classes.at(-1),
@@ -147,6 +154,145 @@ try {
       ).status,
       200,
     );
+  // A nickname is not a secret. Both factors must match, and restore rotates the device session.
+  assert.equal(
+    (
+      await req('/api/recovery/login', {
+        data: { nickname: student.profile.nickname },
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await req('/api/recovery/login', {
+        data: { nickname: '別の名前', recoveryCode: student.recoveryCode },
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (await req('/api/recovery/setup', { data: { nickname: 'さくら' } })).status,
+    401,
+  );
+  const beforeCookie = student.cookie;
+  const restored = await req('/api/recovery/login', {
+    data: {
+      nickname: student.profile.nickname,
+      recoveryCode: student.recoveryCode,
+    },
+  });
+  assert.equal(restored.status, 200, JSON.stringify(restored.data));
+  student.cookie = restored.cookie;
+  assert.equal(
+    (await req('/api/passport', { cookie: beforeCookie })).data.profile,
+    null,
+  );
+  assert.equal(
+    (
+      await req('/api/stamp', {
+        cookie: beforeCookie,
+        data: { code: managed[0].code },
+      })
+    ).status,
+    401,
+  );
+  const restoredPass = (await req('/api/passport', { cookie: student.cookie }))
+    .data;
+  assert.equal(restoredPass.profile.id, student.profile.id);
+  assert.equal(restoredPass.stamps.length, managed.length);
+  assert.equal(restoredPass.profile.recoveryHash, undefined);
+  assert.equal(restoredPass.profile.recoveryCode, undefined);
+  const renewed = await req('/api/recovery/setup', {
+    cookie: student.cookie,
+    data: {},
+  });
+  assert.equal(renewed.status, 200);
+  assert.notEqual(renewed.data.recoveryCode, student.recoveryCode);
+  assert.equal(
+    (
+      await req('/api/recovery/login', {
+        data: {
+          nickname: student.profile.nickname,
+          recoveryCode: student.recoveryCode,
+        },
+      })
+    ).status,
+    401,
+  );
+  student.recoveryCode = renewed.data.recoveryCode;
+  const again = await req('/api/recovery/login', {
+    data: {
+      nickname: student.profile.nickname,
+      recoveryCode: student.recoveryCode.toLowerCase().replaceAll('-', ' '),
+    },
+  });
+  assert.equal(again.status, 200);
+  student.cookie = again.cookie;
+  const logout = await req('/api/logout', { cookie: student.cookie, data: {} });
+  assert.equal(logout.status, 200);
+  assert.equal(
+    (await req('/api/passport', { cookie: student.cookie })).data.profile,
+    null,
+  );
+  const afterLogout = await req('/api/recovery/login', {
+    data: {
+      nickname: student.profile.nickname,
+      recoveryCode: student.recoveryCode,
+    },
+  });
+  assert.equal(afterLogout.status, 200);
+  student.cookie = afterLogout.cookie;
+  assert.equal(
+    (await req('/api/passport', { cookie: student.cookie })).data.stamps.length,
+    managed.length,
+  );
+  const guest = guests[0];
+  const guestBefore = guest.cookie;
+  const guestLogin = await req('/api/recovery/login', {
+    data: {
+      nickname: guest.profile.nickname,
+      recoveryCode: guest.recoveryCode,
+    },
+  });
+  assert.equal(guestLogin.status, 200);
+  guest.cookie = guestLogin.cookie;
+  assert.equal(
+    (await req('/api/passport', { cookie: guest.cookie })).data.profile
+      .guestNumber,
+    guest.profile.guestNumber,
+  );
+  assert.equal(
+    (await req('/api/passport', { cookie: guestBefore })).data.profile,
+    null,
+  );
+  for (const nickname of [
+    '',
+    'a',
+    'ＦＵＣＫ',
+    'f-u-c-k',
+    'セックス',
+    '管理者さん',
+    '<script>',
+    'a\u200Bb',
+  ])
+    assert.equal(
+      (await req('/api/register', { data: { kind: 'guest', nickname } }))
+        .status,
+      400,
+      'Rejected invalid nickname',
+    );
+  const nickConfig = { ...original, nicknameBlockedWords: ['禁止見本'] };
+  assert.equal((await adm('settings', { settings: nickConfig })).status, 200);
+  assert.equal(
+    (
+      await req('/api/register', {
+        data: { kind: 'guest', nickname: '禁止見本さん' },
+      })
+    ).status,
+    400,
+  );
+  assert.equal((await adm('settings', { settings: original })).status, 200);
   const ranking = await adm('participants?sort=rank');
   assert.equal(ranking.status, 200, JSON.stringify(ranking.data));
   const row = ranking.data.rows.find((r) => r.id === student.profile.id);
@@ -263,6 +409,14 @@ try {
     (await req('/api/register', { data: { kind: 'guest' } })).status,
     409,
   );
+  const pausedRestore = await req('/api/recovery/login', {
+    data: {
+      nickname: student.profile.nickname,
+      recoveryCode: student.recoveryCode,
+    },
+  });
+  assert.equal(pausedRestore.status, 200);
+  student.cookie = pausedRestore.cookie;
   assert.equal((await adm('settings', { settings: original })).status, 200);
   assert.equal(
     (await adm('settings', { action: 'purge', confirm: 'wrong' })).status,
@@ -298,8 +452,14 @@ try {
   tracked.splice(tracked.indexOf(maxGuest.profile.id), 1);
   const next = await register({ kind: 'guest' });
   assert.ok(next.profile.guestNumber > maxGuest.profile.guestNumber);
+  for (let i = 0; i < 11; i++) {
+    const denied = await req('/api/recovery/login', {
+      data: { nickname: '間違い', recoveryCode: student.recoveryCode },
+    });
+    assert.equal(denied.status, i < 10 ? 401 : 429);
+  }
   console.log(
-    'PASS: student enrollment/duplicates, 12 concurrent unique guest IDs/no reuse, profile isolation, 24 simultaneous stamps, completion/ranking, custom grade/class, admin edits/reset/delete/CSV, registration pause, protected APIs, CSRF, invalid QR, QR decoder.',
+    'PASS: nickname rules/custom blocklist, recovery preserves stamps and IDs, wrong factors rejected, session revocation, code reissue, recovery throttle, student enrollment/duplicates, 12 concurrent unique guest IDs/no reuse, profile isolation, 24 simultaneous stamps, completion/ranking, custom grade/class, admin edits/reset/delete/CSV, registration pause, protected APIs, CSRF, invalid QR, QR decoder.',
   );
 } finally {
   if (adminCookie) {

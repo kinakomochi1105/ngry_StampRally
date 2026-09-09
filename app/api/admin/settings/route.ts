@@ -69,12 +69,26 @@ export async function POST(request: Request) {
       maxNumber > 999
     )
       throw new Error('文化祭名と出席番号の上限を確認してください。');
+    const rawWords = config.nicknameBlockedWords ?? [];
+    if (
+      !Array.isArray(rawWords) ||
+      rawWords.length > 100 ||
+      rawWords.some(
+        (x: unknown) =>
+          typeof x !== 'string' || x.trim().length < 1 || x.length > 40,
+      )
+    )
+      throw new Error('追加禁止語は40文字以内、100件までで入力してください。');
+    const nicknameBlockedWords = [
+      ...new Set((rawWords as string[]).map((x) => x.trim())),
+    ];
     const value = JSON.stringify({
       title,
       grades,
       classes,
       maxNumber,
       registrationOpen: config.registrationOpen === true,
+      nicknameBlockedWords,
     });
     await database().batch([
       database()

@@ -13,6 +13,8 @@ export type Profile = {
   className: string | null;
   number: number | null;
   guestNumber: number | null;
+  nickname: string | null;
+  hasRecovery: boolean;
 };
 export type FestivalSettings = {
   title: string;
@@ -20,6 +22,7 @@ export type FestivalSettings = {
   classes: string[];
   maxNumber: number;
   registrationOpen: boolean;
+  nicknameBlockedWords?: string[];
 };
 export const defaultSettings: FestivalSettings = {
   title: '文化祭スタンプラリー',

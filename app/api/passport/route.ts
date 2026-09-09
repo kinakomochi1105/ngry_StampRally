@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     const profile = hash
       ? await database()
           .prepare(
-            'SELECT id,kind,grade,class_name AS className,number,guest_number AS guestNumber FROM participants WHERE event_id=? AND hash=?',
+            'SELECT id,kind,grade,class_name AS className,number,guest_number AS guestNumber,nickname,(recovery_hash IS NOT NULL) AS hasRecovery FROM participants WHERE event_id=? AND hash=?',
           )
           .bind(event.id, hash)
           .first()

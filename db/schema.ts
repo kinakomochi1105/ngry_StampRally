@@ -33,6 +33,9 @@ export const participants = sqliteTable(
     className: text('class_name'),
     number: integer('number'),
     guestNumber: integer('guest_number'),
+    nickname: text('nickname'),
+    nicknameKey: text('nickname_key'),
+    recoveryHash: text('recovery_hash'),
     createdAt: integer('created_at').notNull(),
   },
   (t) => [
@@ -44,6 +47,7 @@ export const participants = sqliteTable(
       t.number,
     ),
     uniqueIndex('participants_guest_idx').on(t.eventId, t.guestNumber),
+    uniqueIndex('participants_recovery_idx').on(t.eventId, t.recoveryHash),
   ],
 );
 export const locations = sqliteTable(

@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { validateNickname } from '@/lib/nickname';
+import type { RecoveryReceipt } from '@/components/recovery';
 import { GraduationCap, Users, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { gradeLabel, classLabel, type FestivalSettings } from '@/lib/types';
@@ -8,7 +10,7 @@ export function Enrollment({
   onRegistered,
 }: {
   settings: FestivalSettings;
-  onRegistered: () => Promise<void>;
+  onRegistered: (receipt?: RecoveryReceipt) => Promise<void>;
 }) {
   const [kind, setKind] = useState<'student' | 'guest' | null>(null);
   const [grade, setGrade] = useState(settings.grades[0]);
@@ -16,26 +18,29 @@ export function Enrollment({
   const [number, setNumber] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [nickname, setNickname] = useState('');
   const [consent, setConsent] = useState(false);
   async function submit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
     setError('');
     try {
+      validateNickname(nickname);
       const r = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           kind,
+          nickname,
           grade,
           className,
           number: Number(number),
         }),
         signal: AbortSignal.timeout(15000),
       });
-      const d = (await r.json()) as { error?: string };
+      const d = (await r.json()) as RecoveryReceipt & { error?: string };
       if (!r.ok) throw new Error(d.error);
-      await onRegistered();
+      await onRegistered(d.recoveryCode ? d : undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : '登録できませんでした。');
     } finally {
@@ -138,13 +143,28 @@ export function Enrollment({
               </p>
             </div>
           )}
+          <label>
+            ニックネーム
+            <input
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              minLength={2}
+              maxLength={20}
+              autoComplete="username"
+              placeholder="例：さくらペンギン"
+              required
+            />
+          </label>
+          <p className="form-hint">
+            本名は使わず、2〜20文字で入力してください。不適切な名前や管理者を装う名前は使えません。再ログイン時にこの名前を確認します。
+          </p>
           <div className="data-consent">
             <ShieldCheck size={20} />
             <p>
               {kind === 'student'
-                ? '学年・組・出席番号とスタンプ履歴を、文化祭の運営・進行確認に使用します。'
-                : '参加IDとスタンプ履歴を、文化祭の運営・進行確認に使用します。'}
-              管理者が進行状況・ランキングを確認できます。Cookieを削除すると参加情報にアクセスできなくなるため、同じ端末・ブラウザをご利用ください。
+                ? 'ニックネーム・学年・組・出席番号とスタンプ履歴を、文化祭の運営・進行確認に使用します。'
+                : 'ニックネーム・参加IDとスタンプ履歴を、文化祭の運営・進行確認に使用します。'}
+              管理者が進行状況・ランキングを確認できます。登録後に表示される復旧コードを控えてください。Cookieを削除しても、ニックネームと復旧コードで再ログインできます。
             </p>
           </div>
           <label className="check-label">

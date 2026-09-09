@@ -2,6 +2,8 @@ import { database } from '@/db';
 import { event } from '@/lib/event';
 import { json, participant, newParticipant, validOrigin } from '@/lib/server';
 import { bodyJson, configuration, studentFields } from '@/lib/data';
+import { validateNickname } from '@/lib/nickname';
+import { makeRecovery } from '@/lib/recovery';
 export async function POST(request: Request) {
   if (!validOrigin(request))
     return json({ error: 'ページを開き直してください。' }, 403);
@@ -20,6 +22,8 @@ export async function POST(request: Request) {
     }
     if (data.kind !== 'student' && data.kind !== 'guest')
       return json({ error: '生徒または一般客を選んでください。' }, 400);
+    const name = validateNickname(data.nickname, config.nicknameBlockedWords);
+    const recovery = await makeRecovery();
     const profile =
       data.kind === 'student' ? studentFields(data, config) : null;
     const created = existingHash
@@ -35,19 +39,22 @@ export async function POST(request: Request) {
             .bind(event.id),
           database()
             .prepare(
-              "INSERT INTO participants (event_id,hash,kind,guest_number,created_at) SELECT ?,?,'guest',next_number,? FROM guest_sequence WHERE event_id=?",
+              "INSERT INTO participants (event_id,hash,kind,guest_number,created_at,nickname,nickname_key,recovery_hash) SELECT ?,?,'guest',next_number,?,?,?,? FROM guest_sequence WHERE event_id=?",
             )
             .bind(
               event.id,
               created.hash,
               Math.floor(Date.now() / 1000),
+              name.nickname,
+              name.key,
+              recovery.hash,
               event.id,
             ),
         ]);
       } else {
         await database()
           .prepare(
-            "INSERT INTO participants (event_id,hash,kind,grade,class_name,number,created_at) VALUES (?,?,'student',?,?,?,?)",
+            "INSERT INTO participants (event_id,hash,kind,grade,class_name,number,created_at,nickname,nickname_key,recovery_hash) VALUES (?,?,'student',?,?,?,?,?,?,?)",
           )
           .bind(
             event.id,
@@ -56,6 +63,9 @@ export async function POST(request: Request) {
             profile!.className,
             profile!.number,
             Math.floor(Date.now() / 1000),
+            name.nickname,
+            name.key,
+            recovery.hash,
           )
           .run();
       }
@@ -71,7 +81,7 @@ export async function POST(request: Request) {
       throw e;
     }
     return json(
-      { ok: true },
+      { ok: true, nickname: name.nickname, recoveryCode: recovery.code },
       201,
       created.cookie ? { 'Set-Cookie': created.cookie } : {},
     );
@@ -79,7 +89,8 @@ export async function POST(request: Request) {
     return json(
       {
         error:
-          e instanceof Error && /確認|入力|JSON/.test(e.message)
+          e instanceof Error &&
+          /確認|入力|JSON|ニックネーム|名前/.test(e.message)
             ? e.message
             : '登録を完了できませんでした。時間をおいて再試行してください。',
       },

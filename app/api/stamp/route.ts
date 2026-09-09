@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       );
     const result = await database()
       .prepare(
-        'INSERT INTO stamps (event_id,participant_hash,spot_id,created_at) SELECT ?,?,?,? WHERE EXISTS (SELECT 1 FROM locations WHERE id=? AND event_id=? AND active=1) ON CONFLICT(event_id,participant_hash,spot_id) DO NOTHING',
+        'INSERT INTO stamps (event_id,participant_hash,spot_id,created_at) SELECT ?,?,?,? WHERE EXISTS (SELECT 1 FROM locations WHERE id=? AND event_id=? AND active=1) AND EXISTS (SELECT 1 FROM participants WHERE event_id=? AND hash=?) ON CONFLICT(event_id,participant_hash,spot_id) DO NOTHING',
       )
       .bind(
         event.id,
@@ -36,6 +36,8 @@ export async function POST(request: Request) {
         Math.floor(Date.now() / 1000),
         spotId,
         event.id,
+        event.id,
+        hash,
       )
       .run();
     return json({ spotId, duplicate: result.meta.changes === 0 });

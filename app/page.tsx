@@ -4,6 +4,12 @@ import Link from 'next/link';
 import { Scanner } from '@/components/scanner';
 import { Enrollment } from '@/components/enrollment';
 import {
+  RecoveryLogin,
+  RecoverySetup,
+  RecoveryCodeDialog,
+  type RecoveryReceipt,
+} from '@/components/recovery';
+import {
   QrCode,
   MapPin,
   Stamp,
@@ -15,7 +21,6 @@ import {
   Theater,
   Check,
   ChevronRight,
-  Settings,
   Trophy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -45,6 +50,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [notice, setNotice] = useState('');
+  const [loginMode, setLoginMode] = useState(false);
+  const [receipt, setReceipt] = useState<RecoveryReceipt | null>(null);
   const [scanning, setScanning] = useState(false);
   const reload = useCallback(async () => {
     setLoading(true);
@@ -72,6 +79,14 @@ export default function Home() {
     // eslint-disable-next-line react/react-compiler
     void reload();
   }, [reload]);
+  async function registered(value?: RecoveryReceipt) {
+    if (value) setReceipt(value);
+    await reload();
+  }
+  async function loggedOut() {
+    setLoginMode(true);
+    await reload();
+  }
   const close = useCallback(() => setScanning(false), []);
   const scan = useCallback(async (code: string) => {
     const r = await fetch('/api/stamp', {
@@ -170,9 +185,6 @@ export default function Home() {
             <small>STAMP RALLY</small>
           </span>
         </Link>
-        <Link href="/admin" className="admin-link" aria-label="管理者ページ">
-          <Settings size={19} />
-        </Link>
       </header>
       <div className="mobile-page">
         {notice && (
@@ -188,7 +200,29 @@ export default function Home() {
         {loading && !profile ? (
           <div className="loading-state">参加情報を読み込み中…</div>
         ) : !failed && !profile ? (
-          <Enrollment settings={settings} onRegistered={reload} />
+          <>
+            <div className="access-tabs">
+              <button
+                aria-pressed={!loginMode}
+                className={!loginMode ? 'active' : ''}
+                onClick={() => setLoginMode(false)}
+              >
+                初めての方
+              </button>
+              <button
+                aria-pressed={loginMode}
+                className={loginMode ? 'active' : ''}
+                onClick={() => setLoginMode(true)}
+              >
+                登録済みの方・再ログイン
+              </button>
+            </div>
+            {loginMode ? (
+              <RecoveryLogin onRestored={reload} />
+            ) : (
+              <Enrollment settings={settings} onRegistered={registered} />
+            )}
+          </>
         ) : profile ? (
           <>
             <div className="participant-intro">
@@ -202,7 +236,8 @@ export default function Home() {
               </div>
               <span className="participant-label">
                 {profile.kind === 'student' ? 'STUDENT' : 'GUEST'}
-                <strong>{profileLabel(profile)}</strong>
+                <strong>{profile.nickname ?? profileLabel(profile)}</strong>
+                {profile.nickname && <small>{profileLabel(profile)}</small>}
               </span>
             </div>
             <section
@@ -322,10 +357,15 @@ export default function Home() {
                 </Button>
               </section>
             )}
+            <RecoverySetup
+              nickname={profile.nickname}
+              onIssued={registered}
+              onLoggedOut={loggedOut}
+            />
             <details className="policy">
               <summary>参加データ・使い方について</summary>
               <p>
-                サイト内の読み取りボタンから設置QRを読み取ります。生徒は学年・組・出席番号、一般客は参加IDをスタンプ履歴とともに保存します。進行状況・ランキングは管理者のみ閲覧できます。氏名・連絡先・位置情報は収集せず、カメラ映像・画像も送信しません。Cookieの有効期間と履歴の表示期間は30日です。サーバーの記録は開催後に主催者が削除します。同じ端末・ブラウザでご参加ください。Cookieの削除後は受付へご相談ください。
+                サイト内の読み取りボタンから設置QRを読み取ります。ニックネームに加え、生徒は学年・組・出席番号、一般客は参加IDをスタンプ履歴とともに保存します。進行状況・ランキングは管理者のみ閲覧できます。氏名・連絡先・位置情報は収集せず、カメラ映像・画像も送信しません。Cookieの有効期間と履歴の表示期間は30日です。サーバーの記録は開催後に主催者が削除します。同じ端末・ブラウザでご参加ください。Cookieの削除後や端末変更時は、ニックネームと復旧コードで再ログインできます。復旧コードを紛失した場合は、元の端末で再発行するか受付へご相談ください。
               </p>
             </details>
             <div className="scan-dock">
@@ -342,6 +382,12 @@ export default function Home() {
             <Scanner open={scanning} onClose={close} onScan={scan} />
           </>
         ) : null}
+        {receipt && (
+          <RecoveryCodeDialog
+            receipt={receipt}
+            onClose={() => setReceipt(null)}
+          />
+        )}
         <footer>
           <span>文化祭実行委員会</span>
           <span>歩きスマホはお控えください。</span>

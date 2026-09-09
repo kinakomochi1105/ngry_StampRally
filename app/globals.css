@@ -1593,3 +1593,96 @@ td small {
     font-size: 21px;
   }
 }
+.access-tabs {
+  display: flex;
+  gap: 7px;
+  padding: 5px;
+  background: #e9eef8;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.access-tabs button {
+  flex: 1;
+  font-size: 14px;
+  min-height: 48px;
+  padding: 10px 8px;
+  border-radius: 9px;
+  color: #61708a;
+}
+.access-tabs .active {
+  color: #294aee;
+  background: white;
+  font-weight: 700;
+  box-shadow: 0 2px 6px #1927490b;
+}
+.participant-label small {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0;
+  line-height: 1.8;
+  margin-top: 6px;
+}
+.recovery-support {
+  margin-top: 28px;
+  border: 1px solid #d9e1ef;
+  border-radius: 12px;
+  padding: 17px;
+  background: #fff;
+  font-size: 14px;
+}
+.recovery-support summary {
+  cursor: pointer;
+  color: #294aee;
+  font-weight: 700;
+}
+.recovery-support .enroll-form {
+  border: 0;
+  margin: 0;
+  padding: 16px 0 0;
+}
+.recovery-support .logout-action {
+  margin-top: 20px;
+  min-height: 44px;
+}
+.recovery-dialog {
+  background: white !important;
+  max-width: 480px !important;
+  padding: 25px !important;
+  max-height: 90dvh;
+  overflow: auto;
+  color: #18223b !important;
+}
+.recovery-dialog h2 {
+  font-size: 21px;
+  font-weight: 800;
+}
+.recovery-dialog p {
+  font-size: 14px;
+  line-height: 1.9;
+}
+.recovery-dialog button {
+  min-height: 44px;
+}
+.recovery-code {
+  display: block;
+  user-select: all;
+  overflow-wrap: anywhere;
+  font-family: monospace;
+  font-size: 21px;
+  line-height: 1.8;
+  letter-spacing: 2px;
+  text-align: center;
+  padding: 17px;
+  background: #edf2ff;
+  color: #2341c9;
+  border-radius: 10px;
+}
+.recovery-dialog input[type='checkbox'] {
+  accent-color: #294aee;
+}
+@media print {
+  .recovery-support,
+  .access-tabs {
+    display: none !important;
+  }
+}

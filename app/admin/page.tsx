@@ -104,6 +104,7 @@ export default function Admin() {
   const [config, setConfig] = useState<FestivalSettings>(defaultSettings);
   const [grades, setGrades] = useState('1,2,3');
   const [classes, setClasses] = useState('A,B,C,D,E');
+  const [blockedWords, setBlockedWords] = useState('');
   const [logs, setLogs] = useState<Audit[]>([]);
   const [editingSpot, setEditingSpot] = useState<Partial<Spot> | null>(null);
   const [editingPerson, setEditingPerson] = useState<Row | null>(null);
@@ -142,6 +143,7 @@ export default function Admin() {
         setConfig(c);
         setGrades(c.grades.join(','));
         setClasses(c.classes.join(','));
+        setBlockedWords((c.nicknameBlockedWords ?? []).join('\n'));
         setLogs(d.logs as Audit[]);
       }
     } catch (e) {
@@ -434,6 +436,7 @@ export default function Admin() {
                     )}
                     <td>
                       <strong>{profileLabel(row)}</strong>
+                      <small>{row.nickname ?? 'ニックネーム未設定'}</small>
                       <small>登録 {date(row.createdAt)}</small>
                     </td>
                     <td>
@@ -604,6 +607,10 @@ export default function Admin() {
                 {
                   settings: {
                     ...config,
+                    nicknameBlockedWords: blockedWords
+                      .split(/[,、\n]/)
+                      .map((w) => w.trim())
+                      .filter(Boolean),
                     grades: grades
                       .split(/[,、\n]/)
                       .map((s) => s.trim())
@@ -673,6 +680,18 @@ export default function Admin() {
                 }
               />
               新規参加登録を受け付ける
+            </label>
+            <label>
+              ニックネームの追加禁止語（1行に1つ）
+              <textarea
+                value={blockedWords}
+                onChange={(e) => setBlockedWords(e.target.value)}
+                rows={4}
+                placeholder="学校独自の禁止語を入力"
+              />
+              <small>
+                標準の禁止語に加えて判定します。100件まで。登録済みの名前を自動変更するものではありません。
+              </small>
             </label>
             <Button type="submit" disabled={busy}>
               設定を保存
