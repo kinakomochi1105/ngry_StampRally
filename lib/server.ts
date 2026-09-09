@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers';
-import { event, spots } from './event';
+import { event } from './event';
+import { database } from '@/db';
 const encoder = new TextEncoder();
 export const retentionSeconds = 30 * 24 * 60 * 60;
 export async function sign(value: string) {
@@ -66,12 +67,20 @@ export async function verifyQr(code: unknown) {
   if (
     prefix !== 'rally' ||
     eventId !== event.id ||
-    !spots.some((s) => s.id === spotId)
+    !/^[a-z0-9-]{1,64}$/.test(spotId)
   )
     return null;
-  return safeEqual(signature, await sign(`qr:${eventId}:${spotId}`))
-    ? spotId
-    : null;
+  if (!safeEqual(signature, await sign(`qr:${eventId}:${spotId}`))) return null;
+  if (
+    !(await database()
+      .prepare(
+        'SELECT id FROM locations WHERE id=? AND event_id=? AND active=1',
+      )
+      .bind(spotId, event.id)
+      .first())
+  )
+    return null;
+  return spotId;
 }
 export function json(
   data: unknown,

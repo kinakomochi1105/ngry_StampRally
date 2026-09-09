@@ -1,36 +1,39 @@
 import { database } from '@/db';
 import { event } from '@/lib/event';
-import {
-  json,
-  participant,
-  newParticipant,
-  retentionSeconds,
-} from '@/lib/server';
+import { json, participant, retentionSeconds } from '@/lib/server';
+import { allSpots, configuration } from '@/lib/data';
 export async function GET(request: Request) {
   try {
-    let hash = await participant(request);
-    let cookie: string | undefined;
-    if (!hash) {
-      const created = await newParticipant(request);
-      hash = created.hash;
-      cookie = created.cookie;
-    }
-    const result = await database()
-      .prepare(
-        'SELECT spot_id AS spotId, created_at AS createdAt FROM stamps WHERE event_id = ? AND participant_hash = ? AND created_at > ?',
-      )
-      .bind(event.id, hash, Math.floor(Date.now() / 1000) - retentionSeconds)
-      .all();
-    return json(
-      { stamps: result.results },
-      200,
-      cookie ? { 'Set-Cookie': cookie } : {},
-    );
+    const hash = await participant(request);
+    const [spots, settings] = await Promise.all([allSpots(), configuration()]);
+    const profile = hash
+      ? await database()
+          .prepare(
+            'SELECT id,kind,grade,class_name AS className,number,guest_number AS guestNumber FROM participants WHERE event_id=? AND hash=?',
+          )
+          .bind(event.id, hash)
+          .first()
+      : null;
+    const stamps = profile
+      ? (
+          await database()
+            .prepare(
+              'SELECT s.spot_id AS spotId,s.created_at AS createdAt FROM stamps s JOIN locations l ON l.id=s.spot_id AND l.active=1 AND l.event_id=s.event_id WHERE s.event_id=? AND s.participant_hash=? AND s.created_at>?',
+            )
+            .bind(
+              event.id,
+              hash,
+              Math.floor(Date.now() / 1000) - retentionSeconds,
+            )
+            .all()
+        ).results
+      : [];
+    return json({ stamps, profile, spots, settings });
   } catch {
     return json(
       {
         error:
-          'スタンプ帳を読み込めませんでした。通信を確認して、もう一度お試しください。',
+          'スタンプ帳を読み込めませんでした。通信を確認して再試行してください。',
       },
       503,
     );

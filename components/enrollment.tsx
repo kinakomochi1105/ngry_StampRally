@@ -1,0 +1,176 @@
+'use client';
+import { useState } from 'react';
+import { GraduationCap, Users, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { gradeLabel, classLabel, type FestivalSettings } from '@/lib/types';
+export function Enrollment({
+  settings,
+  onRegistered,
+}: {
+  settings: FestivalSettings;
+  onRegistered: () => Promise<void>;
+}) {
+  const [kind, setKind] = useState<'student' | 'guest' | null>(null);
+  const [grade, setGrade] = useState(settings.grades[0]);
+  const [className, setClassName] = useState(settings.classes[0]);
+  const [number, setNumber] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [consent, setConsent] = useState(false);
+  async function submit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      const r = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind,
+          grade,
+          className,
+          number: Number(number),
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const d = (await r.json()) as { error?: string };
+      if (!r.ok) throw new Error(d.error);
+      await onRegistered();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '登録できませんでした。');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="enrollment">
+      <p className="eyebrow">WELCOME TO THE FESTIVAL</p>
+      <h1>
+        文化祭をめぐる、
+        <br />
+        準備をしよう。
+      </h1>
+      <p className="enroll-lead">はじめに、参加区分を選んでください。</p>
+      <div className="kind-grid">
+        <button
+          className={kind === 'student' ? 'selected' : ''}
+          onClick={() => {
+            setKind('student');
+            setConsent(false);
+          }}
+          aria-pressed={kind === 'student'}
+        >
+          <GraduationCap size={32} />
+          <strong>生徒</strong>
+          <small>学年・組・出席番号で登録</small>
+        </button>
+        <button
+          className={kind === 'guest' ? 'selected' : ''}
+          onClick={() => {
+            setKind('guest');
+            setConsent(false);
+          }}
+          aria-pressed={kind === 'guest'}
+        >
+          <Users size={32} />
+          <strong>一般客</strong>
+          <small>参加IDを自動発行</small>
+        </button>
+      </div>
+      {kind && (
+        <form onSubmit={submit} className="enroll-form">
+          {kind === 'student' ? (
+            <>
+              <h2>生徒情報を確認</h2>
+              <div className="field-pair">
+                <label>
+                  学年
+                  <select
+                    value={grade}
+                    onChange={(e) => setGrade(e.target.value)}
+                    required
+                  >
+                    {settings.grades.map((g) => (
+                      <option key={g} value={g}>
+                        {gradeLabel(g)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  組
+                  <select
+                    value={className}
+                    onChange={(e) => setClassName(e.target.value)}
+                    required
+                  >
+                    {settings.classes.map((c) => (
+                      <option key={c} value={c}>
+                        {classLabel(c)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label>
+                出席番号
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  max={settings.maxNumber}
+                  value={number}
+                  onChange={(e) => setNumber(e.target.value)}
+                  placeholder={`1〜${settings.maxNumber}`}
+                  required
+                />
+              </label>
+              <p className="form-hint">
+                自分の学年・組・出席番号を入力してください。氏名は不要です。
+              </p>
+            </>
+          ) : (
+            <div className="guest-preview">
+              <Users size={28} />
+              <h2>あなた専用の参加ID</h2>
+              <p>
+                登録すると「#1」のような番号が発行されます。氏名や連絡先の入力は不要です。
+              </p>
+            </div>
+          )}
+          <div className="data-consent">
+            <ShieldCheck size={20} />
+            <p>
+              {kind === 'student'
+                ? '学年・組・出席番号とスタンプ履歴を、文化祭の運営・進行確認に使用します。'
+                : '参加IDとスタンプ履歴を、文化祭の運営・進行確認に使用します。'}
+              管理者が進行状況・ランキングを確認できます。Cookieを削除すると参加情報にアクセスできなくなるため、同じ端末・ブラウザをご利用ください。
+            </p>
+          </div>
+          <label className="check-label">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              required
+            />
+            入力内容とデータの取り扱いを確認しました
+          </label>
+          {error && <output className="form-error">{error}</output>}
+          <Button
+            type="submit"
+            className="primary-action"
+            disabled={busy || !consent || !settings.registrationOpen}
+          >
+            {!settings.registrationOpen
+              ? '現在、新規受付を停止しています'
+              : busy
+                ? '参加登録中…'
+                : 'この内容で参加する'}
+            <ArrowRight size={20} />
+          </Button>
+        </form>
+      )}
+    </section>
+  );
+}
