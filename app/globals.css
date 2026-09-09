@@ -1727,39 +1727,175 @@ td small {
 }
 .language-select {
   display: flex;
-  align-items: center;
   justify-content: flex-end;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--muted-ink);
-  margin: 0 0 16px;
+  margin: 0 0 18px;
 }
-.language-select select {
-  min-height: 44px;
-  max-width: 145px;
+.language-trigger {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 14px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 14px;
   background: var(--surface);
   color: var(--ink);
-  padding: 7px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #10203b06;
+}
+.language-trigger:hover,
+.language-trigger[data-popup-open] {
+  border-color: var(--accent-ink);
+  background: var(--soft-bg);
+}
+.language-symbol {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  color: var(--accent-ink);
+  background: var(--soft-bg);
+}
+.language-trigger-label {
+  display: grid;
+  gap: 3px;
+  flex: 1;
+}
+.language-trigger-label strong {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.language-trigger-label small {
+  font-size: 12px;
+  color: var(--muted-ink);
+  line-height: 1.4;
+}
+.language-current {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.language-current small {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--muted-ink);
+}
+.language-chevron {
+  display: flex;
+  color: var(--muted-ink);
+}
+.language-positioner {
+  z-index: 100;
+  max-width: calc(100vw - 24px);
+}
+.language-popup {
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  max-height: var(--available-height);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 8px;
+  box-shadow: 0 12px 40px #0003;
+}
+.language-menu-heading {
+  padding: 10px 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted-ink);
+}
+.language-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 12px;
+  min-height: 68px;
+  border-radius: 11px;
+  cursor: pointer;
+  outline: none;
+}
+.language-option[data-highlighted] {
+  background: var(--soft-bg);
+  box-shadow: inset 0 0 0 2px var(--accent-ink);
+}
+.language-option[data-selected] {
+  color: var(--accent-ink);
+  background: var(--soft-bg);
+}
+.language-option + .language-option {
+  margin-top: 4px;
+}
+.language-option-icon {
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-size: 19px;
+  font-weight: 700;
+}
+.language-option-copy {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  font-size: 16px;
+  font-weight: 700;
+}
+.language-option-copy small {
+  color: var(--muted-ink);
+  font-size: 12px;
+  font-weight: 400;
+}
+.language-check {
+  display: flex;
+  color: var(--accent-ink);
+}
+.topbar {
+  flex-wrap: wrap;
+  gap: 16px;
 }
 .topbar .language-select {
   margin: 0;
-  flex-shrink: 0;
-}
-.topbar .language-select > span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
+  flex: 1 1 100%;
+  width: 100%;
 }
 .topbar .brand {
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.topbar {
-  gap: 12px;
+.admin-shell > .language-select {
+  max-width: 360px;
+  margin-left: auto;
+}
+@media (max-width: 360px) {
+  .language-trigger {
+    gap: 8px;
+    padding: 10px;
+  }
+  .language-symbol {
+    width: 30px;
+  }
+  .language-current {
+    gap: 4px;
+  }
+  .language-current small {
+    display: none;
+  }
 }
 html[lang='en'] .primary-action {
   height: auto;
@@ -1778,9 +1914,6 @@ html[lang='en'] .kind-grid small {
   }
   .topbar .brand-icon {
     display: none;
-  }
-  .topbar .language-select select {
-    max-width: 118px;
   }
   .enrollment h1 {
     font-size: 30px;
