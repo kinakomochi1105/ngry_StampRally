@@ -1,4 +1,5 @@
 'use client';
+import { useI18n, LanguageSelect } from '@/components/language';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Scanner } from '@/components/scanner';
@@ -40,6 +41,7 @@ type Passport = {
   error?: string;
 };
 export default function Home() {
+  const { t, locale } = useI18n();
   const [tab, setTab] = useState('book');
   const [data, setData] = useState<Passport>({
     profile: null,
@@ -185,20 +187,21 @@ export default function Home() {
             <small>STAMP RALLY</small>
           </span>
         </Link>
+        <LanguageSelect />
       </header>
       <div className="mobile-page">
         {notice && (
           <output className={failed ? 'notice error' : 'notice'}>
-            <span>{notice}</span>
+            <span>{t(notice)}</span>
             {failed && (
               <button onClick={() => void reload()} disabled={loading}>
-                再読み込み
+                {t('再読み込み')}
               </button>
             )}
           </output>
         )}
         {loading && !profile ? (
-          <div className="loading-state">参加情報を読み込み中…</div>
+          <div className="loading-state">{t('参加情報を読み込み中…')}</div>
         ) : !failed && !profile ? (
           <>
             <div className="access-tabs">
@@ -207,14 +210,14 @@ export default function Home() {
                 className={!loginMode ? 'active' : ''}
                 onClick={() => setLoginMode(false)}
               >
-                初めての方
+                {t('初めての方')}
               </button>
               <button
                 aria-pressed={loginMode}
                 className={loginMode ? 'active' : ''}
                 onClick={() => setLoginMode(true)}
               >
-                登録済みの方・再ログイン
+                {t('登録済みの方・再ログイン')}
               </button>
             </div>
             {loginMode ? (
@@ -229,15 +232,19 @@ export default function Home() {
               <div>
                 <p className="eyebrow">YOUR FESTIVAL PASS</p>
                 <h1>
-                  今日の発見を、
+                  {t('今日の発見を、')}
                   <br />
-                  スタンプに。
+                  {t('スタンプに。')}
                 </h1>
               </div>
               <span className="participant-label">
                 {profile.kind === 'student' ? 'STUDENT' : 'GUEST'}
-                <strong>{profile.nickname ?? profileLabel(profile)}</strong>
-                {profile.nickname && <small>{profileLabel(profile)}</small>}
+                <strong>
+                  {profile.nickname ?? profileLabel(profile, locale)}
+                </strong>
+                {profile.nickname && (
+                  <small>{profileLabel(profile, locale)}</small>
+                )}
               </span>
             </div>
             <section
@@ -246,7 +253,9 @@ export default function Home() {
               }
             >
               <div>
-                <span>{complete ? 'コンプリート！' : '集めたスタンプ'}</span>
+                <span>
+                  {complete ? t('コンプリート！') : t('集めたスタンプ')}
+                </span>
                 <p>
                   <strong>{count}</strong>
                   <span> / {total}</span>
@@ -266,10 +275,10 @@ export default function Home() {
               )}
               <div className="progress-foot">
                 {complete
-                  ? '全スポット達成、おめでとう！'
+                  ? t('全スポット達成、おめでとう！')
                   : total
-                    ? `あと${total - count}か所。次のスポットへ出かけよう。`
-                    : 'スポットはただいま準備中です。'}
+                    ? t(`あと${total - count}か所。次のスポットへ出かけよう。`)
+                    : t('スポットはただいま準備中です。')}
               </div>
             </section>
             <div className="mobile-tabs">
@@ -279,7 +288,7 @@ export default function Home() {
                 onClick={() => setTab('book')}
               >
                 <Stamp size={18} />
-                スタンプ帳
+                {t('スタンプ帳')}
               </button>
               <button
                 aria-pressed={tab === 'places'}
@@ -287,12 +296,12 @@ export default function Home() {
                 onClick={() => setTab('places')}
               >
                 <MapPin size={18} />
-                設置場所
+                {t('設置場所')}
               </button>
             </div>
             {total === 0 ? (
               <div className="empty-state">
-                設置場所の準備ができるまでお待ちください。
+                {t('設置場所の準備ができるまでお待ちください。')}
               </div>
             ) : tab === 'book' ? (
               <div className="stamp-grid">
@@ -317,10 +326,10 @@ export default function Home() {
                         {has(spot.id) ? (
                           <>
                             <Check size={12} />
-                            獲得済み
+                            {t('獲得済み')}
                           </>
                         ) : (
-                          '未獲得'
+                          t('未獲得')
                         )}
                       </span>
                     </article>
@@ -344,7 +353,7 @@ export default function Home() {
                     {has(spot.id) ? (
                       <Check
                         className="list-status"
-                        aria-label="獲得済み"
+                        aria-label={t('獲得済み')}
                         size={20}
                       />
                     ) : (
@@ -353,7 +362,7 @@ export default function Home() {
                   </article>
                 ))}
                 <Button className="print-list" onClick={() => window.print()}>
-                  設置場所一覧を印刷
+                  {t('設置場所一覧を印刷')}
                 </Button>
               </section>
             )}
@@ -363,9 +372,11 @@ export default function Home() {
               onLoggedOut={loggedOut}
             />
             <details className="policy">
-              <summary>参加データ・使い方について</summary>
+              <summary>{t('参加データ・使い方について')}</summary>
               <p>
-                サイト内の読み取りボタンから設置QRを読み取ります。ニックネームに加え、生徒は学年・組・出席番号、一般客は参加IDをスタンプ履歴とともに保存します。進行状況・ランキングは管理者のみ閲覧できます。氏名・連絡先・位置情報は収集せず、カメラ映像・画像も送信しません。Cookieの有効期間と履歴の表示期間は30日です。サーバーの記録は開催後に主催者が削除します。同じ端末・ブラウザでご参加ください。Cookieの削除後や端末変更時は、ニックネームと復旧コードで再ログインできます。復旧コードを紛失した場合は、元の端末で再発行するか受付へご相談ください。
+                {t(
+                  'サイト内の読み取りボタンから設置QRを読み取ります。ニックネームに加え、生徒は学年・組・出席番号、一般客は参加IDをスタンプ履歴とともに保存します。進行状況・ランキングは管理者のみ閲覧できます。氏名・連絡先・位置情報は収集せず、カメラ映像・画像も送信しません。Cookieの有効期間と履歴の表示期間は30日です。サーバーの記録は開催後に主催者が削除します。同じ端末・ブラウザでご参加ください。Cookieの削除後や端末変更時は、ニックネームと復旧コードで再ログインできます。復旧コードを紛失した場合は、元の端末で再発行するか受付へご相談ください。',
+                )}
               </p>
             </details>
             <div className="scan-dock">
@@ -375,9 +386,9 @@ export default function Home() {
                 onClick={() => setScanning(true)}
               >
                 <QrCode size={22} />
-                QRを読み取る
+                {t('QRを読み取る')}
               </Button>
-              <small>立ち止まってから、読み取りましょう。</small>
+              <small>{t('立ち止まってから、読み取りましょう。')}</small>
             </div>
             <Scanner open={scanning} onClose={close} onScan={scan} />
           </>
@@ -389,8 +400,8 @@ export default function Home() {
           />
         )}
         <footer>
-          <span>文化祭実行委員会</span>
-          <span>歩きスマホはお控えください。</span>
+          <span>{t('文化祭実行委員会')}</span>
+          <span>{t('歩きスマホはお控えください。')}</span>
         </footer>
       </div>
     </main>

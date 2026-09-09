@@ -31,11 +31,24 @@ export const defaultSettings: FestivalSettings = {
   maxNumber: 50,
   registrationOpen: true,
 };
-export const gradeLabel = (value: string) =>
-  /^\d+$/.test(value) ? value + '年' : value;
-export const classLabel = (value: string) =>
-  value.endsWith('組') ? value : value + '組';
-export const profileLabel = (p: Profile) =>
+export const gradeLabel = (value: string, locale = 'ja') =>
+  /^\d+$/.test(value)
+    ? locale === 'en'
+      ? 'Grade ' + value
+      : value + '年'
+    : value;
+export const classLabel = (value: string, locale = 'ja') =>
+  locale === 'en'
+    ? 'Class ' + value
+    : value.endsWith('組')
+      ? value
+      : value + '組';
+export const profileLabel = (p: Profile, locale = 'ja') =>
   p.kind === 'guest'
-    ? `一般客 #${p.guestNumber}`
-    : `${gradeLabel(p.grade ?? '')} ${classLabel(p.className ?? '')} ${p.number}番`;
+    ? (locale === 'en' ? 'Guest #' : '一般客 #') + p.guestNumber
+    : gradeLabel(p.grade ?? '', locale) +
+      ' ' +
+      classLabel(p.className ?? '', locale) +
+      ' ' +
+      p.number +
+      (locale === 'en' ? '' : '番');

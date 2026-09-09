@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/components/language';
 import { useState } from 'react';
 import { validateNickname } from '@/lib/nickname';
 import type { RecoveryReceipt } from '@/components/recovery';
@@ -12,6 +13,7 @@ export function Enrollment({
   settings: FestivalSettings;
   onRegistered: (receipt?: RecoveryReceipt) => Promise<void>;
 }) {
+  const { t, locale } = useI18n();
   const [kind, setKind] = useState<'student' | 'guest' | null>(null);
   const [grade, setGrade] = useState(settings.grades[0]);
   const [className, setClassName] = useState(settings.classes[0]);
@@ -51,11 +53,11 @@ export function Enrollment({
     <section className="enrollment">
       <p className="eyebrow">WELCOME TO THE FESTIVAL</p>
       <h1>
-        文化祭をめぐる、
+        {t('文化祭をめぐる、')}
         <br />
-        準備をしよう。
+        {t('準備をしよう。')}
       </h1>
-      <p className="enroll-lead">はじめに、参加区分を選んでください。</p>
+      <p className="enroll-lead">{t('はじめに、参加区分を選んでください。')}</p>
       <div className="kind-grid">
         <button
           className={kind === 'student' ? 'selected' : ''}
@@ -66,8 +68,8 @@ export function Enrollment({
           aria-pressed={kind === 'student'}
         >
           <GraduationCap size={32} />
-          <strong>生徒</strong>
-          <small>学年・組・出席番号で登録</small>
+          <strong>{t('生徒')}</strong>
+          <small>{t('学年・組・出席番号で登録')}</small>
         </button>
         <button
           className={kind === 'guest' ? 'selected' : ''}
@@ -78,18 +80,18 @@ export function Enrollment({
           aria-pressed={kind === 'guest'}
         >
           <Users size={32} />
-          <strong>一般客</strong>
-          <small>参加IDを自動発行</small>
+          <strong>{t('一般客')}</strong>
+          <small>{t('参加IDを自動発行')}</small>
         </button>
       </div>
       {kind && (
         <form onSubmit={submit} className="enroll-form">
           {kind === 'student' ? (
             <>
-              <h2>生徒情報を確認</h2>
+              <h2>{t('生徒情報を確認')}</h2>
               <div className="field-pair">
                 <label>
-                  学年
+                  {t('学年')}
                   <select
                     value={grade}
                     onChange={(e) => setGrade(e.target.value)}
@@ -97,13 +99,13 @@ export function Enrollment({
                   >
                     {settings.grades.map((g) => (
                       <option key={g} value={g}>
-                        {gradeLabel(g)}
+                        {gradeLabel(g, locale)}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label>
-                  組
+                  {t('組')}
                   <select
                     value={className}
                     onChange={(e) => setClassName(e.target.value)}
@@ -111,14 +113,14 @@ export function Enrollment({
                   >
                     {settings.classes.map((c) => (
                       <option key={c} value={c}>
-                        {classLabel(c)}
+                        {classLabel(c, locale)}
                       </option>
                     ))}
                   </select>
                 </label>
               </div>
               <label>
-                出席番号
+                {t('出席番号')}
                 <input
                   type="number"
                   inputMode="numeric"
@@ -131,40 +133,52 @@ export function Enrollment({
                 />
               </label>
               <p className="form-hint">
-                自分の学年・組・出席番号を入力してください。氏名は不要です。
+                {t(
+                  '自分の学年・組・出席番号を入力してください。氏名は不要です。',
+                )}
               </p>
             </>
           ) : (
             <div className="guest-preview">
               <Users size={28} />
-              <h2>あなた専用の参加ID</h2>
+              <h2>{t('あなた専用の参加ID')}</h2>
               <p>
-                登録すると「#1」のような番号が発行されます。氏名や連絡先の入力は不要です。
+                {t(
+                  '登録すると「#1」のような番号が発行されます。氏名や連絡先の入力は不要です。',
+                )}
               </p>
             </div>
           )}
           <label>
-            ニックネーム
+            {t('ニックネーム')}
             <input
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               minLength={2}
               maxLength={20}
               autoComplete="username"
-              placeholder="例：さくらペンギン"
+              placeholder={t('例：さくらペンギン')}
               required
             />
           </label>
           <p className="form-hint">
-            本名は使わず、2〜20文字で入力してください。不適切な名前や管理者を装う名前は使えません。再ログイン時にこの名前を確認します。
+            {t(
+              '本名は使わず、2〜20文字で入力してください。不適切な名前や管理者を装う名前は使えません。再ログイン時にこの名前を確認します。',
+            )}
           </p>
           <div className="data-consent">
             <ShieldCheck size={20} />
             <p>
               {kind === 'student'
-                ? 'ニックネーム・学年・組・出席番号とスタンプ履歴を、文化祭の運営・進行確認に使用します。'
-                : 'ニックネーム・参加IDとスタンプ履歴を、文化祭の運営・進行確認に使用します。'}
-              管理者が進行状況・ランキングを確認できます。登録後に表示される復旧コードを控えてください。Cookieを削除しても、ニックネームと復旧コードで再ログインできます。
+                ? t(
+                    'ニックネーム・学年・組・出席番号とスタンプ履歴を、文化祭の運営・進行確認に使用します。',
+                  )
+                : t(
+                    'ニックネーム・参加IDとスタンプ履歴を、文化祭の運営・進行確認に使用します。',
+                  )}
+              {t(
+                '管理者が進行状況・ランキングを確認できます。登録後に表示される復旧コードを控えてください。Cookieを削除しても、ニックネームと復旧コードで再ログインできます。',
+              )}
             </p>
           </div>
           <label className="check-label">
@@ -174,19 +188,19 @@ export function Enrollment({
               onChange={(e) => setConsent(e.target.checked)}
               required
             />
-            入力内容とデータの取り扱いを確認しました
+            {t('入力内容とデータの取り扱いを確認しました')}
           </label>
-          {error && <output className="form-error">{error}</output>}
+          {error && <output className="form-error">{t(error)}</output>}
           <Button
             type="submit"
             className="primary-action"
             disabled={busy || !consent || !settings.registrationOpen}
           >
             {!settings.registrationOpen
-              ? '現在、新規受付を停止しています'
+              ? t('現在、新規受付を停止しています')
               : busy
-                ? '参加登録中…'
-                : 'この内容で参加する'}
+                ? t('参加登録中…')
+                : t('この内容で参加する')}
             <ArrowRight size={20} />
           </Button>
         </form>

@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/components/language';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +26,7 @@ export function RecoveryLogin({
 }: {
   onRestored: () => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [nickname, setNickname] = useState(''),
     [code, setCode] = useState(''),
     [error, setError] = useState(''),
@@ -33,12 +35,12 @@ export function RecoveryLogin({
     <section className="enrollment">
       <p className="eyebrow">WELCOME BACK</p>
       <h1>
-        スタンプ帳に
+        {t('スタンプ帳に')}
         <br />
-        おかえりなさい。
+        {t('おかえりなさい。')}
       </h1>
       <p className="enroll-lead">
-        登録時のニックネームと復旧コードを入力してください。
+        {t('登録時のニックネームと復旧コードを入力してください。')}
       </p>
       <form
         className="enroll-form"
@@ -63,7 +65,7 @@ export function RecoveryLogin({
         }}
       >
         <label>
-          ニックネーム
+          {t('ニックネーム')}
           <input
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
@@ -73,7 +75,7 @@ export function RecoveryLogin({
           />
         </label>
         <label>
-          復旧コード
+          {t('復旧コード')}
           <input
             value={code}
             onChange={(e) => setCode(e.target.value)}
@@ -82,20 +84,24 @@ export function RecoveryLogin({
             maxLength={80}
             spellCheck={false}
             autoCapitalize="characters"
-            placeholder="登録後に控えたコード"
+            placeholder={t('登録後に控えたコード')}
             required
           />
         </label>
         <p className="form-hint">
-          スタンプ履歴と参加IDを引き継ぎます。以前の端末はログアウトされます。新規受付の停止中も再ログインできます。
+          {t(
+            'スタンプ履歴と参加IDを引き継ぎます。以前の端末はログアウトされます。新規受付の停止中も再ログインできます。',
+          )}
         </p>
-        {error && <output className="form-error">{error}</output>}
+        {error && <output className="form-error">{t(error)}</output>}
         <Button type="submit" className="primary-action" disabled={busy}>
-          {busy ? '確認中…' : '再ログインする'}
+          {busy ? t('確認中…') : t('再ログインする')}
         </Button>
       </form>
       <p className="form-hint">
-        復旧コードが分からない場合は、元の端末で再発行してください。元の端末も使えない場合は受付へご相談ください。ニックネームだけでのログインはできません。
+        {t(
+          '復旧コードが分からない場合は、元の端末で再発行してください。元の端末も使えない場合は受付へご相談ください。ニックネームだけでのログインはできません。',
+        )}
       </p>
     </section>
   );
@@ -109,6 +115,7 @@ export function RecoverySetup({
   onIssued: (receipt: RecoveryReceipt) => Promise<void>;
   onLoggedOut: () => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState(nickname ?? ''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
@@ -117,8 +124,8 @@ export function RecoverySetup({
     <details className="recovery-support" open={!nickname || undefined}>
       <summary>
         {nickname
-          ? '再ログイン・端末変更に備える'
-          : 'ニックネームと復旧コードを設定'}
+          ? t('再ログイン・端末変更に備える')
+          : t('ニックネームと復旧コードを設定')}
       </summary>
       <form
         className="enroll-form"
@@ -143,7 +150,7 @@ export function RecoverySetup({
         {!nickname && (
           <>
             <label>
-              ニックネーム
+              {t('ニックネーム')}
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -154,14 +161,20 @@ export function RecoverySetup({
               />
             </label>
             <p className="form-hint">
-              本名は使わず、2〜20文字で入力してください。不適切な名前や管理者を装う名前は使えません。
+              {t(
+                '本名は使わず、2〜20文字で入力してください。不適切な名前や管理者を装う名前は使えません。',
+              )}
             </p>
           </>
         )}
         <p className="form-hint">
           {nickname
-            ? '新しい復旧コードを発行すると、以前のコードは使えなくなります。ニックネームは変更されません。'
-            : 'これまでのスタンプ履歴を残したまま、再ログインの準備をします。'}
+            ? t(
+                '新しい復旧コードを発行すると、以前のコードは使えなくなります。ニックネームは変更されません。',
+              )
+            : t(
+                'これまでのスタンプ履歴を残したまま、再ログインの準備をします。',
+              )}
         </p>
         <label className="check-label">
           <input
@@ -171,16 +184,16 @@ export function RecoverySetup({
             required
           />
           {nickname
-            ? '以前の復旧コードが無効になることを確認しました'
-            : 'ニックネームを登録し、復旧コードを控えます'}
+            ? t('以前の復旧コードが無効になることを確認しました')
+            : t('ニックネームを登録し、復旧コードを控えます')}
         </label>
-        {error && <output className="form-error">{error}</output>}
+        {error && <output className="form-error">{t(error)}</output>}
         <Button type="submit" disabled={busy || !confirm}>
           {busy
-            ? '発行中…'
+            ? t('発行中…')
             : nickname
-              ? '復旧コードを再発行'
-              : '登録して復旧コードを発行'}
+              ? t('復旧コードを再発行')
+              : t('登録して復旧コードを発行')}
         </Button>
       </form>
       {nickname && (
@@ -191,7 +204,9 @@ export function RecoverySetup({
           onClick={async () => {
             if (
               !window.confirm(
-                'ニックネームと復旧コードを控えていますか？ログアウトしてもスタンプは残ります。',
+                t(
+                  'ニックネームと復旧コードを控えていますか？ログアウトしてもスタンプは残ります。',
+                ),
               )
             )
               return;
@@ -208,7 +223,7 @@ export function RecoverySetup({
             }
           }}
         >
-          ログアウト
+          {t('ログアウト')}
         </Button>
       )}
     </details>
@@ -221,6 +236,7 @@ export function RecoveryCodeDialog({
   receipt: RecoveryReceipt | null;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false),
     [saved, setSaved] = useState(false),
     [error, setError] = useState('');
@@ -228,23 +244,28 @@ export function RecoveryCodeDialog({
   return (
     <Dialog open onOpenChange={() => {}}>
       <DialogContent className="recovery-dialog" showCloseButton={false}>
-        <DialogTitle>復旧コードを控えてください</DialogTitle>
+        <DialogTitle>{t('復旧コードを控えてください')}</DialogTitle>
         <DialogDescription>
-          別の端末での再ログインには、ニックネームとこのコードが必要です。このコードは他の人に教えないでください。
+          {t(
+            '別の端末での再ログインには、ニックネームとこのコードが必要です。このコードは他の人に教えないでください。',
+          )}
         </DialogDescription>
         <p>
-          ニックネーム：<strong>{receipt.nickname}</strong>
+          {t('ニックネーム：')}
+          <strong>{receipt.nickname}</strong>
         </p>
         <code className="recovery-code">{receipt.recoveryCode}</code>
         <p className="form-hint">
-          コードをコピーするか、この画面をスクリーンショットで保存してください。閉じると同じコードは再表示できません。
+          {t(
+            'コードをコピーするか、この画面をスクリーンショットで保存してください。閉じると同じコードは再表示できません。',
+          )}
         </p>
         <Button
           variant="outline"
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(
-                `ニックネーム: ${receipt.nickname}\n復旧コード: ${receipt.recoveryCode}`,
+                `${t('ニックネーム')}: ${receipt.nickname}\n${t('復旧コード')}: ${receipt.recoveryCode}`,
               );
               setCopied(true);
               setError('');
@@ -255,19 +276,19 @@ export function RecoveryCodeDialog({
             }
           }}
         >
-          {copied ? 'コピーしました' : 'ニックネームとコードをコピー'}
+          {copied ? t('コピーしました') : t('ニックネームとコードをコピー')}
         </Button>
-        {error && <output className="form-error">{error}</output>}
+        {error && <output className="form-error">{t(error)}</output>}
         <label className="check-label">
           <input
             type="checkbox"
             checked={saved}
             onChange={(e) => setSaved(e.target.checked)}
           />
-          ニックネームと復旧コードを控えました
+          {t('ニックネームと復旧コードを控えました')}
         </label>
         <Button className="primary-action" disabled={!saved} onClick={onClose}>
-          スタンプ帳へ
+          {t('スタンプ帳へ')}
         </Button>
       </DialogContent>
     </Dialog>

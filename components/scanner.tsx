@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/components/language';
 import { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ export function Scanner({
   onClose: () => void;
   onScan: (code: string) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const handled = useRef(false);
@@ -160,15 +162,15 @@ export function Scanner({
       }}
     >
       <DialogContent className="scanner-dialog" showCloseButton={false}>
-        <DialogTitle>QRを読み取る</DialogTitle>
+        <DialogTitle>{t('QRを読み取る')}</DialogTitle>
         <DialogDescription>
-          立ち止まって、設置されたQR全体をカメラに写してください。
+          {t('立ち止まって、設置されたQR全体をカメラに写してください。')}
         </DialogDescription>
         <video ref={video} muted playsInline className="camera" />
         <output className={error ? 'scanner-error' : ''}>
           {busy
-            ? '押印を確認しています…'
-            : error || 'QRにカメラを向けてください。'}
+            ? t('押印を確認しています…')
+            : t(error) || t('QRにカメラを向けてください。')}
         </output>
         {error && (
           <Button
@@ -178,11 +180,11 @@ export function Scanner({
               setRetry((v) => v + 1);
             }}
           >
-            カメラで再試行
+            {t('カメラで再試行')}
           </Button>
         )}
         <label className="file-label">
-          撮影済みのQR画像を選ぶ
+          {t('撮影済みのQR画像を選ぶ')}
           <input
             type="file"
             accept="image/*"
@@ -193,7 +195,9 @@ export function Scanner({
             }}
           />
         </label>
-        <DialogClose render={<Button variant="outline" />}>閉じる</DialogClose>
+        <DialogClose render={<Button variant="outline" />}>
+          {t('閉じる')}
+        </DialogClose>
       </DialogContent>
     </Dialog>
   );
