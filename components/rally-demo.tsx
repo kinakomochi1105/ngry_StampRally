@@ -18,14 +18,14 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
     : ['設置場所へ行こう', 'QRを読んでスタンプ獲得', '全部集めてコンプリート'];
   const descriptions = en
     ? [
-        'Open Locations to see where each QR code is displayed. Walk to a location first.',
+        'Use Locations in the bottom menu to see where each QR code is displayed. Walk to a location first.',
         'Stop walking, tap Scan QR code and allow camera access. Point at the entire displayed QR code.',
-        'Your collected stamps appear in your stamp book. Visit every active location to complete the rally.',
+        'Use Stamps to see your collection and Rewards to check how many stamps remain.',
       ]
     : [
-        '「設置場所」でQRが置いてある場所を確認して、スポットへ向かいます。',
+        '画面下部の「設置場所」でQRが置いてある場所を確認して、スポットへ向かいます。',
         '立ち止まって「QRを読み取る」を押し、カメラを許可します。設置されたQR全体をカメラに写しましょう。',
-        '獲得したスタンプは「スタンプ帳」に反映されます。公開中のスポットを全部巡るとコンプリートです。',
+        '「スタンプ」で獲得状況を確認できます。「報酬まで」には残り個数が表示されます。',
       ];
   return (
     <Dialog
@@ -54,13 +54,6 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
           </div>
           {step === 0 ? (
             <>
-              <div className="tutorial-tabs">
-                <span>{en ? 'Stamp book' : 'スタンプ帳'}</span>
-                <strong>
-                  <MapPin size={14} />
-                  {en ? 'Locations' : '設置場所'}
-                </strong>
-              </div>
               {[
                 en ? 'Entrance' : 'エントランス',
                 en ? 'Art room' : '美術室',
@@ -123,6 +116,11 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
               </p>
             </>
           )}
+        </div>
+        <div className="tutorial-tabs tutorial-nav-preview" aria-hidden="true">
+          <span>{en ? 'Stamps' : 'スタンプ'}</span>
+          <strong>{en ? 'Locations' : '設置場所'}</strong>
+          <span>{en ? 'Rewards' : '報酬まで'}</span>
         </div>
         <p className="tutorial-note">
           {en

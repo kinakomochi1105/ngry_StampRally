@@ -24,6 +24,7 @@ import {
   Check,
   ChevronRight,
   Trophy,
+  Gift,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -295,96 +296,169 @@ export default function Home() {
                     : t('スポットはただいま準備中です。')}
               </div>
             </section>
-            <div className="mobile-tabs">
-              <button
-                aria-pressed={tab === 'book'}
-                className={tab === 'book' ? 'active' : ''}
-                onClick={() => setTab('book')}
-              >
-                <Stamp size={18} />
-                {t('スタンプ帳')}
-              </button>
-              <button
-                aria-pressed={tab === 'places'}
-                className={tab === 'places' ? 'active' : ''}
-                onClick={() => setTab('places')}
-              >
-                <MapPin size={18} />
-                {t('設置場所')}
-              </button>
-            </div>
-            {total === 0 ? (
-              <div className="empty-state">
-                {t('設置場所の準備ができるまでお待ちください。')}
-              </div>
-            ) : tab === 'book' ? (
-              <div className="stamp-grid">
-                {spots.map((spot, i) => {
-                  const Icon = icons[i % icons.length];
-                  return (
-                    <article
-                      className={
-                        (has(spot.id) ? 'stamp-card collected' : 'stamp-card') +
-                        (freshStamp === spot.id ? ' freshly-stamped' : '')
-                      }
-                      key={spot.id}
-                      onAnimationEnd={(e) => {
-                        if (e.animationName === 'festival-stamp')
-                          setFreshStamp(null);
-                      }}
-                    >
-                      <span className="spot-number">
+            <section
+              id="rally-panel"
+              className="rally-panel"
+              aria-label={locale === 'en' ? 'Festival pass' : 'スタンプラリー'}
+            >
+              <h2 className="rally-panel-title">
+                {tab === 'book'
+                  ? locale === 'en'
+                    ? 'Stamps'
+                    : 'スタンプ'
+                  : tab === 'places'
+                    ? t('設置場所')
+                    : locale === 'en'
+                      ? 'Reward progress'
+                      : '報酬まで'}
+              </h2>
+              {tab === 'rewards' ? (
+                <section className="reward-progress">
+                  <span
+                    className={
+                      complete ? 'reward-symbol complete' : 'reward-symbol'
+                    }
+                  >
+                    {complete ? <Trophy size={42} /> : <Gift size={42} />}
+                  </span>
+                  <p className="eyebrow">
+                    {locale === 'en' ? 'YOUR PROGRESS' : 'コンプリートへの道'}
+                  </p>
+                  <h3>
+                    {!total
+                      ? locale === 'en'
+                        ? 'Getting ready'
+                        : 'ただいま準備中'
+                      : complete
+                        ? locale === 'en'
+                          ? 'All stamps collected!'
+                          : '全スタンプ達成！'
+                        : locale === 'en'
+                          ? 'Stamps to go'
+                          : 'コンプリートまで'}
+                  </h3>
+                  {total > 0 && (
+                    <>
+                      <div className="reward-remaining">
+                        <strong>{total - count}</strong>
+                        <span>{locale === 'en' ? 'remaining' : '個'}</span>
+                      </div>
+                      <progress
+                        value={count}
+                        max={total}
+                        aria-label={
+                          locale === 'en' ? 'Stamp progress' : 'スタンプ達成率'
+                        }
+                      />
+                      <p>
+                        {count} / {total}{' '}
+                        {locale === 'en' ? 'stamps collected' : 'スタンプ獲得'}
+                      </p>
+                    </>
+                  )}
+                  <p className="reward-description">
+                    {complete
+                      ? locale === 'en'
+                        ? 'Congratulations on visiting every active location!'
+                        : '公開中のスポットをすべて巡りました。おめでとうございます！'
+                      : locale === 'en'
+                        ? 'Collect a stamp at every active location to complete the rally.'
+                        : '公開中のスポットでスタンプを集めて、コンプリートを目指しましょう。'}
+                  </p>
+                  <div className="reward-note">
+                    <strong>
+                      {locale === 'en' ? 'About rewards' : '報酬について'}
+                    </strong>
+                    <p>
+                      {locale === 'en'
+                        ? 'Please ask the festival organizers about rewards and how to receive them.'
+                        : '報酬の内容・受け取り方法は、文化祭の運営案内をご確認ください。'}
+                    </p>
+                  </div>
+                  {!complete && total > 0 && (
+                    <Button variant="outline" onClick={() => setTab('places')}>
+                      {locale === 'en'
+                        ? 'Find your next location'
+                        : '次の設置場所を確認'}
+                      <ChevronRight size={17} />
+                    </Button>
+                  )}
+                </section>
+              ) : total === 0 ? (
+                <div className="empty-state">
+                  {t('設置場所の準備ができるまでお待ちください。')}
+                </div>
+              ) : tab === 'book' ? (
+                <div className="stamp-grid">
+                  {spots.map((spot, i) => {
+                    const Icon = icons[i % icons.length];
+                    return (
+                      <article
+                        className={
+                          (has(spot.id)
+                            ? 'stamp-card collected'
+                            : 'stamp-card') +
+                          (freshStamp === spot.id ? ' freshly-stamped' : '')
+                        }
+                        key={spot.id}
+                        onAnimationEnd={(e) => {
+                          if (e.animationName === 'festival-stamp')
+                            setFreshStamp(null);
+                        }}
+                      >
+                        <span className="spot-number">
+                          {String(i + 1).padStart(2, '0')}
+                        </span>
+                        <div className="stamp-circle">
+                          <Icon size={34} strokeWidth={1.4} />
+                        </div>
+                        <h3>{spot.name}</h3>
+                        <p>{spot.location}</p>
+                        <span className="uncollected">
+                          {has(spot.id) ? (
+                            <>
+                              <Check size={12} />
+                              {t('獲得済み')}
+                            </>
+                          ) : (
+                            t('未獲得')
+                          )}
+                        </span>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <section className="places">
+                  {spots.map((spot, i) => (
+                    <article key={spot.id}>
+                      <span className="list-number">
                         {String(i + 1).padStart(2, '0')}
                       </span>
-                      <div className="stamp-circle">
-                        <Icon size={34} strokeWidth={1.4} />
+                      <div>
+                        <h3>{spot.name}</h3>
+                        <p>
+                          <MapPin size={14} /> {spot.location}
+                        </p>
+                        <p>{spot.description}</p>
                       </div>
-                      <h3>{spot.name}</h3>
-                      <p>{spot.location}</p>
-                      <span className="uncollected">
-                        {has(spot.id) ? (
-                          <>
-                            <Check size={12} />
-                            {t('獲得済み')}
-                          </>
-                        ) : (
-                          t('未獲得')
-                        )}
-                      </span>
+                      {has(spot.id) ? (
+                        <Check
+                          className="list-status"
+                          aria-label={t('獲得済み')}
+                          size={20}
+                        />
+                      ) : (
+                        <ChevronRight size={18} className="list-status" />
+                      )}
                     </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <section className="places">
-                {spots.map((spot, i) => (
-                  <article key={spot.id}>
-                    <span className="list-number">
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
-                    <div>
-                      <h3>{spot.name}</h3>
-                      <p>
-                        <MapPin size={14} /> {spot.location}
-                      </p>
-                      <p>{spot.description}</p>
-                    </div>
-                    {has(spot.id) ? (
-                      <Check
-                        className="list-status"
-                        aria-label={t('獲得済み')}
-                        size={20}
-                      />
-                    ) : (
-                      <ChevronRight size={18} className="list-status" />
-                    )}
-                  </article>
-                ))}
-                <Button className="print-list" onClick={() => window.print()}>
-                  {t('設置場所一覧を印刷')}
-                </Button>
-              </section>
-            )}
+                  ))}
+                  <Button className="print-list" onClick={() => window.print()}>
+                    {t('設置場所一覧を印刷')}
+                  </Button>
+                </section>
+              )}
+            </section>
             <Button
               className="replay-demo"
               variant="outline"
@@ -405,16 +479,65 @@ export default function Home() {
                 )}
               </p>
             </details>
-            <div className="scan-dock">
-              <Button
-                className="primary-action"
-                disabled={failed || loading || !total}
-                onClick={() => setScanning(true)}
+            <div className="rally-bottom-dock">
+              <div className="scan-dock">
+                <Button
+                  className="primary-action"
+                  disabled={failed || loading || !total}
+                  onClick={() => setScanning(true)}
+                >
+                  <QrCode size={22} />
+                  {t('QRを読み取る')}
+                </Button>
+                <small>{t('立ち止まってから、読み取りましょう。')}</small>
+              </div>
+              <nav
+                className="rally-bottom-nav"
+                aria-label={
+                  locale === 'en' ? 'Festival navigation' : '画面切り替え'
+                }
               >
-                <QrCode size={22} />
-                {t('QRを読み取る')}
-              </Button>
-              <small>{t('立ち止まってから、読み取りましょう。')}</small>
+                {[
+                  {
+                    id: 'book',
+                    Icon: Stamp,
+                    label: locale === 'en' ? 'Stamps' : 'スタンプ',
+                  },
+                  {
+                    id: 'places',
+                    Icon: MapPin,
+                    label: locale === 'en' ? 'Locations' : '設置場所',
+                  },
+                  {
+                    id: 'rewards',
+                    Icon: Gift,
+                    label: locale === 'en' ? 'Rewards' : '報酬まで',
+                  },
+                ].map(({ id, Icon, label }) => (
+                  <button
+                    key={id}
+                    className={tab === id ? 'active' : ''}
+                    aria-current={tab === id ? 'page' : undefined}
+                    aria-controls="rally-panel"
+                    onClick={() => {
+                      setTab(id);
+                      document
+                        .getElementById('rally-panel')
+                        ?.scrollIntoView({ block: 'start' });
+                    }}
+                  >
+                    <span>
+                      <Icon size={22} />
+                      {id === 'rewards' && complete && (
+                        <i>
+                          <Check size={10} />
+                        </i>
+                      )}
+                    </span>
+                    <strong>{label}</strong>
+                  </button>
+                ))}
+              </nav>
             </div>
             <Scanner open={scanning} onClose={close} onScan={scan} />
           </>

@@ -2367,3 +2367,179 @@ html[lang='en'] .kind-grid small {
     display: none !important;
   }
 }
+
+.rally-panel {
+  scroll-margin-top: 20px;
+}
+.rally-panel-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 26px 0 18px;
+}
+.participant-app:has(.rally-bottom-dock) .mobile-page {
+  padding-bottom: calc(195px + env(safe-area-inset-bottom, 0px));
+}
+.rally-bottom-dock {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  translate: -50% 0;
+  width: 100%;
+  max-width: 620px;
+  z-index: 30;
+  background: var(--dock-bg);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 20px 20px 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -5px 25px #0000000a;
+}
+.rally-bottom-dock .scan-dock {
+  position: static;
+  transform: none;
+  translate: none;
+  width: 100%;
+  max-width: none;
+  padding: 10px 16px 8px;
+  background: transparent;
+}
+.rally-bottom-dock .scan-dock small {
+  margin-top: 5px;
+}
+.rally-bottom-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  padding: 5px 8px 7px;
+  gap: 5px;
+}
+.rally-bottom-nav button {
+  min-height: 63px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--muted-ink);
+  background: transparent;
+}
+.rally-bottom-nav button.active {
+  background: var(--soft-bg);
+  color: var(--accent-ink);
+}
+.rally-bottom-nav strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+.rally-bottom-nav button > span {
+  position: relative;
+  display: flex;
+}
+.rally-bottom-nav i {
+  position: absolute;
+  right: -6px;
+  top: -3px;
+  background: var(--accent-ink);
+  color: var(--surface);
+  border-radius: 50%;
+  padding: 2px;
+}
+.reward-progress {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  text-align: center;
+  padding: 28px 22px;
+}
+.reward-symbol {
+  display: grid;
+  place-items: center;
+  background: var(--soft-bg);
+  color: var(--accent-ink);
+  width: 82px;
+  height: 82px;
+  border-radius: 24px;
+  margin: 0 auto 22px;
+}
+.reward-symbol.complete {
+  background: #294aee;
+  color: white;
+}
+.reward-progress h3 {
+  font-size: 22px;
+  font-weight: 800;
+}
+.reward-remaining {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  margin: 14px 0;
+}
+.reward-remaining strong {
+  font-size: 64px;
+  line-height: 1;
+  font-weight: 800;
+  color: var(--accent-ink);
+}
+.reward-remaining span {
+  font-size: 14px;
+  color: var(--muted-ink);
+}
+.reward-progress progress {
+  display: block;
+  width: 100%;
+  height: 10px;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  appearance: none;
+  background: var(--soft-bg);
+}
+.reward-progress progress::-webkit-progress-bar {
+  background: var(--soft-bg);
+}
+.reward-progress progress::-webkit-progress-value {
+  background: #294aee;
+  border-radius: 10px;
+}
+.reward-progress progress::-moz-progress-bar {
+  background: #294aee;
+  border-radius: 10px;
+}
+.reward-progress > p:not(.eyebrow) {
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--muted-ink);
+  margin: 12px 0;
+}
+.reward-note {
+  padding: 16px;
+  background: var(--soft-bg);
+  border-radius: 12px;
+  margin: 20px 0;
+  text-align: left;
+}
+.reward-note strong {
+  font-size: 14px;
+}
+.reward-note p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--muted-ink);
+  margin: 6px 0 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reward-progress {
+    animation: festival-enter 240ms ease-out;
+  }
+}
+@media print {
+  .rally-bottom-dock {
+    display: none !important;
+  }
+  .participant-app:has(.rally-bottom-dock) .mobile-page {
+    padding-bottom: 0;
+  }
+}
