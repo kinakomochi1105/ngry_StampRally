@@ -51,13 +51,17 @@ export function Enrollment({
   }
   return (
     <section className="enrollment">
-      <p className="eyebrow">WELCOME TO THE FESTIVAL</p>
+      <p className="registration-step">
+        {locale === 'en' ? 'STEP 1 · JOIN THE RALLY' : 'STEP 1 · 参加の準備'}
+      </p>
       <h1>
-        {t('文化祭をめぐる、')}
-        <br />
-        {t('準備をしよう。')}
+        {locale === 'en' ? 'Let’s get started' : 'スタンプラリーに参加する'}
       </h1>
-      <p className="enroll-lead">{t('はじめに、参加区分を選んでください。')}</p>
+      <p className="enroll-lead">
+        {locale === 'en'
+          ? 'Choose Student or Guest. After registering, we will show you how to collect stamps.'
+          : '生徒か一般のお客様かを選んでください。登録後に、スタンプの集め方をご案内します。'}
+      </p>
       <div className="kind-grid">
         <button
           className={kind === 'student' ? 'selected' : ''}
@@ -86,6 +90,11 @@ export function Enrollment({
       </div>
       {kind && (
         <form onSubmit={submit} className="enroll-form">
+          <p className="registration-step">
+            {locale === 'en'
+              ? 'STEP 2 · YOUR DETAILS'
+              : 'STEP 2 · 参加情報を入力'}
+          </p>
           {kind === 'student' ? (
             <>
               <h2>{t('生徒情報を確認')}</h2>

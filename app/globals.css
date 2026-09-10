@@ -2,11 +2,11 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @theme inline {
-  --color-primary: #294aee;
+  --color-primary: #087c70;
   --color-primary-foreground: #fff;
   --color-background: var(--page-bg);
   --color-foreground: var(--ink);
-  --color-ring: #294aee;
+  --color-ring: #087c70;
 }
 :root {
   font-family: 'Noto Sans JP', 'Yu Gothic', Meiryo, sans-serif;
@@ -58,7 +58,7 @@ a {
   font-size: 19px;
 }
 .brand-icon {
-  background: #294aee;
+  background: #087c70;
   color: #fff;
   display: grid;
   place-items: center;
@@ -206,7 +206,7 @@ h2 {
 .progress span {
   display: block;
   height: 100%;
-  background: #294aee;
+  background: #087c70;
   transition: width 0.4s;
 }
 .progress-caption {
@@ -283,11 +283,11 @@ h2 {
 }
 .scan-card {
   padding: 25px 22px;
-  background: #294aee;
+  background: #087c70;
   color: #fff;
   text-align: center;
   border-radius: 18px;
-  box-shadow: 0 12px 24px #294aee14;
+  box-shadow: 0 12px 24px #087c7014;
 }
 .scan-label {
   display: block;
@@ -555,7 +555,7 @@ footer {
   transform: rotate(-7deg);
 }
 .collected .uncollected {
-  background: #294aee;
+  background: #087c70;
   color: white;
 }
 .notice {
@@ -631,7 +631,7 @@ footer {
   .mobile-scan {
     display: flex;
     width: 100%;
-    background: #294aee !important;
+    background: #087c70 !important;
     color: white !important;
     min-height: 50px !important;
     margin-bottom: 22px;
@@ -749,13 +749,13 @@ footer {
 .mobile-progress {
   padding: 24px;
   color: white;
-  background: #294aee;
+  background: #087c70;
   border-radius: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  box-shadow: 0 12px 24px #294aee15;
+  box-shadow: 0 12px 24px #087c7015;
 }
 .mobile-progress > div > span {
   font-size: 14px;
@@ -784,7 +784,7 @@ footer {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #294aee;
+  background: #087c70;
   font-size: 16px !important;
   font-weight: 800;
 }
@@ -861,7 +861,7 @@ footer {
   margin-top: 8px;
 }
 .primary-action {
-  background: #294aee !important;
+  background: #087c70 !important;
   color: white !important;
   width: 100%;
   min-height: 54px !important;
@@ -1269,7 +1269,7 @@ td small {
 .row-progress span {
   display: block;
   height: 100%;
-  background: #294aee;
+  background: #087c70;
 }
 .rank-value {
   font-size: 22px;
@@ -1300,7 +1300,7 @@ td small {
 .login-icon {
   display: grid;
   place-items: center;
-  background: #294aee;
+  background: #087c70;
   color: white;
   width: 70px;
   height: 70px;
@@ -1690,28 +1690,28 @@ td small {
 /* Follow the device theme immediately, including changes while this page is open. */
 :root {
   color-scheme: light dark;
-  --page-bg: #f5f6fa;
+  --page-bg: #f4f7f6;
   --surface: #fff;
   --ink: #18223b;
   --muted-ink: #61708a;
-  --accent-ink: #294aee;
-  --soft-bg: #edf1fc;
+  --accent-ink: #087c70;
+  --soft-bg: #eaf5f1;
   --line: #d5ddec;
-  --dock-bg: #f5f6faf5;
+  --dock-bg: #f4f7f6f5;
   --danger-ink: #9c2541;
   --danger-bg: #fff0f2;
   --danger-border: #edcbd2;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --page-bg: #101624;
-    --surface: #192235;
+    --page-bg: #101e1d;
+    --surface: #172b29;
     --ink: #edf2fc;
     --muted-ink: #acbad2;
-    --accent-ink: #a7b7ff;
-    --soft-bg: #24324c;
+    --accent-ink: #74ddc9;
+    --soft-bg: #203c3a;
     --line: #3e4d67;
-    --dock-bg: #101624f5;
+    --dock-bg: #101e1df5;
     --danger-ink: #ffb8c5;
     --danger-bg: #422532;
     --danger-border: #815065;
@@ -1926,8 +1926,8 @@ html[lang='en'] .kind-grid small {
     --surface: #fff;
     --ink: #18223b;
     --muted-ink: #53668b;
-    --accent-ink: #294aee;
-    --soft-bg: #f5f6fa;
+    --accent-ink: #087c70;
+    --soft-bg: #f4f7f6;
     --line: #d5ddec;
     --dock-bg: #fff;
   }
@@ -2246,7 +2246,7 @@ html[lang='en'] .kind-grid small {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  background: #294aee;
+  background: #087c70;
   color: white;
   border-radius: 9px;
   padding: 10px;
@@ -2256,7 +2256,7 @@ html[lang='en'] .kind-grid small {
   display: flex;
   align-items: center;
   gap: 15px;
-  background: #294aee;
+  background: #087c70;
   color: white;
   border-radius: 11px;
   padding: 16px;
@@ -2463,7 +2463,7 @@ html[lang='en'] .kind-grid small {
   margin: 0 auto 22px;
 }
 .reward-symbol.complete {
-  background: #294aee;
+  background: #087c70;
   color: white;
 }
 .reward-progress h3 {
@@ -2501,11 +2501,11 @@ html[lang='en'] .kind-grid small {
   background: var(--soft-bg);
 }
 .reward-progress progress::-webkit-progress-value {
-  background: #294aee;
+  background: #087c70;
   border-radius: 10px;
 }
 .reward-progress progress::-moz-progress-bar {
-  background: #294aee;
+  background: #087c70;
   border-radius: 10px;
 }
 .reward-progress > p:not(.eyebrow) {
@@ -2541,5 +2541,705 @@ html[lang='en'] .kind-grid small {
   }
   .participant-app:has(.rally-bottom-dock) .mobile-page {
     padding-bottom: 0;
+  }
+}
+
+/* Festival wayfinding: clear type, generous touch targets and one primary action. */
+:root {
+  --ink: #172e2b;
+  --muted-ink: #526862;
+  --line: #d5e3dd;
+  --accent-ink: #086b60;
+  --color-primary: #087c70;
+  --color-ring: #087c70;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #edf8f4;
+    --muted-ink: #aec7be;
+    --line: #3b5650;
+    --accent-ink: #74ddc9;
+  }
+}
+body {
+  font-size: 16px;
+  line-height: 1.65;
+}
+button,
+input,
+select,
+textarea,
+a {
+  touch-action: manipulation;
+}
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 3px;
+}
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 200;
+  padding: 12px 18px;
+  background: var(--surface);
+  border: 2px solid var(--accent-ink);
+  border-radius: 10px;
+  translate: 0 -150%;
+}
+.skip-link:focus {
+  translate: 0 0;
+}
+.participant-app {
+  max-width: 760px;
+  margin: auto;
+}
+.participant-app .topbar {
+  max-width: 680px;
+  padding: 22px 20px 16px;
+  gap: 16px;
+}
+.participant-app .brand {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.35;
+  gap: 12px;
+}
+.participant-app .brand-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+.participant-app .brand small {
+  font-size: 11px;
+  color: var(--muted-ink);
+  letter-spacing: 0.12em;
+  margin-top: 4px;
+}
+.mobile-page {
+  max-width: 680px;
+  padding: 10px 20px 28px;
+  margin: auto;
+}
+.topbar .language-select {
+  flex-basis: 100%;
+}
+.language-trigger {
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  box-shadow: none;
+  gap: 10px;
+}
+.language-symbol {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+}
+.language-trigger-label small {
+  display: none;
+}
+.language-trigger-label strong {
+  font-size: 14px;
+}
+.language-current {
+  font-size: 14px;
+}
+.language-menu-heading {
+  font-size: 14px;
+}
+.language-option-copy small {
+  font-size: 14px;
+}
+.pass-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin: 18px 0;
+}
+.pass-heading p {
+  font-size: 13px;
+  color: var(--muted-ink);
+  margin: 0 0 3px;
+}
+.pass-heading h1 {
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.pass-heading small {
+  font-size: 13px;
+  color: var(--muted-ink);
+}
+.help-shortcut {
+  min-height: 44px;
+  padding: 0 16px;
+  flex-shrink: 0;
+  color: var(--accent-ink);
+  border-color: var(--line);
+}
+.journey-summary {
+  background: var(--surface);
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+.journey-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.journey-heading > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-ink);
+  font-size: 15px;
+}
+.journey-heading p {
+  margin: 0;
+  white-space: nowrap;
+}
+.journey-heading b {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+}
+.journey-heading p span {
+  font-size: 16px;
+  color: var(--muted-ink);
+}
+.journey-summary progress {
+  display: block;
+  width: 100%;
+  height: 10px;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  appearance: none;
+  background: var(--soft-bg);
+  margin: 15px 0 12px;
+}
+.journey-summary progress::-webkit-progress-bar {
+  background: var(--soft-bg);
+}
+.journey-summary progress::-webkit-progress-value {
+  background: #087c70;
+  border-radius: 10px;
+}
+.journey-summary progress::-moz-progress-bar {
+  background: #087c70;
+  border-radius: 10px;
+}
+.journey-message {
+  font-size: 14px;
+  color: var(--muted-ink);
+  line-height: 1.7;
+  margin: 0;
+}
+.rally-panel-title {
+  font-size: 24px;
+  margin: 28px 0 6px;
+  line-height: 1.4;
+}
+.panel-instructions {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--muted-ink);
+  margin: 0 0 18px;
+}
+.participant-app .stamp-grid {
+  gap: 14px;
+}
+.participant-app .stamp-card {
+  padding: 22px 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: none;
+}
+.participant-app .stamp-circle {
+  width: 68px;
+  height: 68px;
+  background: var(--page-bg);
+  color: var(--muted-ink);
+  border-color: var(--line);
+  margin: 8px auto 15px;
+}
+.participant-app .stamp-card.collected {
+  background: var(--soft-bg);
+  border: 2px solid var(--accent-ink);
+  padding: 21px 11px 15px;
+}
+.participant-app .collected .stamp-circle {
+  background: var(--surface);
+  color: var(--accent-ink);
+  border-color: var(--accent-ink);
+}
+.stamp-card h3 {
+  font-size: 17px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.stamp-card p {
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.participant-app .uncollected {
+  min-height: 29px;
+  padding: 4px 10px;
+  font-size: 13px;
+  gap: 4px;
+  background: var(--page-bg);
+  color: var(--muted-ink);
+  border-radius: 7px;
+}
+.participant-app .collected .uncollected {
+  background: #087c70;
+  color: white;
+}
+.spot-number {
+  font-size: 12px;
+  color: var(--muted-ink);
+}
+.places > article {
+  padding: 20px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  margin-bottom: 12px;
+  gap: 14px;
+}
+.places h3 {
+  font-size: 18px;
+  line-height: 1.5;
+}
+.places p {
+  font-size: 14px;
+  line-height: 1.8;
+}
+.list-number {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: var(--soft-bg);
+  color: var(--accent-ink);
+  border-radius: 10px;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.list-status {
+  flex-shrink: 0;
+}
+.help-center {
+  margin: 26px 0 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 0 16px;
+}
+.help-center > summary {
+  min-height: 54px;
+  align-content: center;
+  padding: 12px 0;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.help-center[open] {
+  padding-bottom: 18px;
+}
+.help-center .replay-demo {
+  margin-top: 8px;
+}
+.help-center .recovery-support {
+  padding: 15px;
+  margin-top: 16px;
+}
+.help-center .policy {
+  margin-top: 18px;
+}
+.policy p {
+  font-size: 14px !important;
+  line-height: 1.9 !important;
+}
+.recovery-support summary {
+  min-height: 44px;
+  align-content: center;
+  line-height: 1.7;
+}
+.rally-bottom-dock {
+  max-width: 680px;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -4px 18px #102b2410;
+}
+.rally-bottom-dock .scan-dock {
+  padding: 12px 18px 8px;
+  border: 0;
+  backdrop-filter: none;
+}
+.rally-bottom-dock .primary-action {
+  min-height: 54px !important;
+  border-radius: 13px !important;
+  font-size: 17px !important;
+}
+.rally-bottom-dock .scan-dock small {
+  font-size: 12px;
+}
+.rally-bottom-nav {
+  padding: 6px 10px 8px;
+  gap: 8px;
+}
+.rally-bottom-nav button {
+  min-height: 65px;
+  gap: 4px;
+}
+.rally-bottom-nav button.active {
+  box-shadow: inset 0 -3px 0 var(--accent-ink);
+}
+.rally-bottom-nav strong {
+  font-size: 14px;
+}
+.participant-app:has(.rally-bottom-dock) .mobile-page {
+  padding-bottom: calc(215px + env(safe-area-inset-bottom, 0px));
+}
+.reward-progress {
+  padding: 26px 20px;
+  border-radius: 18px;
+}
+.reward-progress .eyebrow {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+.reward-description,
+.reward-note p {
+  font-size: 15px !important;
+}
+.reward-progress button {
+  min-height: 48px;
+  white-space: normal;
+  height: auto;
+  padding: 12px 16px;
+}
+.access-tabs {
+  margin: 8px 0 24px;
+  background: var(--soft-bg);
+  gap: 4px;
+  border-radius: 13px;
+  padding: 5px;
+}
+.access-tabs button,
+html[lang='en'] .access-tabs button {
+  min-height: 48px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.enrollment {
+  padding: 0;
+}
+.enrollment h1 {
+  font-size: 27px !important;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+.registration-step {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-ink);
+  margin: 0 0 10px;
+}
+.enroll-lead {
+  font-size: 16px;
+  line-height: 1.8;
+  margin: 14px 0 22px;
+}
+.kind-grid {
+  gap: 12px;
+}
+.kind-grid button {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 145px;
+  padding: 18px;
+  text-align: left;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.kind-grid button strong {
+  font-size: 21px;
+}
+.kind-grid button small {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.kind-grid button.selected {
+  background: var(--soft-bg);
+  border-color: var(--accent-ink);
+  box-shadow: 0 0 0 1px var(--accent-ink);
+}
+.kind-grid button.selected::after {
+  content: '✓';
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  font-size: 20px;
+  color: var(--accent-ink);
+  font-weight: 800;
+}
+.enroll-form {
+  margin-top: 24px;
+  padding: 22px 18px;
+  border-radius: 18px;
+}
+.enroll-form label,
+.admin-form label {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.enroll-form input:not([type='checkbox']),
+.enroll-form select,
+.admin-form input:not([type='checkbox']),
+.admin-form select,
+.admin-form textarea,
+.admin-toolbar input,
+.admin-toolbar select {
+  min-height: 50px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  padding: 12px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.form-hint,
+.data-consent p {
+  font-size: 14px !important;
+  line-height: 1.9 !important;
+}
+.check-label {
+  min-height: 48px;
+  align-items: flex-start;
+  gap: 12px;
+}
+.check-label input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.form-error {
+  font-size: 15px;
+  line-height: 1.7;
+  padding: 13px 15px;
+  border-radius: 10px;
+}
+.notice {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.recovery-dialog,
+.scanner-dialog,
+.admin-dialog {
+  border: 1px solid var(--line) !important;
+  border-radius: 20px !important;
+}
+.recovery-dialog h2,
+.admin-dialog h2 {
+  font-size: 22px;
+  line-height: 1.5;
+}
+.recovery-dialog p,
+.admin-dialog > p {
+  font-size: 15px;
+}
+.scanner-dialog output,
+.scanner-dialog label {
+  font-size: 15px;
+}
+.admin-shell {
+  max-width: 1180px;
+  margin: auto;
+  padding: 30px 24px;
+}
+.admin-header h1 {
+  font-size: 28px;
+  letter-spacing: 0;
+}
+.admin-stats {
+  gap: 14px;
+}
+.admin-stats article {
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: none;
+}
+.admin-stats article > span,
+.admin-stats small {
+  font-size: 14px;
+}
+.admin-tabs {
+  gap: 6px;
+  border: 0;
+  background: var(--soft-bg);
+  padding: 5px;
+  border-radius: 13px;
+}
+.admin-tabs button {
+  min-height: 50px;
+  flex: 1;
+  justify-content: center;
+  border: 0;
+  border-radius: 9px;
+  padding: 12px;
+  font-size: 14px;
+}
+.admin-tabs button.active {
+  background: var(--surface);
+  box-shadow: 0 2px 5px #102b2410;
+}
+.admin-panel {
+  border-radius: 18px;
+  padding: 24px;
+}
+.admin-panel .panel-title p {
+  font-size: 14px;
+}
+.admin-shell button,
+.admin-dialog button {
+  min-height: 44px;
+}
+.admin-shell th {
+  font-size: 13px;
+  padding: 14px;
+}
+.admin-shell td {
+  padding: 16px 14px;
+}
+.admin-shell td small {
+  font-size: 12px;
+}
+.type-tag {
+  font-size: 13px;
+}
+.data-actions p,
+.admin-form small,
+.stamp-editor > p {
+  font-size: 14px;
+}
+.admin-login {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 26px;
+}
+.admin-login h1 {
+  font-size: 27px;
+}
+.admin-login > small {
+  font-size: 13px;
+}
+@media (max-width: 480px) {
+  .mobile-page {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .participant-app .topbar {
+    padding: 18px 16px 12px;
+  }
+  .participant-app .brand {
+    font-size: 18px;
+  }
+  .pass-heading h1 {
+    font-size: 23px;
+  }
+  .journey-summary {
+    padding: 17px;
+  }
+  .journey-heading > span {
+    font-size: 14px;
+  }
+  .kind-grid button {
+    padding: 15px;
+  }
+  .admin-shell {
+    padding: 20px 14px;
+  }
+  .admin-panel {
+    padding: 18px 14px;
+  }
+  .admin-tabs button {
+    flex: 0 0 auto;
+    font-size: 14px;
+  }
+  .admin-header > div:last-child {
+    flex-wrap: wrap;
+  }
+  .rally-bottom-nav strong {
+    font-size: 13px;
+  }
+}
+@media (max-width: 340px) {
+  .participant-app .stamp-grid,
+  .kind-grid {
+    grid-template-columns: 1fr;
+  }
+  .journey-heading {
+    flex-wrap: wrap;
+  }
+  .pass-heading {
+    align-items: flex-start;
+  }
+  .rally-bottom-nav strong {
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .journey-summary {
+    animation: festival-enter 240ms ease-out;
+  }
+}
+@media print {
+  .pass-heading,
+  .journey-summary,
+  .help-center,
+  .skip-link {
+    display: none !important;
+  }
+  .participant-app:has(.rally-bottom-dock) .mobile-page {
+    padding-bottom: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .completion-pop {
+    animation: festival-celebrate 480ms ease-out;
+  }
+}
+@media print {
+  :root {
+    --ink: #172e2b;
+    --muted-ink: #526862;
+    --accent-ink: #086b60;
+    --surface: #fff;
+    --page-bg: #fff;
+    --soft-bg: #eaf5f1;
+    --line: #d5e3dd;
   }
 }

@@ -34,11 +34,7 @@ export function RecoveryLogin({
   return (
     <section className="enrollment">
       <p className="eyebrow">WELCOME BACK</p>
-      <h1>
-        {t('スタンプ帳に')}
-        <br />
-        {t('おかえりなさい。')}
-      </h1>
+      <h1>{t('再ログインする')}</h1>
       <p className="enroll-lead">
         {t('登録時のニックネームと復旧コードを入力してください。')}
       </p>

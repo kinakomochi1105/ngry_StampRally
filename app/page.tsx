@@ -183,6 +183,9 @@ export default function Home() {
   const has = (id: string) => stamps.some((s) => s.spotId === id);
   return (
     <main className="participant-app">
+      <a className="skip-link" href="#main-content">
+        {locale === 'en' ? 'Skip to content' : '本文へ移動'}
+      </a>
       <header className="topbar">
         <Link href="/" className="brand">
           <span className="brand-icon">
@@ -195,7 +198,7 @@ export default function Home() {
         </Link>
         <LanguageSelect />
       </header>
-      <div className="mobile-page">
+      <div className="mobile-page" id="main-content">
         {notice && (
           <output className={failed ? 'notice error' : 'notice'}>
             <span>{t(notice)}</span>
@@ -240,61 +243,65 @@ export default function Home() {
           </>
         ) : profile ? (
           <>
-            <div className="participant-intro">
+            <div className="pass-heading">
               <div>
-                <p className="eyebrow">YOUR FESTIVAL PASS</p>
-                <h1>
-                  {t('今日の発見を、')}
-                  <br />
-                  {t('スタンプに。')}
-                </h1>
+                <p>
+                  {locale === 'en' ? 'YOUR FESTIVAL PASS' : 'あなたの参加証'}
+                </p>
+                <h1>{profile.nickname ?? profileLabel(profile, locale)}</h1>
+                <small>{profileLabel(profile, locale)}</small>
               </div>
-              <span className="participant-label">
-                {profile.kind === 'student' ? 'STUDENT' : 'GUEST'}
-                <strong>
-                  {profile.nickname ?? profileLabel(profile, locale)}
-                </strong>
-                {profile.nickname && (
-                  <small>{profileLabel(profile, locale)}</small>
-                )}
-              </span>
+              <Button
+                variant="outline"
+                className="help-shortcut"
+                onClick={() => setDemo(true)}
+              >
+                {locale === 'en' ? 'How to play' : '使い方'}
+              </Button>
             </div>
             <section
-              className={
-                complete
-                  ? 'mobile-progress achieved' +
-                    (freshStamp ? ' just-completed' : '')
-                  : 'mobile-progress'
-              }
+              className="journey-summary"
+              aria-label={locale === 'en' ? 'Your progress' : '現在の進み具合'}
             >
-              <div>
+              <div className="journey-heading">
                 <span>
-                  {complete ? t('コンプリート！') : t('集めたスタンプ')}
+                  {complete ? (
+                    <Trophy
+                      size={21}
+                      className={freshStamp ? 'completion-pop' : undefined}
+                    />
+                  ) : (
+                    <Stamp size={21} />
+                  )}
+                  <strong>
+                    {complete ? t('コンプリート！') : t('集めたスタンプ')}
+                  </strong>
                 </span>
                 <p>
-                  <strong>{count}</strong>
+                  <b>{count}</b>
                   <span> / {total}</span>
                 </p>
               </div>
-              {complete ? (
-                <Trophy size={44} />
-              ) : (
-                <div
-                  className="progress-ring"
-                  style={{
-                    background: `conic-gradient(#fff ${total ? (count / total) * 100 : 0}%,#ffffff38 0)`,
-                  }}
-                >
-                  <span>{total ? Math.round((count / total) * 100) : 0}%</span>
-                </div>
-              )}
-              <div className="progress-foot">
-                {complete
-                  ? t('全スポット達成、おめでとう！')
-                  : total
-                    ? t(`あと${total - count}か所。次のスポットへ出かけよう。`)
-                    : t('スポットはただいま準備中です。')}
-              </div>
+              <progress
+                max={total || 1}
+                value={count}
+                aria-label={
+                  locale === 'en' ? 'Stamps collected' : '集めたスタンプ'
+                }
+              />
+              <p className="journey-message">
+                {!total
+                  ? t('スポットはただいま準備中です。')
+                  : complete
+                    ? t('全スポット達成、おめでとう！')
+                    : locale === 'en'
+                      ? total -
+                        count +
+                        ' stamps to go. Scan a QR code at each location.'
+                      : 'あと' +
+                        (total - count) +
+                        '個。設置場所でQRを読み取ろう。'}
+              </p>
             </section>
             <section
               id="rally-panel"
@@ -312,6 +319,19 @@ export default function Home() {
                       ? 'Reward progress'
                       : '報酬まで'}
               </h2>
+              <p className="panel-instructions">
+                {tab === 'book'
+                  ? locale === 'en'
+                    ? 'Find a location, then scan its QR code using the button below.'
+                    : '設置場所に着いたら、下の「QRを読み取る」を押してください。'
+                  : tab === 'places'
+                    ? locale === 'en'
+                      ? 'Check the room and directions before you start walking.'
+                      : '教室と案内を確認してから、スポットへ向かいましょう。'
+                    : locale === 'en'
+                      ? 'Check your progress toward completing the rally.'
+                      : 'コンプリートまで、あとどれくらい？'}
+              </p>
               {tab === 'rewards' ? (
                 <section className="reward-progress">
                   <span
@@ -459,25 +479,35 @@ export default function Home() {
                 </section>
               )}
             </section>
-            <Button
-              className="replay-demo"
-              variant="outline"
-              onClick={() => setDemo(true)}
+            <details
+              className="help-center"
+              open={!profile.nickname || undefined}
             >
-              {locale === 'en' ? 'Show how to play' : '使い方デモを見る'}
-            </Button>
-            <RecoverySetup
-              nickname={profile.nickname}
-              onIssued={registered}
-              onLoggedOut={loggedOut}
-            />
-            <details className="policy">
-              <summary>{t('参加データ・使い方について')}</summary>
-              <p>
-                {t(
-                  'サイト内の読み取りボタンから設置QRを読み取ります。ニックネームに加え、生徒は学年・組・出席番号、一般客は参加IDをスタンプ履歴とともに保存します。進行状況・ランキングは管理者のみ閲覧できます。氏名・連絡先・位置情報は収集せず、カメラ映像・画像も送信しません。Cookieの有効期間と履歴の表示期間は30日です。サーバーの記録は開催後に主催者が削除します。同じ端末・ブラウザでご参加ください。Cookieの削除後や端末変更時は、ニックネームと復旧コードで再ログインできます。復旧コードを紛失した場合は、元の端末で再発行するか受付へご相談ください。',
-                )}
-              </p>
+              <summary>
+                {locale === 'en'
+                  ? 'Help & account'
+                  : '使い方・再ログイン・参加データ'}
+              </summary>{' '}
+              <Button
+                className="replay-demo"
+                variant="outline"
+                onClick={() => setDemo(true)}
+              >
+                {locale === 'en' ? 'Show how to play' : '使い方デモを見る'}
+              </Button>
+              <RecoverySetup
+                nickname={profile.nickname}
+                onIssued={registered}
+                onLoggedOut={loggedOut}
+              />
+              <details className="policy">
+                <summary>{t('参加データ・使い方について')}</summary>
+                <p>
+                  {t(
+                    'サイト内の読み取りボタンから設置QRを読み取ります。ニックネームに加え、生徒は学年・組・出席番号、一般客は参加IDをスタンプ履歴とともに保存します。進行状況・ランキングは管理者のみ閲覧できます。氏名・連絡先・位置情報は収集せず、カメラ映像・画像も送信しません。Cookieの有効期間と履歴の表示期間は30日です。サーバーの記録は開催後に主催者が削除します。同じ端末・ブラウザでご参加ください。Cookieの削除後や端末変更時は、ニックネームと復旧コードで再ログインできます。復旧コードを紛失した場合は、元の端末で再発行するか受付へご相談ください。',
+                  )}
+                </p>
+              </details>
             </details>
             <div className="rally-bottom-dock">
               <div className="scan-dock">
