@@ -6,6 +6,7 @@ import { RallyDemo } from '@/components/rally-demo';
 import { Scanner } from '@/components/scanner';
 import { Enrollment } from '@/components/enrollment';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { ProgressBar } from '@/components/progress-bar';
 import {
   FloorMap,
   TrafficBadge,
@@ -70,6 +71,11 @@ export default function Home() {
   const [receipt, setReceipt] = useState<RecoveryReceipt | null>(null);
   const [scanning, setScanning] = useState(false);
   const [freshStamp, setFreshStamp] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    text: string;
+    tone: 'success' | 'info';
+    at: number;
+  } | null>(null);
   const reload = useCallback(async () => {
     setLoading(true);
     try {
@@ -120,7 +126,12 @@ export default function Home() {
       duplicate: boolean;
     };
     if (!r.ok) throw new Error(d.error);
-    if (!d.duplicate) setFreshStamp(d.spotId);
+    if (!d.duplicate) {
+      setFreshStamp(d.spotId);
+      // Land on the stamp book so the new stamp is visible while it animates.
+      setTab('book');
+      navigator.vibrate?.([18, 40, 24]);
+    }
     setData((current) => ({
       ...current,
       stamps: current.stamps.some((s) => s.spotId === d.spotId)
@@ -130,10 +141,24 @@ export default function Home() {
             { spotId: d.spotId, createdAt: Math.floor(Date.now() / 1000) },
           ],
     }));
-    setNotice(
-      d.duplicate ? 'このスタンプは獲得済みです。' : 'スタンプを獲得しました！',
-    );
+    setToast({
+      text: d.duplicate
+        ? 'このスタンプは獲得済みです。'
+        : 'スタンプを獲得しました！',
+      tone: d.duplicate ? 'info' : 'success',
+      at: Date.now(),
+    });
   }, []);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 4200);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+  useEffect(() => {
+    if (!freshStamp) return;
+    const card = document.querySelector('.stamp-card.freshly-stamped');
+    card?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [freshStamp]);
   useEffect(() => {
     const context = (
       document as Document & {
@@ -251,7 +276,23 @@ export default function Home() {
           </output>
         )}
         {loading && !profile ? (
-          <div className="loading-state">{t('参加情報を読み込み中…')}</div>
+          <output
+            className="passport-skeleton"
+            aria-label={t('参加情報を読み込み中…')}
+          >
+            <span className="skeleton-line skeleton-eyebrow" />
+            <span className="skeleton-line skeleton-title" />
+            <div className="skeleton-card">
+              <span className="skeleton-line skeleton-row" />
+              <span className="skeleton-line skeleton-bar" />
+            </div>
+            <div className="skeleton-grid">
+              <span className="skeleton-tile" />
+              <span className="skeleton-tile" />
+              <span className="skeleton-tile" />
+              <span className="skeleton-tile" />
+            </div>
+          </output>
         ) : !failed && !profile ? (
           <>
             <div className="access-tabs">
@@ -312,16 +353,16 @@ export default function Home() {
                   </strong>
                 </span>
                 <p>
-                  <b>{count}</b>
+                  <b key={count} className="count-value">
+                    {count}
+                  </b>
                   <span> / {total}</span>
                 </p>
               </div>
-              <progress
-                max={total || 1}
+              <ProgressBar
                 value={count}
-                aria-label={
-                  locale === 'en' ? 'Stamps collected' : '集めたスタンプ'
-                }
+                max={total}
+                label={locale === 'en' ? 'Stamps collected' : '集めたスタンプ'}
               />
               <p className="journey-message">
                 {!total
@@ -342,227 +383,244 @@ export default function Home() {
               className="rally-panel"
               aria-label={locale === 'en' ? 'Festival pass' : 'スタンプラリー'}
             >
-              <h2 className="rally-panel-title">
-                {tab === 'book'
-                  ? locale === 'en'
-                    ? 'Stamp book'
-                    : 'スタンプ帳'
-                  : tab === 'places'
-                    ? t('設置場所')
-                    : tab === 'map'
-                      ? locale === 'en'
-                        ? 'Floor map'
-                        : 'フロアマップ'
-                      : locale === 'en'
-                        ? 'Reward progress'
-                        : '報酬まで'}
-              </h2>
-              <p className="panel-instructions">
-                {tab === 'book'
-                  ? locale === 'en'
-                    ? 'Find a location, then scan its QR code using the button below.'
-                    : '設置場所に着いたら、下の「QRを読み取る」を押してください。'
-                  : tab === 'places'
+              <div className="panel-swap" key={tab}>
+                <h2 className="rally-panel-title">
+                  {tab === 'book'
                     ? locale === 'en'
-                      ? 'Check the room and directions before you start walking.'
-                      : '教室と案内を確認してから、スポットへ向かいましょう。'
-                    : tab === 'map'
-                      ? locale === 'en'
-                        ? 'Choose a floor to see every location and its current crowd guide.'
-                        : '階を選ぶと、設置場所と現在の混み具合を確認できます。'
-                      : locale === 'en'
-                        ? 'Check your progress toward completing the rally.'
-                        : 'コンプリートまで、あとどれくらい？'}
-              </p>
-              {tab === 'rewards' ? (
-                <section className="reward-progress">
-                  <span
-                    className={
-                      complete ? 'reward-symbol complete' : 'reward-symbol'
-                    }
-                  >
-                    {complete ? <Trophy size={42} /> : <Gift size={42} />}
-                  </span>
-                  <p className="eyebrow">
-                    {locale === 'en' ? 'YOUR PROGRESS' : 'コンプリートへの道'}
-                  </p>
-                  <h3>
-                    {!total
-                      ? locale === 'en'
-                        ? 'Getting ready'
-                        : 'ただいま準備中'
-                      : complete
+                      ? 'Stamp book'
+                      : 'スタンプ帳'
+                    : tab === 'places'
+                      ? t('設置場所')
+                      : tab === 'map'
                         ? locale === 'en'
-                          ? 'All stamps collected!'
-                          : '全スタンプ達成！'
+                          ? 'Floor map'
+                          : 'フロアマップ'
                         : locale === 'en'
-                          ? 'Stamps to go'
-                          : 'コンプリートまで'}
-                  </h3>
-                  {total > 0 && (
-                    <>
-                      <div className="reward-remaining">
-                        <strong>{total - count}</strong>
-                        <span>{locale === 'en' ? 'remaining' : '個'}</span>
-                      </div>
-                      <progress
-                        value={count}
-                        max={total}
-                        aria-label={
-                          locale === 'en' ? 'Stamp progress' : 'スタンプ達成率'
-                        }
-                      />
-                      <p>
-                        {count} / {total}{' '}
-                        {locale === 'en' ? 'stamps collected' : 'スタンプ獲得'}
-                      </p>
-                    </>
-                  )}
-                  <p className="reward-description">
-                    {complete
+                          ? 'Reward progress'
+                          : '報酬まで'}
+                </h2>
+                <p className="panel-instructions">
+                  {tab === 'book'
+                    ? locale === 'en'
+                      ? 'Find a location, then scan its QR code using the button below.'
+                      : '設置場所に着いたら、下の「QRを読み取る」を押してください。'
+                    : tab === 'places'
                       ? locale === 'en'
-                        ? 'Congratulations on visiting every active location!'
-                        : '公開中のスポットをすべて巡りました。おめでとうございます！'
-                      : locale === 'en'
-                        ? 'Collect a stamp at every active location to complete the rally.'
-                        : '公開中のスポットでスタンプを集めて、コンプリートを目指しましょう。'}
-                  </p>
-                  <div className="reward-note">
-                    <strong>
-                      {locale === 'en' ? 'About rewards' : '報酬について'}
-                    </strong>
-                    <p>
-                      {locale === 'en'
-                        ? 'Please ask the festival organizers about rewards and how to receive them.'
-                        : '報酬の内容・受け取り方法は、文化祭の運営案内をご確認ください。'}
+                        ? 'Check the room and directions before you start walking.'
+                        : '教室と案内を確認してから、スポットへ向かいましょう。'
+                      : tab === 'map'
+                        ? locale === 'en'
+                          ? 'Choose a floor to see every location and its current crowd guide.'
+                          : '階を選ぶと、設置場所と現在の混み具合を確認できます。'
+                        : locale === 'en'
+                          ? 'Check your progress toward completing the rally.'
+                          : 'コンプリートまで、あとどれくらい？'}
+                </p>
+                {tab === 'rewards' ? (
+                  <section className="reward-progress">
+                    <span
+                      className={
+                        complete ? 'reward-symbol complete' : 'reward-symbol'
+                      }
+                    >
+                      {complete ? <Trophy size={42} /> : <Gift size={42} />}
+                    </span>
+                    <p className="eyebrow">
+                      {locale === 'en' ? 'YOUR PROGRESS' : 'コンプリートへの道'}
                     </p>
-                  </div>
-                  {!complete && total > 0 && (
-                    <Button variant="outline" onClick={() => setTab('places')}>
-                      {locale === 'en'
-                        ? 'Find your next location'
-                        : '次の設置場所を確認'}
-                      <ChevronRight size={17} />
-                    </Button>
-                  )}
-                </section>
-              ) : tab === 'map' ? (
-                <>
-                  <FloorMap
-                    spots={spots}
-                    traffic={traffic}
-                    hasStamp={has}
-                    locale={locale}
-                  />
-                  <Button
-                    className="map-back-button"
-                    variant="outline"
-                    onClick={() => setTab('places')}
-                  >
-                    <MapPin size={17} />
-                    {locale === 'en'
-                      ? 'Back to locations'
-                      : '設置場所一覧へ戻る'}
-                  </Button>
-                </>
-              ) : total === 0 ? (
-                <div className="empty-state">
-                  {t('設置場所の準備ができるまでお待ちください。')}
-                </div>
-              ) : tab === 'book' ? (
-                <div className="stamp-grid">
-                  {spots.map((spot, i) => {
-                    const Icon = icons[i % icons.length];
-                    return (
-                      <article
-                        className={
-                          (has(spot.id)
-                            ? 'stamp-card collected'
-                            : 'stamp-card') +
-                          (freshStamp === spot.id ? ' freshly-stamped' : '')
-                        }
-                        key={spot.id}
-                        onAnimationEnd={(e) => {
-                          if (e.animationName === 'festival-stamp')
-                            setFreshStamp(null);
-                        }}
+                    <h3>
+                      {!total
+                        ? locale === 'en'
+                          ? 'Getting ready'
+                          : 'ただいま準備中'
+                        : complete
+                          ? locale === 'en'
+                            ? 'All stamps collected!'
+                            : '全スタンプ達成！'
+                          : locale === 'en'
+                            ? 'Stamps to go'
+                            : 'コンプリートまで'}
+                    </h3>
+                    {total > 0 && (
+                      <>
+                        <div className="reward-remaining">
+                          <strong>{total - count}</strong>
+                          <span>{locale === 'en' ? 'remaining' : '個'}</span>
+                        </div>
+                        <ProgressBar
+                          value={count}
+                          max={total}
+                          label={
+                            locale === 'en'
+                              ? 'Stamp progress'
+                              : 'スタンプ達成率'
+                          }
+                        />
+                        <p>
+                          {count} / {total}{' '}
+                          {locale === 'en'
+                            ? 'stamps collected'
+                            : 'スタンプ獲得'}
+                        </p>
+                      </>
+                    )}
+                    <p className="reward-description">
+                      {complete
+                        ? locale === 'en'
+                          ? 'Congratulations on visiting every active location!'
+                          : '公開中のスポットをすべて巡りました。おめでとうございます！'
+                        : locale === 'en'
+                          ? 'Collect a stamp at every active location to complete the rally.'
+                          : '公開中のスポットでスタンプを集めて、コンプリートを目指しましょう。'}
+                    </p>
+                    <div className="reward-note">
+                      <strong>
+                        {locale === 'en' ? 'About rewards' : '報酬について'}
+                      </strong>
+                      <p>
+                        {locale === 'en'
+                          ? 'Please ask the festival organizers about rewards and how to receive them.'
+                          : '報酬の内容・受け取り方法は、文化祭の運営案内をご確認ください。'}
+                      </p>
+                    </div>
+                    {!complete && total > 0 && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setTab('places')}
                       >
-                        <span className="spot-number">
+                        {locale === 'en'
+                          ? 'Find your next location'
+                          : '次の設置場所を確認'}
+                        <ChevronRight size={17} />
+                      </Button>
+                    )}
+                  </section>
+                ) : tab === 'map' ? (
+                  <>
+                    <FloorMap
+                      spots={spots}
+                      traffic={traffic}
+                      hasStamp={has}
+                      locale={locale}
+                    />
+                    <Button
+                      className="map-back-button"
+                      variant="outline"
+                      onClick={() => setTab('places')}
+                    >
+                      <MapPin size={17} />
+                      {locale === 'en'
+                        ? 'Back to locations'
+                        : '設置場所一覧へ戻る'}
+                    </Button>
+                  </>
+                ) : total === 0 ? (
+                  <div className="empty-state">
+                    {t('設置場所の準備ができるまでお待ちください。')}
+                  </div>
+                ) : tab === 'book' ? (
+                  <div className="stamp-grid">
+                    {spots.map((spot, i) => {
+                      const Icon = icons[i % icons.length];
+                      return (
+                        <article
+                          className={
+                            (has(spot.id)
+                              ? 'stamp-card collected'
+                              : 'stamp-card') +
+                            (freshStamp === spot.id ? ' freshly-stamped' : '')
+                          }
+                          key={spot.id}
+                          onAnimationEnd={(e) => {
+                            if (e.animationName === 'festival-stamp')
+                              setFreshStamp(null);
+                          }}
+                        >
+                          <span className="spot-number">
+                            {String(i + 1).padStart(2, '0')}
+                          </span>
+                          <div className="stamp-circle">
+                            <Icon size={34} strokeWidth={1.4} />
+                            {freshStamp === spot.id && (
+                              <i className="stamp-ripple" aria-hidden="true" />
+                            )}
+                          </div>
+                          <h3>{spot.name}</h3>
+                          <p>{spot.location}</p>
+                          <span className="uncollected">
+                            {has(spot.id) ? (
+                              <>
+                                <Check size={12} />
+                                {t('獲得済み')}
+                              </>
+                            ) : (
+                              t('未獲得')
+                            )}
+                          </span>
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <section className="places">
+                    <div className="places-toolbar">
+                      <div>
+                        <strong>
+                          {locale === 'en'
+                            ? 'Plan your route'
+                            : '巡る場所を選ぶ'}
+                        </strong>
+                        <small>
+                          {locale === 'en'
+                            ? 'Crowd hints refresh every minute.'
+                            : '混み具合は1分ごとに更新されます。'}
+                        </small>
+                      </div>
+                      <Button
+                        className="map-open-button"
+                        variant="outline"
+                        onClick={() => setTab('map')}
+                      >
+                        <MapIcon size={17} />
+                        {locale === 'en' ? 'Open map' : 'マップを見る'}
+                      </Button>
+                    </div>
+                    {spots.map((spot, i) => (
+                      <article key={spot.id}>
+                        <span className="list-number">
                           {String(i + 1).padStart(2, '0')}
                         </span>
-                        <div className="stamp-circle">
-                          <Icon size={34} strokeWidth={1.4} />
+                        <div>
+                          <h3>{spot.name}</h3>
+                          <p>
+                            <MapPin size={14} /> {spot.location}
+                          </p>
+                          <p>{spot.description}</p>
+                          <TrafficBadge
+                            count={trafficFor(spot.id)}
+                            locale={locale}
+                          />
                         </div>
-                        <h3>{spot.name}</h3>
-                        <p>{spot.location}</p>
-                        <span className="uncollected">
-                          {has(spot.id) ? (
-                            <>
-                              <Check size={12} />
-                              {t('獲得済み')}
-                            </>
-                          ) : (
-                            t('未獲得')
-                          )}
-                        </span>
+                        {has(spot.id) ? (
+                          <Check
+                            className="list-status"
+                            aria-label={t('獲得済み')}
+                            size={20}
+                          />
+                        ) : (
+                          <ChevronRight size={18} className="list-status" />
+                        )}
                       </article>
-                    );
-                  })}
-                </div>
-              ) : (
-                <section className="places">
-                  <div className="places-toolbar">
-                    <div>
-                      <strong>
-                        {locale === 'en' ? 'Plan your route' : '巡る場所を選ぶ'}
-                      </strong>
-                      <small>
-                        {locale === 'en'
-                          ? 'Crowd hints refresh every minute.'
-                          : '混み具合は1分ごとに更新されます。'}
-                      </small>
-                    </div>
+                    ))}
                     <Button
-                      className="map-open-button"
-                      variant="outline"
-                      onClick={() => setTab('map')}
+                      className="print-list"
+                      onClick={() => window.print()}
                     >
-                      <MapIcon size={17} />
-                      {locale === 'en' ? 'Open map' : 'マップを見る'}
+                      {t('設置場所一覧を印刷')}
                     </Button>
-                  </div>
-                  {spots.map((spot, i) => (
-                    <article key={spot.id}>
-                      <span className="list-number">
-                        {String(i + 1).padStart(2, '0')}
-                      </span>
-                      <div>
-                        <h3>{spot.name}</h3>
-                        <p>
-                          <MapPin size={14} /> {spot.location}
-                        </p>
-                        <p>{spot.description}</p>
-                        <TrafficBadge
-                          count={trafficFor(spot.id)}
-                          locale={locale}
-                        />
-                      </div>
-                      {has(spot.id) ? (
-                        <Check
-                          className="list-status"
-                          aria-label={t('獲得済み')}
-                          size={20}
-                        />
-                      ) : (
-                        <ChevronRight size={18} className="list-status" />
-                      )}
-                    </article>
-                  ))}
-                  <Button className="print-list" onClick={() => window.print()}>
-                    {t('設置場所一覧を印刷')}
-                  </Button>
-                </section>
-              )}
+                  </section>
+                )}
+              </div>
             </section>
             <nav
               className="desktop-side-nav"
@@ -706,6 +764,22 @@ export default function Home() {
           <span>{t('歩きスマホはお控えください。')}</span>
         </footer>
       </div>
+      <output
+        className="rally-toast-area"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {toast && (
+          <span key={toast.at} className={`rally-toast ${toast.tone}`}>
+            {toast.tone === 'success' ? (
+              <Trophy size={19} aria-hidden="true" />
+            ) : (
+              <Check size={19} aria-hidden="true" />
+            )}
+            {t(toast.text)}
+          </span>
+        )}
+      </output>
     </main>
   );
 }

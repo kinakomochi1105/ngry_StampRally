@@ -4219,3 +4219,437 @@ html[lang='en'] .access-tabs button {
     flex: 0 0 auto;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Interaction polish: motion tokens, animated progress, scan feedback.
+   Everything here degrades safely: the prefers-reduced-motion block earlier in
+   this file clears animation and transition with !important.
+   --------------------------------------------------------------------------- */
+:root {
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.42, 0.64, 1);
+}
+
+/* Animated progress bar, replacing <progress> which cannot transition. */
+.rally-progress {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 10px;
+  border-radius: 10px;
+  background: var(--soft-bg);
+  overflow: hidden;
+}
+.journey-summary .rally-progress {
+  margin: 15px 0 12px;
+}
+.rally-progress-fill {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: var(--accent-fill, #3857e8);
+  transition: width 620ms var(--ease-out-soft);
+}
+.rally-progress.complete .rally-progress-fill {
+  background: linear-gradient(
+    90deg,
+    var(--accent-fill, #3857e8),
+    color-mix(in srgb, var(--accent-fill, #3857e8) 62%, #ffffff)
+  );
+}
+@keyframes rally-sheen {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: 100% 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* A short sheen marks the moment the bar reaches full. */
+  .rally-progress.complete::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      100deg,
+      transparent 20%,
+      #ffffff96 50%,
+      transparent 80%
+    );
+    animation: rally-sheen 1400ms var(--ease-out-soft) 320ms 2;
+  }
+}
+
+/* The stamp count pops when it changes; the element is keyed on the value. */
+@keyframes count-pop {
+  0% {
+    scale: 0.55;
+    opacity: 0;
+    translate: 0 6px;
+  }
+  60% {
+    scale: 1.12;
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .count-value {
+    display: inline-block;
+    animation: count-pop 420ms var(--ease-spring);
+  }
+}
+
+/* Scan result toast. Fixed, so it never reflows the desktop grid. */
+.rally-toast-area {
+  position: fixed;
+  left: 50%;
+  bottom: calc(232px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: block;
+  width: max-content;
+  max-width: min(92vw, 420px);
+  translate: -50% 0;
+  pointer-events: none;
+}
+.rally-toast {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+  box-shadow: 0 14px 34px #1b2b5726;
+}
+.rally-toast svg {
+  flex-shrink: 0;
+}
+.rally-toast.success {
+  border-color: var(--accent-fill, #3857e8);
+  background: var(--accent-fill, #3857e8);
+  color: #fff;
+}
+.rally-toast.info {
+  color: var(--accent-ink);
+  background: var(--soft-bg);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    scale: 0.9;
+    translate: 0 16px;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rally-toast {
+    animation: toast-in 420ms var(--ease-spring);
+  }
+}
+@media (min-width: 1000px) {
+  .rally-toast-area {
+    bottom: 32px;
+  }
+}
+
+/* Panel content is keyed on the tab, so switching replays this entrance. */
+@keyframes panel-swap {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .panel-swap {
+    animation: panel-swap 300ms var(--ease-out-soft);
+  }
+}
+
+/* A freshly earned stamp: ink press plus an expanding ring. */
+@keyframes festival-stamp {
+  0% {
+    scale: 1.32;
+    rotate: -11deg;
+    opacity: 0.25;
+  }
+  45% {
+    scale: 0.9;
+    rotate: 4deg;
+    opacity: 1;
+  }
+  70% {
+    scale: 1.06;
+    rotate: -2deg;
+  }
+  100% {
+    scale: 1;
+    rotate: 0deg;
+    opacity: 1;
+  }
+}
+@keyframes fresh-card {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  35% {
+    box-shadow: 0 0 0 6px
+      color-mix(in srgb, var(--accent-fill, #3857e8) 22%, transparent);
+  }
+}
+@keyframes stamp-ripple {
+  from {
+    opacity: 0.85;
+    scale: 1;
+  }
+  to {
+    opacity: 0;
+    scale: 1.85;
+  }
+}
+.participant-app .stamp-circle {
+  position: relative;
+}
+.stamp-ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--accent-fill, #3857e8);
+  pointer-events: none;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .freshly-stamped .stamp-circle {
+    animation: festival-stamp 620ms var(--ease-spring);
+  }
+  .freshly-stamped {
+    animation: fresh-card 620ms var(--ease-out-soft);
+  }
+  .stamp-ripple {
+    animation: stamp-ripple 600ms var(--ease-out-soft) forwards;
+  }
+}
+
+/* Loading skeleton for the passport, replacing a bare text placeholder. */
+.passport-skeleton {
+  display: grid;
+  gap: 12px;
+  padding: 18px 0 8px;
+}
+.skeleton-line,
+.skeleton-tile {
+  border-radius: 10px;
+  background: var(--soft-bg);
+}
+.skeleton-eyebrow {
+  width: 42%;
+  height: 13px;
+}
+.skeleton-title {
+  width: 68%;
+  height: 27px;
+}
+.skeleton-card {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  margin-top: 6px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.skeleton-row {
+  width: 60%;
+  height: 21px;
+}
+.skeleton-bar {
+  width: 100%;
+  height: 10px;
+}
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+.skeleton-tile {
+  height: 178px;
+  border-radius: 18px;
+}
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-line,
+  .skeleton-tile {
+    animation: skeleton-pulse 1500ms ease-in-out infinite;
+  }
+  .skeleton-grid > :nth-child(2) {
+    animation-delay: 120ms;
+  }
+  .skeleton-grid > :nth-child(3) {
+    animation-delay: 240ms;
+  }
+  .skeleton-grid > :nth-child(4) {
+    animation-delay: 360ms;
+  }
+}
+
+/* Scanner: a sweeping line shows the camera is still looking. */
+.qr-laser {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #7ce3ff, transparent);
+  box-shadow: 0 0 12px #7ce3ffb0;
+  opacity: 0;
+  pointer-events: none;
+}
+@keyframes qr-sweep {
+  0% {
+    opacity: 0;
+    translate: 0 12%;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  50% {
+    translate: 0 min(288px, 36dvh);
+  }
+  100% {
+    opacity: 0;
+    translate: 0 12%;
+  }
+}
+@keyframes qr-corner {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .qr-laser {
+    animation: qr-sweep 2400ms ease-in-out infinite;
+  }
+  .qr-guide i {
+    animation: qr-corner 2400ms ease-in-out infinite;
+  }
+  .camera-preview.busy .qr-laser {
+    animation-duration: 900ms;
+  }
+}
+.camera-preview.busy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #14213daa;
+}
+
+/* Micro-interactions on the cards and navigation. */
+@media (prefers-reduced-motion: no-preference) {
+  .participant-app .stamp-card,
+  .places > article,
+  .map-room {
+    transition:
+      transform 200ms var(--ease-out-soft),
+      box-shadow 200ms var(--ease-out-soft),
+      background-color 180ms ease,
+      border-color 180ms ease;
+  }
+  .participant-app .rally-bottom-nav button svg,
+  .desktop-side-tabs button svg {
+    transition:
+      translate 200ms var(--ease-spring),
+      scale 200ms var(--ease-spring);
+  }
+  .participant-app .rally-bottom-nav button.active svg {
+    translate: 0 -2px;
+    scale: 1.08;
+  }
+  .theme-toggle svg {
+    transition: rotate 300ms var(--ease-spring);
+  }
+  .theme-toggle:hover svg {
+    rotate: -18deg;
+  }
+}
+@media (hover: hover) {
+  .participant-app .stamp-card:hover,
+  .places > article:hover,
+  .map-room:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px #1b2b5714;
+  }
+}
+
+/* The scan button is the one action that should feel alive. */
+.participant-app .primary-action,
+.desktop-scan-button {
+  position: relative;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .participant-app .primary-action:not(:disabled)::after,
+  .desktop-scan-button:not(:disabled)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      transparent 30%,
+      #ffffff40 50%,
+      transparent 70%
+    );
+    animation: rally-sheen 4200ms var(--ease-out-soft) infinite;
+    pointer-events: none;
+  }
+}
+
+/* Desktop keeps the tighter bar spacing the native element used to have. */
+@media (min-width: 1000px) {
+  .participant-app .journey-summary .rally-progress {
+    height: 9px;
+    margin-top: 13px;
+  }
+}
+@media print {
+  .rally-toast-area,
+  .qr-laser {
+    display: none !important;
+  }
+  .rally-progress {
+    border: 1px solid #999;
+  }
+}

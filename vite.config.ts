@@ -47,8 +47,15 @@ export default defineConfig(async () => {
   return {
     css: { postcss: { plugins: [tailwindcss()] } },
     server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+      ? {
+          host: '0.0.0.0',
+          allowedHosts: ['hiroguru.mydns.jp'],
+          watch: { useFsEvents: false, usePolling: true },
+        }
+      : {
+          host: '0.0.0.0',
+          allowedHosts: ['hiroguru.mydns.jp'],
+        },
     plugins: [
       vinext(),
       sites(),

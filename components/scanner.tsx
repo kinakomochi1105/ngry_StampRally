@@ -166,7 +166,7 @@ export function Scanner({
         <DialogDescription>
           {t('立ち止まって、四隅の枠を目安にQR全体を写してください。')}
         </DialogDescription>
-        <div className="camera-preview">
+        <div className={busy ? 'camera-preview busy' : 'camera-preview'}>
           <video ref={video} muted playsInline className="camera" />
           <div className="qr-guide" aria-hidden="true">
             <i />
@@ -174,6 +174,7 @@ export function Scanner({
             <i />
             <i />
           </div>
+          {!error && <span className="qr-laser" aria-hidden="true" />}
         </div>
         <output className={error ? 'scanner-error' : ''}>
           {busy
