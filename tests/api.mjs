@@ -206,10 +206,15 @@ try {
   const results = await Promise.all(Array.from({ length: 24 }, scan));
   assert.ok(results.every((r) => r.status === 200));
   assert.equal(results.filter((r) => !r.data.duplicate).length, 1);
-  assert.equal(
-    (await req('/api/passport', { cookie: student.cookie })).data.stamps.length,
-    1,
+  const studentPass = (await req('/api/passport', { cookie: student.cookie }))
+    .data;
+  assert.equal(studentPass.stamps.length, 1);
+  assert.ok(Array.isArray(studentPass.traffic));
+  const trafficPoint = studentPass.traffic.find(
+    (point) => point.spotId === managed[0].id,
   );
+  assert.ok(trafficPoint);
+  assert.ok(trafficPoint.recentCount >= 24);
   assert.equal(
     (
       await req('/api/stamp', {

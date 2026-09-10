@@ -25,22 +25,25 @@ export async function POST(request: Request) {
         },
         400,
       );
-    const result = await database()
-      .prepare(
-        'INSERT INTO stamps (event_id,participant_hash,spot_id,created_at) SELECT ?,?,?,? WHERE EXISTS (SELECT 1 FROM locations WHERE id=? AND event_id=? AND active=1) AND EXISTS (SELECT 1 FROM participants WHERE event_id=? AND hash=?) ON CONFLICT(event_id,participant_hash,spot_id) DO NOTHING',
-      )
-      .bind(
-        event.id,
-        hash,
-        spotId,
-        Math.floor(Date.now() / 1000),
-        spotId,
-        event.id,
-        event.id,
-        hash,
-      )
-      .run();
-    return json({ spotId, duplicate: result.meta.changes === 0 });
+    const now = Math.floor(Date.now() / 1000);
+    const result = await database().batch([
+      database()
+        .prepare(
+          'INSERT INTO stamps (event_id,participant_hash,spot_id,created_at) SELECT ?,?,?,? WHERE EXISTS (SELECT 1 FROM locations WHERE id=? AND event_id=? AND active=1) AND EXISTS (SELECT 1 FROM participants WHERE event_id=? AND hash=?) ON CONFLICT(event_id,participant_hash,spot_id) DO NOTHING',
+        )
+        .bind(event.id, hash, spotId, now, spotId, event.id, event.id, hash),
+      // This row intentionally contains no participant hash. It is an aggregate
+      // congestion signal and is removed after the short display window.
+      database()
+        .prepare(
+          'INSERT INTO spot_activity (event_id,spot_id,accessed_at) VALUES (?,?,?)',
+        )
+        .bind(event.id, spotId, now),
+      database()
+        .prepare('DELETE FROM spot_activity WHERE event_id=? AND accessed_at<?')
+        .bind(event.id, now - 15 * 60),
+    ]);
+    return json({ spotId, duplicate: result[0].meta.changes === 0 });
   } catch (e) {
     return json(
       {

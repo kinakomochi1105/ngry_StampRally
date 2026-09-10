@@ -22,6 +22,25 @@ export const stamps = sqliteTable(
   ],
 );
 
+// Anonymous, short-lived activity samples used only for the public congestion hint.
+// No participant identifier is stored here; the stamp history remains in `stamps`.
+export const spotActivity = sqliteTable(
+  'spot_activity',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    eventId: text('event_id').notNull(),
+    spotId: text('spot_id').notNull(),
+    accessedAt: integer('accessed_at').notNull(),
+  },
+  (table) => [
+    index('spot_activity_recent_idx').on(
+      table.eventId,
+      table.spotId,
+      table.accessedAt,
+    ),
+  ],
+);
+
 export const participants = sqliteTable(
   'participants',
   {

@@ -5,7 +5,16 @@ import { allSpots, configuration } from '@/lib/data';
 export async function GET(request: Request) {
   try {
     const hash = await participant(request);
-    const [spots, settings] = await Promise.all([allSpots(), configuration()]);
+    const [spots, settings, trafficRows] = await Promise.all([
+      allSpots(),
+      configuration(),
+      database()
+        .prepare(
+          'SELECT l.id AS spotId,COUNT(a.id) AS recentCount FROM locations l LEFT JOIN spot_activity a ON a.event_id=l.event_id AND a.spot_id=l.id AND a.accessed_at>? WHERE l.event_id=? AND l.active=1 GROUP BY l.id',
+        )
+        .bind(Math.floor(Date.now() / 1000) - 10 * 60, event.id)
+        .all<{ spotId: string; recentCount: number }>(),
+    ]);
     const profile = hash
       ? await database()
           .prepare(
@@ -28,7 +37,16 @@ export async function GET(request: Request) {
             .all()
         ).results
       : [];
-    return json({ stamps, profile, spots, settings });
+    return json({
+      stamps,
+      profile,
+      spots,
+      settings,
+      traffic: trafficRows.results.map((row) => ({
+        spotId: row.spotId,
+        recentCount: Number(row.recentCount),
+      })),
+    });
   } catch {
     return json(
       {

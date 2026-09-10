@@ -6,6 +6,11 @@ import { RallyDemo } from '@/components/rally-demo';
 import { Scanner } from '@/components/scanner';
 import { Enrollment } from '@/components/enrollment';
 import {
+  FloorMap,
+  TrafficBadge,
+  type TrafficPoint,
+} from '@/components/floor-map';
+import {
   RecoveryLogin,
   RecoverySetup,
   RecoveryCodeDialog,
@@ -25,6 +30,7 @@ import {
   ChevronRight,
   Trophy,
   Gift,
+  Map as MapIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,6 +46,7 @@ type Passport = {
   spots: Spot[];
   settings: FestivalSettings;
   stamps: { spotId: string; createdAt: number }[];
+  traffic: TrafficPoint[];
   error?: string;
 };
 export default function Home() {
@@ -52,6 +59,7 @@ export default function Home() {
     spots: [],
     settings: defaultSettings,
     stamps: [],
+    traffic: [],
   });
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -174,13 +182,22 @@ export default function Home() {
     } catch {}
     return () => life.abort();
   }, [data.spots]);
-  const { profile, spots, settings, stamps } = data;
+  const { profile, spots, settings, stamps, traffic } = data;
   const total = spots.length;
   const count = stamps.filter((s) =>
     spots.some((p) => p.id === s.spotId),
   ).length;
   const complete = total > 0 && count === total;
   const has = (id: string) => stamps.some((s) => s.spotId === id);
+  const trafficFor = (id: string) =>
+    traffic.find((point) => point.spotId === id)?.recentCount ?? 0;
+  const profileId = profile?.id;
+
+  useEffect(() => {
+    if (!profileId) return;
+    const timer = window.setInterval(() => void reload(), 60_000);
+    return () => window.clearInterval(timer);
+  }, [profileId, reload]);
   return (
     <main className="participant-app">
       <a className="skip-link" href="#main-content">
@@ -315,9 +332,13 @@ export default function Home() {
                     : 'スタンプ'
                   : tab === 'places'
                     ? t('設置場所')
-                    : locale === 'en'
-                      ? 'Reward progress'
-                      : '報酬まで'}
+                    : tab === 'map'
+                      ? locale === 'en'
+                        ? 'Floor map'
+                        : 'フロアマップ'
+                      : locale === 'en'
+                        ? 'Reward progress'
+                        : '報酬まで'}
               </h2>
               <p className="panel-instructions">
                 {tab === 'book'
@@ -328,9 +349,13 @@ export default function Home() {
                     ? locale === 'en'
                       ? 'Check the room and directions before you start walking.'
                       : '教室と案内を確認してから、スポットへ向かいましょう。'
-                    : locale === 'en'
-                      ? 'Check your progress toward completing the rally.'
-                      : 'コンプリートまで、あとどれくらい？'}
+                    : tab === 'map'
+                      ? locale === 'en'
+                        ? 'Choose a floor to see every location and its current crowd guide.'
+                        : '階を選ぶと、設置場所と現在の混み具合を確認できます。'
+                      : locale === 'en'
+                        ? 'Check your progress toward completing the rally.'
+                        : 'コンプリートまで、あとどれくらい？'}
               </p>
               {tab === 'rewards' ? (
                 <section className="reward-progress">
@@ -404,6 +429,13 @@ export default function Home() {
                     </Button>
                   )}
                 </section>
+              ) : tab === 'map' ? (
+                <FloorMap
+                  spots={spots}
+                  traffic={traffic}
+                  hasStamp={has}
+                  locale={locale}
+                />
               ) : total === 0 ? (
                 <div className="empty-state">
                   {t('設置場所の準備ができるまでお待ちください。')}
@@ -461,6 +493,10 @@ export default function Home() {
                           <MapPin size={14} /> {spot.location}
                         </p>
                         <p>{spot.description}</p>
+                        <TrafficBadge
+                          count={trafficFor(spot.id)}
+                          locale={locale}
+                        />
                       </div>
                       {has(spot.id) ? (
                         <Check
@@ -537,6 +573,11 @@ export default function Home() {
                     id: 'places',
                     Icon: MapPin,
                     label: locale === 'en' ? 'Locations' : '設置場所',
+                  },
+                  {
+                    id: 'map',
+                    Icon: MapIcon,
+                    label: locale === 'en' ? 'Map' : 'マップ',
                   },
                   {
                     id: 'rewards',
