@@ -3740,3 +3740,143 @@ html[lang='en'] .access-tabs button {
     --traffic-ink: #ffc1ce;
   }
 }
+
+/* Participant palette: a clean white/black canvas with a clear blue action color. */
+.participant-app {
+  --page-bg: #f6f8fc;
+  --surface: #ffffff;
+  --ink: #1c2945;
+  --muted-ink: #71809b;
+  --accent-ink: #3857e8;
+  --accent-fill: #3857e8;
+  --soft-bg: #edf1ff;
+  --line: #dfe5f2;
+  --dock-bg: #fffffff5;
+  --color-primary: var(--accent-fill);
+  --color-ring: var(--accent-fill);
+  min-height: 100dvh;
+  background: var(--page-bg);
+  color: var(--ink);
+}
+.participant-app .brand-icon,
+.participant-app .scan-card,
+.participant-app .mobile-progress,
+.participant-app .progress-ring span,
+.participant-app .reward-symbol.complete,
+.participant-app .collected .uncollected {
+  background: var(--accent-fill);
+}
+.participant-app .primary-action {
+  background: var(--accent-fill) !important;
+}
+.participant-app .journey-summary progress::-webkit-progress-value,
+.participant-app .journey-summary progress::-moz-progress-bar,
+.participant-app .reward-progress progress::-webkit-progress-value,
+.participant-app .reward-progress progress::-moz-progress-bar {
+  background: var(--accent-fill);
+}
+.participant-app .rally-bottom-dock {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: 0 -8px 28px #1b2b570f;
+}
+.participant-app .rally-bottom-nav {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--surface);
+  border-top-color: var(--line);
+  gap: 6px;
+  padding: 7px 9px 9px;
+}
+.participant-app .rally-bottom-nav button {
+  min-height: 70px;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  color: var(--muted-ink);
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+.participant-app .rally-bottom-nav button:hover,
+.participant-app .rally-bottom-nav button.active {
+  border-color: #cad3ff;
+  background: var(--soft-bg);
+  color: var(--accent-ink);
+  box-shadow: none;
+}
+.participant-app .rally-bottom-nav button.active svg {
+  stroke-width: 2.25;
+}
+.participant-app .rally-bottom-nav strong {
+  font-size: 12px;
+  letter-spacing: 0.01em;
+}
+.places-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--surface);
+}
+.places-toolbar > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.places-toolbar strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+.places-toolbar small {
+  color: var(--muted-ink);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.map-open-button,
+.map-back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.map-back-button {
+  margin-top: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .participant-app {
+    --page-bg: #0c1019;
+    --surface: #151b29;
+    --ink: #f1f4ff;
+    --muted-ink: #aeb9d3;
+    --accent-ink: #98a8ff;
+    --accent-fill: #546df2;
+    --soft-bg: #222b47;
+    --line: #35415f;
+    --dock-bg: #0c1019f5;
+  }
+  .participant-app .rally-bottom-dock {
+    box-shadow: 0 -8px 28px #00000030;
+  }
+  .participant-app .rally-bottom-nav button:hover,
+  .participant-app .rally-bottom-nav button.active {
+    border-color: #5166c2;
+  }
+}
+
+@media (max-width: 430px) {
+  .places-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .map-open-button {
+    width: 100%;
+    justify-content: center;
+  }
+}

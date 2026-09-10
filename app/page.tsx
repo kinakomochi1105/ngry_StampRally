@@ -31,6 +31,7 @@ import {
   Trophy,
   Gift,
   Map as MapIcon,
+  ScanLine,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,7 +54,7 @@ export default function Home() {
   const { t, locale } = useI18n();
   const [demo, setDemo] = useState(false);
   const [demoPending, setDemoPending] = useState(false);
-  const [tab, setTab] = useState('book');
+  const [tab, setTab] = useState('places');
   const [data, setData] = useState<Passport>({
     profile: null,
     spots: [],
@@ -430,12 +431,24 @@ export default function Home() {
                   )}
                 </section>
               ) : tab === 'map' ? (
-                <FloorMap
-                  spots={spots}
-                  traffic={traffic}
-                  hasStamp={has}
-                  locale={locale}
-                />
+                <>
+                  <FloorMap
+                    spots={spots}
+                    traffic={traffic}
+                    hasStamp={has}
+                    locale={locale}
+                  />
+                  <Button
+                    className="map-back-button"
+                    variant="outline"
+                    onClick={() => setTab('places')}
+                  >
+                    <MapPin size={17} />
+                    {locale === 'en'
+                      ? 'Back to missions'
+                      : 'ミッション一覧へ戻る'}
+                  </Button>
+                </>
               ) : total === 0 ? (
                 <div className="empty-state">
                   {t('設置場所の準備ができるまでお待ちください。')}
@@ -482,6 +495,26 @@ export default function Home() {
                 </div>
               ) : (
                 <section className="places">
+                  <div className="places-toolbar">
+                    <div>
+                      <strong>
+                        {locale === 'en' ? 'Plan your route' : '巡る場所を選ぶ'}
+                      </strong>
+                      <small>
+                        {locale === 'en'
+                          ? 'Crowd hints refresh every minute.'
+                          : '混み具合は1分ごとに更新されます。'}
+                      </small>
+                    </div>
+                    <Button
+                      className="map-open-button"
+                      variant="outline"
+                      onClick={() => setTab('map')}
+                    >
+                      <MapIcon size={17} />
+                      {locale === 'en' ? 'Open map' : 'マップを見る'}
+                    </Button>
+                  </div>
                   {spots.map((spot, i) => (
                     <article key={spot.id}>
                       <span className="list-number">
@@ -565,49 +598,50 @@ export default function Home() {
               >
                 {[
                   {
+                    id: 'places',
+                    Icon: ScanLine,
+                    label: locale === 'en' ? 'Missions' : 'ミッション',
+                  },
+                  {
                     id: 'book',
                     Icon: Stamp,
-                    label: locale === 'en' ? 'Stamps' : 'スタンプ',
-                  },
-                  {
-                    id: 'places',
-                    Icon: MapPin,
-                    label: locale === 'en' ? 'Locations' : '設置場所',
-                  },
-                  {
-                    id: 'map',
-                    Icon: MapIcon,
-                    label: locale === 'en' ? 'Map' : 'マップ',
+                    label: locale === 'en' ? 'Stamp book' : 'スタンプ帳',
                   },
                   {
                     id: 'rewards',
                     Icon: Gift,
-                    label: locale === 'en' ? 'Rewards' : '報酬まで',
+                    label: locale === 'en' ? 'Rewards' : '特典',
                   },
-                ].map(({ id, Icon, label }) => (
-                  <button
-                    key={id}
-                    className={tab === id ? 'active' : ''}
-                    aria-current={tab === id ? 'page' : undefined}
-                    aria-controls="rally-panel"
-                    onClick={() => {
-                      setTab(id);
-                      document
-                        .getElementById('rally-panel')
-                        ?.scrollIntoView({ block: 'start' });
-                    }}
-                  >
-                    <span>
-                      <Icon size={22} />
-                      {id === 'rewards' && complete && (
-                        <i>
-                          <Check size={10} />
-                        </i>
-                      )}
-                    </span>
-                    <strong>{label}</strong>
-                  </button>
-                ))}
+                ].map(({ id, Icon, label }) => {
+                  const active =
+                    id === 'places'
+                      ? tab === 'places' || tab === 'map'
+                      : tab === id;
+                  return (
+                    <button
+                      key={id}
+                      className={active ? 'active' : ''}
+                      aria-current={active ? 'page' : undefined}
+                      aria-controls="rally-panel"
+                      onClick={() => {
+                        setTab(id);
+                        document
+                          .getElementById('rally-panel')
+                          ?.scrollIntoView({ block: 'start' });
+                      }}
+                    >
+                      <span>
+                        <Icon size={22} />
+                        {id === 'rewards' && complete && (
+                          <i>
+                            <Check size={10} />
+                          </i>
+                        )}
+                      </span>
+                      <strong>{label}</strong>
+                    </button>
+                  );
+                })}
               </nav>
             </div>
             <Scanner open={scanning} onClose={close} onScan={scan} />
