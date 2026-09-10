@@ -3,6 +3,7 @@ import { useI18n, LanguageSelect } from '@/components/language';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AdminStamps } from '@/components/admin-stamps';
+import { ThemeToggle } from '@/components/theme-toggle';
 import QRCode from 'qrcode';
 import {
   Users,
@@ -259,7 +260,10 @@ export default function Admin() {
   if (!authorized)
     return (
       <main className="admin-login">
-        <LanguageSelect />
+        <div className="admin-top-actions">
+          <ThemeToggle />
+          <LanguageSelect />
+        </div>
         <Link href="/" className="back-link">
           <ChevronLeft size={18} />
           {t('参加者サイトへ')}
@@ -291,7 +295,10 @@ export default function Admin() {
     );
   return (
     <main className="admin-shell">
-      <LanguageSelect />
+      <div className="admin-top-actions">
+        <ThemeToggle />
+        <LanguageSelect />
+      </div>
       <header className="admin-header">
         <div>
           <p className="eyebrow">FESTIVAL CONTROL</p>

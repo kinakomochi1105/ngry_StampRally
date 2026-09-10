@@ -2,11 +2,11 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @theme inline {
-  --color-primary: #087c70;
+  --color-primary: #3857e8;
   --color-primary-foreground: #fff;
   --color-background: var(--page-bg);
   --color-foreground: var(--ink);
-  --color-ring: #087c70;
+  --color-ring: #3857e8;
 }
 :root {
   font-family: 'Noto Sans JP', 'Yu Gothic', Meiryo, sans-serif;
@@ -58,7 +58,7 @@ a {
   font-size: 19px;
 }
 .brand-icon {
-  background: #087c70;
+  background: #3857e8;
   color: #fff;
   display: grid;
   place-items: center;
@@ -206,7 +206,7 @@ h2 {
 .progress span {
   display: block;
   height: 100%;
-  background: #087c70;
+  background: #3857e8;
   transition: width 0.4s;
 }
 .progress-caption {
@@ -283,11 +283,11 @@ h2 {
 }
 .scan-card {
   padding: 25px 22px;
-  background: #087c70;
+  background: #3857e8;
   color: #fff;
   text-align: center;
   border-radius: 18px;
-  box-shadow: 0 12px 24px #087c7014;
+  box-shadow: 0 12px 24px #3857e814;
 }
 .scan-label {
   display: block;
@@ -555,7 +555,7 @@ footer {
   transform: rotate(-7deg);
 }
 .collected .uncollected {
-  background: #087c70;
+  background: #3857e8;
   color: white;
 }
 .notice {
@@ -631,7 +631,7 @@ footer {
   .mobile-scan {
     display: flex;
     width: 100%;
-    background: #087c70 !important;
+    background: #3857e8 !important;
     color: white !important;
     min-height: 50px !important;
     margin-bottom: 22px;
@@ -749,13 +749,13 @@ footer {
 .mobile-progress {
   padding: 24px;
   color: white;
-  background: #087c70;
+  background: #3857e8;
   border-radius: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  box-shadow: 0 12px 24px #087c7015;
+  box-shadow: 0 12px 24px #3857e815;
 }
 .mobile-progress > div > span {
   font-size: 14px;
@@ -784,7 +784,7 @@ footer {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #087c70;
+  background: #3857e8;
   font-size: 16px !important;
   font-weight: 800;
 }
@@ -861,7 +861,7 @@ footer {
   margin-top: 8px;
 }
 .primary-action {
-  background: #087c70 !important;
+  background: #3857e8 !important;
   color: white !important;
   width: 100%;
   min-height: 54px !important;
@@ -1269,7 +1269,7 @@ td small {
 .row-progress span {
   display: block;
   height: 100%;
-  background: #087c70;
+  background: #3857e8;
 }
 .rank-value {
   font-size: 22px;
@@ -1300,7 +1300,7 @@ td small {
 .login-icon {
   display: grid;
   place-items: center;
-  background: #087c70;
+  background: #3857e8;
   color: white;
   width: 70px;
   height: 70px;
@@ -1694,8 +1694,8 @@ td small {
   --surface: #fff;
   --ink: #18223b;
   --muted-ink: #61708a;
-  --accent-ink: #087c70;
-  --soft-bg: #eaf5f1;
+  --accent-ink: #3857e8;
+  --soft-bg: #edf1ff;
   --line: #d5ddec;
   --dock-bg: #f4f7f6f5;
   --danger-ink: #9c2541;
@@ -1704,14 +1704,14 @@ td small {
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --page-bg: #101e1d;
-    --surface: #172b29;
+    --page-bg: #0c1019;
+    --surface: #151b29;
     --ink: #edf2fc;
     --muted-ink: #acbad2;
-    --accent-ink: #74ddc9;
-    --soft-bg: #203c3a;
+    --accent-ink: #98a8ff;
+    --soft-bg: #222b47;
     --line: #3e4d67;
-    --dock-bg: #101e1df5;
+    --dock-bg: #0c1019f5;
     --danger-ink: #ffb8c5;
     --danger-bg: #422532;
     --danger-border: #815065;
@@ -1926,7 +1926,7 @@ html[lang='en'] .kind-grid small {
     --surface: #fff;
     --ink: #18223b;
     --muted-ink: #53668b;
-    --accent-ink: #087c70;
+    --accent-ink: #3857e8;
     --soft-bg: #f4f7f6;
     --line: #d5ddec;
     --dock-bg: #fff;
@@ -2246,7 +2246,7 @@ html[lang='en'] .kind-grid small {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  background: #087c70;
+  background: #3857e8;
   color: white;
   border-radius: 9px;
   padding: 10px;
@@ -2256,7 +2256,7 @@ html[lang='en'] .kind-grid small {
   display: flex;
   align-items: center;
   gap: 15px;
-  background: #087c70;
+  background: #3857e8;
   color: white;
   border-radius: 11px;
   padding: 16px;
@@ -2463,7 +2463,7 @@ html[lang='en'] .kind-grid small {
   margin: 0 auto 22px;
 }
 .reward-symbol.complete {
-  background: #087c70;
+  background: #3857e8;
   color: white;
 }
 .reward-progress h3 {
@@ -2501,11 +2501,11 @@ html[lang='en'] .kind-grid small {
   background: var(--soft-bg);
 }
 .reward-progress progress::-webkit-progress-value {
-  background: #087c70;
+  background: #3857e8;
   border-radius: 10px;
 }
 .reward-progress progress::-moz-progress-bar {
-  background: #087c70;
+  background: #3857e8;
   border-radius: 10px;
 }
 .reward-progress > p:not(.eyebrow) {
@@ -2546,19 +2546,19 @@ html[lang='en'] .kind-grid small {
 
 /* Festival wayfinding: clear type, generous touch targets and one primary action. */
 :root {
-  --ink: #172e2b;
-  --muted-ink: #526862;
-  --line: #d5e3dd;
-  --accent-ink: #086b60;
-  --color-primary: #087c70;
-  --color-ring: #087c70;
+  --ink: #1c2945;
+  --muted-ink: #71809b;
+  --line: #dfe5f2;
+  --accent-ink: #3857e8;
+  --color-primary: #3857e8;
+  --color-ring: #3857e8;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: #edf8f4;
-    --muted-ink: #aec7be;
-    --line: #3b5650;
-    --accent-ink: #74ddc9;
+    --ink: #f1f4ff;
+    --muted-ink: #aeb9d3;
+    --line: #35415f;
+    --accent-ink: #98a8ff;
   }
 }
 body {
@@ -2735,11 +2735,11 @@ textarea:focus-visible {
   background: var(--soft-bg);
 }
 .journey-summary progress::-webkit-progress-value {
-  background: #087c70;
+  background: #3857e8;
   border-radius: 10px;
 }
 .journey-summary progress::-moz-progress-bar {
-  background: #087c70;
+  background: #3857e8;
   border-radius: 10px;
 }
 .journey-message {
@@ -2806,7 +2806,7 @@ textarea:focus-visible {
   border-radius: 7px;
 }
 .participant-app .collected .uncollected {
-  background: #087c70;
+  background: #3857e8;
   color: white;
 }
 .spot-number {
@@ -3234,13 +3234,13 @@ html[lang='en'] .access-tabs button {
 }
 @media print {
   :root {
-    --ink: #172e2b;
-    --muted-ink: #526862;
-    --accent-ink: #086b60;
+    --ink: #1c2945;
+    --muted-ink: #71809b;
+    --accent-ink: #3857e8;
     --surface: #fff;
     --page-bg: #fff;
-    --soft-bg: #eaf5f1;
-    --line: #d5e3dd;
+    --soft-bg: #edf1ff;
+    --line: #dfe5f2;
   }
 }
 
@@ -3412,18 +3412,21 @@ html[lang='en'] .access-tabs button {
 .traffic-badge strong {
   font-size: 12px;
   font-weight: 800;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .traffic-badge small {
   flex-basis: 100%;
+  min-width: 0;
   margin-left: 21px;
   color: var(--muted-ink);
   font-size: 10px;
   line-height: 1.35;
 }
 .traffic-badge.quiet {
-  --traffic-bg: #e6f5f1;
-  --traffic-border: #a8d8cd;
-  --traffic-ink: #087c70;
+  --traffic-bg: #edf1ff;
+  --traffic-border: #cad3ff;
+  --traffic-ink: #3857e8;
 }
 .traffic-badge.moving {
   --traffic-bg: #fff5df;
@@ -3644,7 +3647,7 @@ html[lang='en'] .access-tabs button {
   border-radius: 50%;
 }
 .traffic-legend i.quiet {
-  background: #087c70;
+  background: #3857e8;
 }
 .traffic-legend i.moving {
   background: #d08a14;
@@ -3725,9 +3728,9 @@ html[lang='en'] .access-tabs button {
 
 @media (prefers-color-scheme: dark) {
   .traffic-badge.quiet {
-    --traffic-bg: #173d38;
-    --traffic-border: #3c8275;
-    --traffic-ink: #9be8d9;
+    --traffic-bg: #222b47;
+    --traffic-border: #5166c2;
+    --traffic-ink: #98a8ff;
   }
   .traffic-badge.moving {
     --traffic-bg: #45361d;
@@ -3816,7 +3819,7 @@ html[lang='en'] .access-tabs button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 0 0 14px;
+  margin: 22px 0 16px;
   padding: 13px 14px;
   border: 1px solid var(--line);
   border-radius: 15px;
@@ -3848,6 +3851,14 @@ html[lang='en'] .access-tabs button {
 .map-back-button {
   margin-top: 12px;
 }
+.places > article > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.places .traffic-badge {
+  width: 100%;
+  max-width: 100%;
+}
 
 @media (prefers-color-scheme: dark) {
   .participant-app {
@@ -3878,5 +3889,196 @@ html[lang='en'] .access-tabs button {
   .map-open-button {
     width: 100%;
     justify-content: center;
+  }
+}
+
+/* Shared theme control and modal palette. The icons are SVGs so no emoji font is required. */
+.theme-toggle {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--accent-ink);
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+.theme-toggle:hover {
+  border-color: var(--accent-ink);
+  background: var(--soft-bg);
+}
+.topbar-actions,
+.admin-top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+.topbar-actions {
+  flex: 1 1 100%;
+}
+.topbar-actions .language-select {
+  width: auto;
+  flex: 1 1 auto;
+  margin: 0;
+}
+.admin-top-actions {
+  margin: 0 0 18px auto;
+}
+.admin-top-actions .language-select {
+  width: auto;
+  max-width: 360px;
+  flex: 1 1 auto;
+  margin: 0;
+}
+.admin-login .admin-top-actions {
+  margin-bottom: 24px;
+}
+.desktop-side-nav {
+  display: none;
+}
+.desktop-scan-button {
+  width: 100%;
+  min-height: 52px;
+  gap: 7px;
+  border-radius: 13px !important;
+  background: var(--accent-fill, #3857e8) !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  white-space: normal;
+}
+.desktop-side-tabs {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.desktop-side-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted-ink);
+  text-align: left;
+  font-size: 13px;
+}
+.desktop-side-tabs button:hover,
+.desktop-side-tabs button.active {
+  border-color: #cad3ff;
+  background: var(--soft-bg);
+  color: var(--accent-ink);
+}
+.desktop-side-tabs button strong {
+  font-size: 13px;
+}
+.tutorial-scan-button,
+.tutorial-complete {
+  background: var(--theme-accent, #3857e8);
+}
+
+/* Manual theme choice takes precedence over the device preference. */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --page-bg: #f6f8fc;
+  --surface: #ffffff;
+  --ink: #1c2945;
+  --muted-ink: #71809b;
+  --accent-ink: #3857e8;
+  --color-primary: #3857e8;
+  --color-ring: #3857e8;
+  --soft-bg: #edf1ff;
+  --line: #dfe5f2;
+  --dock-bg: #fffffff5;
+  --theme-accent: #3857e8;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --page-bg: #0c1019;
+  --surface: #151b29;
+  --ink: #f1f4ff;
+  --muted-ink: #aeb9d3;
+  --accent-ink: #98a8ff;
+  --color-primary: #546df2;
+  --color-ring: #98a8ff;
+  --soft-bg: #222b47;
+  --line: #35415f;
+  --dock-bg: #0c1019f5;
+  --theme-accent: #546df2;
+}
+:root[data-theme='light'] .participant-app {
+  --page-bg: #f6f8fc;
+  --surface: #ffffff;
+  --ink: #1c2945;
+  --muted-ink: #71809b;
+  --accent-ink: #3857e8;
+  --accent-fill: #3857e8;
+  --soft-bg: #edf1ff;
+  --line: #dfe5f2;
+  --dock-bg: #fffffff5;
+}
+:root[data-theme='dark'] .participant-app {
+  --page-bg: #0c1019;
+  --surface: #151b29;
+  --ink: #f1f4ff;
+  --muted-ink: #aeb9d3;
+  --accent-ink: #98a8ff;
+  --accent-fill: #546df2;
+  --soft-bg: #222b47;
+  --line: #35415f;
+  --dock-bg: #0c1019f5;
+}
+
+@media (min-width: 1000px) {
+  .participant-app .mobile-page:has(.pass-heading) {
+    grid-template-columns: 174px minmax(0, 1fr) 300px;
+    column-gap: 24px;
+  }
+  .participant-app .mobile-page:has(.pass-heading) > .notice,
+  .participant-app .mobile-page:has(.pass-heading) > .pass-heading,
+  .participant-app .mobile-page:has(.pass-heading) > .journey-summary,
+  .participant-app .mobile-page:has(.pass-heading) > footer {
+    grid-column: 1 / -1;
+  }
+  .participant-app .mobile-page:has(.pass-heading) > .desktop-side-nav {
+    display: flex;
+    grid-column: 1;
+    grid-row: 3;
+    align-self: start;
+    flex-direction: column;
+    gap: 12px;
+    position: sticky;
+    top: 18px;
+  }
+  .participant-app .mobile-page:has(.pass-heading) > .rally-panel {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .participant-app .mobile-page:has(.pass-heading) > .help-center {
+    grid-column: 3;
+    grid-row: 3;
+    margin-top: 28px;
+  }
+  .participant-app .mobile-page:has(> .notice) > .desktop-side-nav,
+  .participant-app .mobile-page:has(> .notice) > .rally-panel,
+  .participant-app .mobile-page:has(> .notice) > .help-center {
+    grid-row: 4;
+  }
+  .participant-app .mobile-page:has(.pass-heading) > .rally-bottom-dock {
+    display: none;
+  }
+  .participant-app:has(.rally-bottom-dock) .mobile-page {
+    padding-bottom: 48px;
   }
 }

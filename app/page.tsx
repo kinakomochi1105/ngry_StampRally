@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { RallyDemo } from '@/components/rally-demo';
 import { Scanner } from '@/components/scanner';
 import { Enrollment } from '@/components/enrollment';
+import { ThemeToggle } from '@/components/theme-toggle';
 import {
   FloorMap,
   TrafficBadge,
@@ -54,7 +55,7 @@ export default function Home() {
   const { t, locale } = useI18n();
   const [demo, setDemo] = useState(false);
   const [demoPending, setDemoPending] = useState(false);
-  const [tab, setTab] = useState('places');
+  const [tab, setTab] = useState('book');
   const [data, setData] = useState<Passport>({
     profile: null,
     spots: [],
@@ -193,6 +194,25 @@ export default function Home() {
   const trafficFor = (id: string) =>
     traffic.find((point) => point.spotId === id)?.recentCount ?? 0;
   const profileId = profile?.id;
+  const navItems = [
+    {
+      id: 'book',
+      Icon: Stamp,
+      label: locale === 'en' ? 'Stamp book' : 'スタンプ帳',
+    },
+    {
+      id: 'places',
+      Icon: ScanLine,
+      label: locale === 'en' ? 'Locations' : '設置場所',
+    },
+    {
+      id: 'rewards',
+      Icon: Gift,
+      label: locale === 'en' ? 'Rewards' : '特典',
+    },
+  ];
+  const isNavActive = (id: string) =>
+    id === 'places' ? tab === 'places' || tab === 'map' : tab === id;
 
   useEffect(() => {
     if (!profileId) return;
@@ -214,7 +234,10 @@ export default function Home() {
             <small>STAMP RALLY</small>
           </span>
         </Link>
-        <LanguageSelect />
+        <div className="topbar-actions">
+          <ThemeToggle />
+          <LanguageSelect />
+        </div>
       </header>
       <div className="mobile-page" id="main-content">
         {notice && (
@@ -445,8 +468,8 @@ export default function Home() {
                   >
                     <MapPin size={17} />
                     {locale === 'en'
-                      ? 'Back to missions'
-                      : 'ミッション一覧へ戻る'}
+                      ? 'Back to locations'
+                      : '設置場所一覧へ戻る'}
                   </Button>
                 </>
               ) : total === 0 ? (
@@ -548,6 +571,42 @@ export default function Home() {
                 </section>
               )}
             </section>
+            <nav
+              className="desktop-side-nav"
+              aria-label={
+                locale === 'en' ? 'Festival navigation' : '画面切り替え'
+              }
+            >
+              <Button
+                className="desktop-scan-button"
+                disabled={failed || loading || !total}
+                onClick={() => setScanning(true)}
+              >
+                <QrCode size={19} />
+                {locale === 'en' ? 'Scan QR' : 'QRを読み取る'}
+              </Button>
+              <div className="desktop-side-tabs">
+                {navItems.map(({ id, Icon, label }) => {
+                  const active = isNavActive(id);
+                  return (
+                    <button
+                      key={id}
+                      className={active ? 'active' : ''}
+                      aria-current={active ? 'page' : undefined}
+                      onClick={() => {
+                        setTab(id);
+                        document
+                          .getElementById('rally-panel')
+                          ?.scrollIntoView({ block: 'start' });
+                      }}
+                    >
+                      <Icon size={20} />
+                      <strong>{label}</strong>
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
             <details
               className="help-center"
               open={!profile.nickname || undefined}
@@ -596,27 +655,8 @@ export default function Home() {
                   locale === 'en' ? 'Festival navigation' : '画面切り替え'
                 }
               >
-                {[
-                  {
-                    id: 'places',
-                    Icon: ScanLine,
-                    label: locale === 'en' ? 'Missions' : 'ミッション',
-                  },
-                  {
-                    id: 'book',
-                    Icon: Stamp,
-                    label: locale === 'en' ? 'Stamp book' : 'スタンプ帳',
-                  },
-                  {
-                    id: 'rewards',
-                    Icon: Gift,
-                    label: locale === 'en' ? 'Rewards' : '特典',
-                  },
-                ].map(({ id, Icon, label }) => {
-                  const active =
-                    id === 'places'
-                      ? tab === 'places' || tab === 'map'
-                      : tab === id;
+                {navItems.map(({ id, Icon, label }) => {
+                  const active = isNavActive(id);
                   return (
                     <button
                       key={id}

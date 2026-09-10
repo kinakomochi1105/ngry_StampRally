@@ -20,12 +20,12 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
     ? [
         'Use Locations in the bottom menu to see where each QR code is displayed. Walk to a location first.',
         'Stop walking, tap Scan QR code and allow camera access. Point at the entire displayed QR code.',
-        'Use Stamps to see your collection and Rewards to check how many stamps remain.',
+        'Use Stamp book to see your collection and Rewards to check how many stamps remain.',
       ]
     : [
         '画面下部の「設置場所」でQRが置いてある場所を確認して、スポットへ向かいます。',
         '立ち止まって「QRを読み取る」を押し、カメラを許可します。設置されたQR全体をカメラに写しましょう。',
-        '「スタンプ」で獲得状況を確認できます。「報酬まで」には残り個数が表示されます。',
+        '「スタンプ帳」で獲得状況を確認できます。「特典」には残り個数が表示されます。',
       ];
   return (
     <Dialog
@@ -118,9 +118,9 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
           )}
         </div>
         <div className="tutorial-tabs tutorial-nav-preview" aria-hidden="true">
-          <span>{en ? 'Stamps' : 'スタンプ'}</span>
-          <strong>{en ? 'Locations' : '設置場所'}</strong>
-          <span>{en ? 'Rewards' : '報酬まで'}</span>
+          <strong>{en ? 'Stamp book' : 'スタンプ帳'}</strong>
+          <span>{en ? 'Locations' : '設置場所'}</span>
+          <span>{en ? 'Rewards' : '特典'}</span>
         </div>
         <p className="tutorial-note">
           {en
