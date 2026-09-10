@@ -19,6 +19,7 @@ import {
   ChevronRight,
   ShieldCheck,
   QrCode,
+  Gift,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,6 +47,7 @@ type Stats = {
   students: number;
   guests: number;
   completed: number;
+  redeemed: number;
   stamps: number;
   spotCount: number;
 };
@@ -101,6 +103,7 @@ export default function Admin() {
     students: 0,
     guests: 0,
     completed: 0,
+    redeemed: 0,
     stamps: 0,
     spotCount: 0,
   });
@@ -109,6 +112,8 @@ export default function Admin() {
   const [grades, setGrades] = useState('1,2,3');
   const [classes, setClasses] = useState('A,B,C,D,E');
   const [blockedWords, setBlockedWords] = useState('');
+  const [staffPinSet, setStaffPinSet] = useState(false);
+  const [staffPin, setStaffPin] = useState('');
   const [logs, setLogs] = useState<Audit[]>([]);
   const [editingSpot, setEditingSpot] = useState<Partial<Spot> | null>(null);
   const [editingPerson, setEditingPerson] = useState<Row | null>(null);
@@ -148,6 +153,7 @@ export default function Admin() {
         setGrades(c.grades.join(','));
         setClasses(c.classes.join(','));
         setBlockedWords((c.nicknameBlockedWords ?? []).join('\n'));
+        setStaffPinSet(d.staffPinSet === true);
         setLogs(d.logs as Audit[]);
       }
     } catch (e) {
@@ -333,6 +339,7 @@ export default function Admin() {
           [GraduationCap, t('生徒'), stats.students],
           [Users, t('一般客'), stats.guests],
           [Trophy, t('コンプリート'), stats.completed],
+          [Gift, t('報酬交換済み'), stats.redeemed],
         ].map(([Icon, label, value]) => {
           const I = Icon as typeof Users;
           return (
@@ -442,6 +449,7 @@ export default function Admin() {
                   <th>{t('参加者')}</th>
                   <th>{t('区分')}</th>
                   <th>{t('進行状況')}</th>
+                  <th>{t('報酬交換')}</th>
                   <th>{t('最終押印')}</th>
                   <th>{t('管理')}</th>
                 </tr>
@@ -487,6 +495,18 @@ export default function Admin() {
                           ? t('コンプリート')
                           : ''}
                       </small>
+                    </td>
+                    <td>
+                      {row.redeemedAt ? (
+                        <>
+                          <span className="redeem-tag done">
+                            {t('交換済み')}
+                          </span>
+                          <small>{date(row.redeemedAt, locale)}</small>
+                        </>
+                      ) : (
+                        <span className="redeem-tag">{t('未交換')}</span>
+                      )}
                     </td>
                     <td>{date(row.lastStamp, locale)}</td>
                     <td>
@@ -730,6 +750,76 @@ export default function Admin() {
               {t('設定を保存')}
             </Button>
           </form>
+          <form
+            className="admin-form staff-pin-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void mutate(
+                'settings',
+                { action: 'staffPin', pin: staffPin },
+                '係員用暗証番号を保存しました。',
+              );
+              setStaffPin('');
+            }}
+          >
+            <h3>{t('報酬受け取り用の係員暗証番号')}</h3>
+            <p
+              className={
+                staffPinSet ? 'staff-pin-state set' : 'staff-pin-state unset'
+              }
+            >
+              {staffPinSet
+                ? t('設定済みです。参加者の画面で係員が入力します。')
+                : t('未設定です。設定するまで参加者は報酬を受け取れません。')}
+            </p>
+            <label>
+              {t('新しい暗証番号（4〜8桁の数字）')}
+              <input
+                value={staffPin}
+                onChange={(e) =>
+                  setStaffPin(e.target.value.replace(/\D/g, '').slice(0, 8))
+                }
+                inputMode="numeric"
+                type="password"
+                autoComplete="new-password"
+                placeholder="••••"
+              />
+              <small>
+                {t(
+                  '係員だけに共有してください。参加者の端末で入力するため、他の場所で使っていない番号にしてください。',
+                )}
+              </small>
+            </label>
+            <div className="staff-pin-actions">
+              <Button type="submit" disabled={busy || staffPin.length < 4}>
+                {t('暗証番号を保存')}
+              </Button>
+              {staffPinSet && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => {
+                    if (
+                      !window.confirm(
+                        t(
+                          '暗証番号を削除すると、報酬の受け取りができなくなります。よろしいですか？',
+                        ),
+                      )
+                    )
+                      return;
+                    void mutate(
+                      'settings',
+                      { action: 'staffPin', clear: true },
+                      '係員用暗証番号を削除しました。',
+                    );
+                  }}
+                >
+                  {t('暗証番号を削除')}
+                </Button>
+              )}
+            </div>
+          </form>
           <div className="data-actions">
             <div>
               <h3>{t('参加データを保存')}</h3>
@@ -912,6 +1002,44 @@ export default function Admin() {
                   <li>{t('押印履歴はありません。')}</li>
                 )}
               </ul>
+              <div className="redeem-panel">
+                <div>
+                  <strong>{t('報酬の交換')}</strong>
+                  {editingPerson.redeemedAt ? (
+                    <small>
+                      {t('交換済み')} · {date(editingPerson.redeemedAt, locale)}
+                    </small>
+                  ) : (
+                    <small>{t('まだ交換していません。')}</small>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => {
+                    const redeemed = !editingPerson.redeemedAt;
+                    if (
+                      !redeemed &&
+                      !window.confirm(
+                        t('交換の記録を取り消します。よろしいですか？'),
+                      )
+                    )
+                      return;
+                    // mutate() closes this dialog and reloads the table.
+                    void mutate(
+                      'participants',
+                      { id: editingPerson.id, action: 'redeem', redeemed },
+                      redeemed
+                        ? '報酬を交換済みにしました。'
+                        : '交換の記録を取り消しました。',
+                    );
+                  }}
+                >
+                  {editingPerson.redeemedAt
+                    ? t('交換を取り消す')
+                    : t('交換済みにする')}
+                </Button>
+              </div>
               <form
                 className="admin-form"
                 onSubmit={(e) => {

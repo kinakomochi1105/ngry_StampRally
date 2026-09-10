@@ -1,6 +1,6 @@
 import { database } from '@/db';
 import { event } from '@/lib/event';
-import { json, sign } from '@/lib/server';
+import { json, sign, logFailure } from '@/lib/server';
 import { guard } from '@/lib/admin';
 import { allSpots, bodyJson, seedSpots, audit } from '@/lib/data';
 export async function GET(request: Request) {
@@ -16,7 +16,8 @@ export async function GET(request: Request) {
         })),
       ),
     });
-  } catch {
+  } catch (e) {
+    logFailure('GET /api/admin/spots', e);
     return json({ error: '設置場所を取得できませんでした。' }, 503);
   }
 }

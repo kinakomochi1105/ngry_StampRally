@@ -15,6 +15,8 @@ export type Profile = {
   guestNumber: number | null;
   nickname: string | null;
   hasRecovery: boolean;
+  completedAt: number | null;
+  redeemedAt: number | null;
 };
 export type FestivalSettings = {
   title: string;

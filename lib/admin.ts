@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { sign, safeEqual, json, validOrigin } from './server';
+import { sign, safeEqual, json, validOrigin, isSecureRequest } from './server';
 export async function admin(request: Request) {
   const value = request.headers
     .get('cookie')
@@ -26,7 +26,7 @@ export async function adminCookie(request: Request) {
   const signature = await sign(
     `admin:${expires}:${nonce}:${env.ADMIN_PASSWORD}`,
   );
-  return `rally_admin=${expires}.${nonce}.${signature}; HttpOnly; SameSite=Strict; Path=/api/admin; Max-Age=28800${new URL(request.url).protocol === 'https:' ? '; Secure' : ''}`;
+  return `rally_admin=${expires}.${nonce}.${signature}; HttpOnly; SameSite=Strict; Path=/api/admin; Max-Age=28800${isSecureRequest(request) ? '; Secure' : ''}`;
 }
 export async function guard(request: Request, mutation = false) {
   if (!(await admin(request)))

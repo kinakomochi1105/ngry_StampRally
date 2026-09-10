@@ -2,6 +2,7 @@ import { sites } from '@openai/sites-vite-plugin';
 import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
 import { defineConfig } from 'vite';
+import { devLogger } from './dev-logger';
 import hostingConfig from './.openai/hosting.json';
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
@@ -46,17 +47,26 @@ export default defineConfig(async () => {
 
   return {
     css: { postcss: { plugins: [tailwindcss()] } },
-    server: isCodexSeatbeltSandbox
-      ? {
-          host: '0.0.0.0',
-          allowedHosts: ['hiroguru.mydns.jp'],
-          watch: { useFsEvents: false, usePolling: true },
-        }
-      : {
-          host: '0.0.0.0',
-          allowedHosts: ['hiroguru.mydns.jp'],
-        },
+    server: {
+      host: '0.0.0.0',
+      // Hostnames the dev server will answer to. Cloudflare Tunnel forwards
+      // with the public hostname intact, so it has to be listed here.
+      // `.trycloudflare.com` covers the throwaway hostname that
+      // `npm run tunnel:quick` prints, which is different on every run.
+      // Override with RALLY_ALLOWED_HOSTS=a.example,b.example.
+      allowedHosts: (
+        process.env.RALLY_ALLOWED_HOSTS ??
+        'hiroguru.mydns.jp,.trycloudflare.com'
+      )
+        .split(',')
+        .map((h) => h.trim())
+        .filter(Boolean),
+      ...(isCodexSeatbeltSandbox
+        ? { watch: { useFsEvents: false, usePolling: true } }
+        : {}),
+    },
     plugins: [
+      devLogger(),
       vinext(),
       sites(),
       cloudflare({

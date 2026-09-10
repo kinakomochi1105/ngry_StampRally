@@ -36,6 +36,13 @@
       "when": 1789031600095,
       "tag": "0004_ambiguous_wrecker",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789049942990,
+      "tag": "0005_smart_iron_lad",
+      "breakpoints": true
     }
   ]
 }

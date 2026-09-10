@@ -3,6 +3,7 @@ import { event } from '@/lib/event';
 import { retentionSeconds } from './server';
 export const progressSql = `WITH progress AS (
  SELECT p.id,p.nickname,p.kind,p.grade,p.class_name AS className,p.number,p.guest_number AS guestNumber,p.created_at AS createdAt,
+ p.completed_at AS completedAt,p.redeemed_at AS redeemedAt,
  COUNT(l.id) AS stampCount,MAX(CASE WHEN l.id IS NOT NULL THEN s.created_at END) AS lastStamp
  FROM participants p LEFT JOIN stamps s ON s.participant_hash=p.hash AND s.event_id=p.event_id AND s.created_at>?
  LEFT JOIN locations l ON l.id=s.spot_id AND l.event_id=p.event_id AND l.active=1 WHERE p.event_id=? GROUP BY p.id
@@ -23,7 +24,7 @@ export async function statistics() {
   const stats = await database()
     .prepare(
       progressSql +
-        ` SELECT COUNT(*) AS total,COALESCE(SUM(kind='student'),0) AS students,COALESCE(SUM(kind='guest'),0) AS guests,COALESCE(SUM(stampCount=? AND ?>0),0) AS completed,COALESCE(SUM(stampCount),0) AS stamps FROM ranked`,
+        ` SELECT COUNT(*) AS total,COALESCE(SUM(kind='student'),0) AS students,COALESCE(SUM(kind='guest'),0) AS guests,COALESCE(SUM(stampCount=? AND ?>0),0) AS completed,COALESCE(SUM(redeemedAt IS NOT NULL),0) AS redeemed,COALESCE(SUM(stampCount),0) AS stamps FROM ranked`,
     )
     .bind(...progressArgs(), total, total)
     .first();

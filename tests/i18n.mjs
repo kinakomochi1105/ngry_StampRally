@@ -33,6 +33,7 @@ for (const path of [
   'components/enrollment.tsx',
   'components/recovery.tsx',
   'components/scanner.tsx',
+  'components/reward.tsx',
 ]) {
   const sf = ts.createSourceFile(
     path,

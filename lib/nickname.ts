@@ -5,7 +5,9 @@ export const moderationKey = (value: string) =>
   nicknameKey(value)
     .replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60))
     .replace(/[^\p{L}\p{N}]/gu, '');
-const blockedWords = [
+// A small local fallback keeps the client responsive while the server remains
+// authoritative and adds the encrypted Config/forbidden list.
+const fallbackBlockedWords = [
   '死ね',
   '殺す',
   '殺害',
@@ -45,7 +47,7 @@ export function validateNickname(value: unknown, additional: string[] = []) {
     );
   const key = moderationKey(nickname);
   if (
-    [...blockedWords, ...additional].some((word) => {
+    [...fallbackBlockedWords, ...additional].some((word) => {
       const normalized = moderationKey(word);
       return normalized.length > 0 && key.includes(normalized);
     })

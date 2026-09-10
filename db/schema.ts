@@ -56,6 +56,10 @@ export const participants = sqliteTable(
     nicknameKey: text('nickname_key'),
     recoveryHash: text('recovery_hash'),
     createdAt: integer('created_at').notNull(),
+    // Reward hand-over. `completedAt` is the last stamp at the moment staff
+    // confirmed, kept separately so later spot changes cannot rewrite history.
+    completedAt: integer('completed_at'),
+    redeemedAt: integer('redeemed_at'),
   },
   (t) => [
     uniqueIndex('participants_hash_idx').on(t.eventId, t.hash),

@@ -1,6 +1,6 @@
 import { database } from '@/db';
 import { event } from '@/lib/event';
-import { json, retentionSeconds } from '@/lib/server';
+import { json, retentionSeconds, logFailure } from '@/lib/server';
 import { guard } from '@/lib/admin';
 import { bodyJson, configuration, studentFields } from '@/lib/data';
 import { progressSql, progressArgs, statistics } from '@/lib/progress';
@@ -60,7 +60,8 @@ export async function GET(request: Request) {
       statistics(),
     ]);
     return json({ rows: rows.results, count: count?.count ?? 0, page, stats });
-  } catch {
+  } catch (e) {
+    logFailure('GET /api/admin/participants', e);
     return json({ error: '参加者一覧を取得できませんでした。' }, 503);
   }
 }
@@ -117,6 +118,45 @@ export async function POST(request: Request) {
             now,
           ),
       ]);
+    } else if (data.action === 'redeem') {
+      if (typeof data.redeemed !== 'boolean')
+        return json({ error: '交換状態を指定してください。' }, 400);
+      const now = Math.floor(Date.now() / 1000);
+      if (data.redeemed) {
+        // Hand-over recorded at the desk: keep the participant's own last
+        // stamp as the completion time when one exists.
+        const progress = await database()
+          .prepare(
+            'SELECT MAX(s.created_at) AS lastStamp FROM stamps s JOIN locations l ON l.id=s.spot_id AND l.event_id=s.event_id AND l.active=1 WHERE s.event_id=? AND s.participant_hash=?',
+          )
+          .bind(event.id, row.hash)
+          .first<{ lastStamp: number | null }>();
+        await database().batch([
+          database()
+            .prepare(
+              'UPDATE participants SET redeemed_at=COALESCE(redeemed_at,?),completed_at=COALESCE(completed_at,?) WHERE id=? AND event_id=?',
+            )
+            .bind(now, progress?.lastStamp ?? now, id, event.id),
+          database()
+            .prepare(
+              'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
+            )
+            .bind('reward_grant', String(id), now),
+        ]);
+      } else {
+        await database().batch([
+          database()
+            .prepare(
+              'UPDATE participants SET redeemed_at=NULL,completed_at=NULL WHERE id=? AND event_id=?',
+            )
+            .bind(id, event.id),
+          database()
+            .prepare(
+              'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
+            )
+            .bind('reward_revoke', String(id), now),
+        ]);
+      }
     } else if (data.action === 'edit') {
       if (row.kind !== 'student')
         return json({ error: '一般客のIDは変更できません。' }, 400);

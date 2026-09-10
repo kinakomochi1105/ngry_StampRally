@@ -3,6 +3,7 @@ import { event } from '@/lib/event';
 import { json, participant, newParticipant, validOrigin } from '@/lib/server';
 import { bodyJson, configuration, studentFields } from '@/lib/data';
 import { validateNickname } from '@/lib/nickname';
+import { loadForbiddenWords } from '@/lib/forbidden';
 import { makeRecovery } from '@/lib/recovery';
 export async function POST(request: Request) {
   if (!validOrigin(request))
@@ -22,7 +23,10 @@ export async function POST(request: Request) {
     }
     if (data.kind !== 'student' && data.kind !== 'guest')
       return json({ error: '生徒または一般客を選んでください。' }, 400);
-    const name = validateNickname(data.nickname, config.nicknameBlockedWords);
+    const name = validateNickname(data.nickname, [
+      ...(await loadForbiddenWords()),
+      ...(config.nicknameBlockedWords ?? []),
+    ]);
     const recovery = await makeRecovery();
     const profile =
       data.kind === 'student' ? studentFields(data, config) : null;

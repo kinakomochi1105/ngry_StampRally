@@ -38,7 +38,7 @@ async function adm(path, data) {
 }
 async function register(data) {
   const r = await req('/api/register', {
-    data: { nickname: '文化祭テスト', ...data },
+    data: { nickname: '文化祭参加者', ...data },
   });
   assert.equal(r.status, 201, JSON.stringify(r.data));
   assert.match(r.headers.get('set-cookie'), /HttpOnly/);
@@ -154,7 +154,7 @@ try {
     'PASS: admin individual stamp grant/revoke, idempotent timestamp, participant progress/rank, audit, authorization and CSRF.',
   );
   const studentInput = {
-    nickname: '文化祭テスト',
+    nickname: '文化祭参加者',
     kind: 'student',
     grade: original.grades[0],
     className: original.classes.at(-1),
@@ -362,6 +362,7 @@ try {
     'ＦＵＣＫ',
     'f-u-c-k',
     'セックス',
+    'うんこさん',
     '管理者さん',
     '<script>',
     'a\u200Bb',

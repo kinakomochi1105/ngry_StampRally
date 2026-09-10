@@ -41,3 +41,9 @@ next-env.d.ts
 /.dev.vars*
 
 *.tsbuildinfo
+
+# Cloudflare Tunnel: the config names a credentials file that grants tunnel
+# access. Only the example template is committed.
+/cloudflared.yml
+/*.cloudflared.json
+

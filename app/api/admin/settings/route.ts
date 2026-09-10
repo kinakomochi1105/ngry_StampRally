@@ -1,14 +1,22 @@
 import { database } from '@/db';
 import { event } from '@/lib/event';
-import { json } from '@/lib/server';
+import { json, logFailure } from '@/lib/server';
 import { guard } from '@/lib/admin';
-import { bodyJson, configuration } from '@/lib/data';
+import {
+  bodyJson,
+  configuration,
+  staffPinHash,
+  hashStaffPin,
+  saveStaffPinStatement,
+} from '@/lib/data';
 export async function GET(request: Request) {
   const denied = await guard(request);
   if (denied) return denied;
   try {
     return json({
       settings: await configuration(),
+      // Only whether a PIN exists; the value itself never leaves the server.
+      staffPinSet: (await staffPinHash()) !== null,
       logs: (
         await database()
           .prepare(
@@ -17,7 +25,8 @@ export async function GET(request: Request) {
           .all()
       ).results,
     });
-  } catch {
+  } catch (e) {
+    logFailure('GET /api/admin/settings', e);
     return json({ error: '設定を取得できませんでした。' }, 503);
   }
 }
@@ -47,6 +56,31 @@ export async function POST(request: Request) {
           .bind('purge_event', event.id, now),
       ]);
       return json({ ok: true });
+    }
+    if (data.action === 'staffPin') {
+      const pin = typeof data.pin === 'string' ? data.pin.trim() : '';
+      if (data.clear === true) {
+        await database().batch([
+          saveStaffPinStatement(null),
+          database()
+            .prepare(
+              'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
+            )
+            .bind('staff_pin_clear', event.id, now),
+        ]);
+        return json({ ok: true, staffPinSet: false });
+      }
+      if (!/^\d{4,8}$/.test(pin))
+        throw new Error('係員用暗証番号は4〜8桁の数字で入力してください。');
+      await database().batch([
+        saveStaffPinStatement(await hashStaffPin(pin)),
+        database()
+          .prepare(
+            'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
+          )
+          .bind('staff_pin_set', event.id, now),
+      ]);
+      return json({ ok: true, staffPinSet: true });
     }
     const config = data.settings as Record<string, unknown>;
     if (!config) throw new Error('設定がありません。');

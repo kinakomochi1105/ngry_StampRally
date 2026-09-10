@@ -1,6 +1,31 @@
 import { database } from '@/db';
 import { event, spots } from './event';
+import { sign } from './server';
 import { defaultSettings, type FestivalSettings, type Spot } from './types';
+
+// The staff PIN lives under its own settings key, never inside the settings
+// blob that `configuration()` hands to participants.
+const staffPinKey = 'staff-pin:' + event.id;
+export const hashStaffPin = (pin: string) =>
+  sign('staffpin:' + event.id + ':' + pin);
+export async function staffPinHash() {
+  const row = await database()
+    .prepare('SELECT value FROM settings WHERE event_id = ?')
+    .bind(staffPinKey)
+    .first<{ value: string }>();
+  return row?.value ?? null;
+}
+export function saveStaffPinStatement(hash: string | null) {
+  return hash === null
+    ? database()
+        .prepare('DELETE FROM settings WHERE event_id = ?')
+        .bind(staffPinKey)
+    : database()
+        .prepare(
+          'INSERT INTO settings (event_id,value) VALUES (?,?) ON CONFLICT(event_id) DO UPDATE SET value=excluded.value',
+        )
+        .bind(staffPinKey, hash);
+}
 export async function configuration() {
   const row = await database()
     .prepare('SELECT value FROM settings WHERE event_id = ?')

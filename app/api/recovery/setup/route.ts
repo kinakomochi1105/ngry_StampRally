@@ -3,6 +3,7 @@ import { event } from '@/lib/event';
 import { json, participant, validOrigin } from '@/lib/server';
 import { bodyJson, configuration } from '@/lib/data';
 import { validateNickname, nicknameKey } from '@/lib/nickname';
+import { loadForbiddenWords } from '@/lib/forbidden';
 import { makeRecovery } from '@/lib/recovery';
 export async function POST(request: Request) {
   if (!validOrigin(request))
@@ -22,7 +23,10 @@ export async function POST(request: Request) {
     // Existing names remain usable even if the organizer later adds a blocked word.
     const name = row.nickname
       ? { nickname: row.nickname, key: nicknameKey(row.nickname) }
-      : validateNickname(data.nickname, config.nicknameBlockedWords);
+      : validateNickname(data.nickname, [
+          ...(await loadForbiddenWords()),
+          ...(config.nicknameBlockedWords ?? []),
+        ]);
     const recovery = await makeRecovery();
     const result = await database()
       .prepare(

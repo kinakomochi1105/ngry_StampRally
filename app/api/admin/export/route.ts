@@ -1,6 +1,6 @@
 import { database } from '@/db';
 import { guard } from '@/lib/admin';
-import { json } from '@/lib/server';
+import { json, logFailure } from '@/lib/server';
 import { progressSql, progressArgs } from '@/lib/progress';
 import { audit } from '@/lib/data';
 export async function GET(request: Request) {
@@ -33,6 +33,9 @@ export async function GET(request: Request) {
         '順位',
         '登録日時',
         '最終押印日時',
+        '報酬交換',
+        'コンプリート日時',
+        '交換日時',
       ],
       ...rows.map((r) => [
         r.id,
@@ -46,6 +49,11 @@ export async function GET(request: Request) {
         r.ranking,
         new Date(Number(r.createdAt) * 1000).toISOString(),
         r.lastStamp ? new Date(Number(r.lastStamp) * 1000).toISOString() : '',
+        r.redeemedAt ? '交換済み' : '未交換',
+        r.completedAt
+          ? new Date(Number(r.completedAt) * 1000).toISOString()
+          : '',
+        r.redeemedAt ? new Date(Number(r.redeemedAt) * 1000).toISOString() : '',
       ]),
     ];
     await audit('export_csv', String(rows.length));
@@ -61,7 +69,8 @@ export async function GET(request: Request) {
         },
       },
     );
-  } catch {
+  } catch (e) {
+    logFailure('GET /api/admin/export', e);
     return json({ error: 'CSVを作成できませんでした。' }, 503);
   }
 }

@@ -4441,7 +4441,8 @@ html[lang='en'] .access-tabs button {
   .freshly-stamped .stamp-circle {
     animation: festival-stamp 620ms var(--ease-spring);
   }
-  .freshly-stamped {
+  /* Outruns the `.stamp-grid > .stamp-card` entrance animation above. */
+  .stamp-grid > .stamp-card.freshly-stamped {
     animation: fresh-card 620ms var(--ease-out-soft);
   }
   .stamp-ripple {
@@ -4449,14 +4450,14 @@ html[lang='en'] .access-tabs button {
   }
 }
 
-/* Loading skeleton for the passport, replacing a bare text placeholder. */
+/* Loading skeleton, replacing a bare text placeholder. Deliberately neutral:
+   the fetch decides whether the passport or the sign-up form renders next. */
 .passport-skeleton {
   display: grid;
   gap: 12px;
   padding: 18px 0 8px;
 }
-.skeleton-line,
-.skeleton-tile {
+.skeleton-line {
   border-radius: 10px;
   background: var(--soft-bg);
 }
@@ -4481,19 +4482,13 @@ html[lang='en'] .access-tabs button {
   width: 60%;
   height: 21px;
 }
+.skeleton-row.short {
+  width: 38%;
+  height: 15px;
+}
 .skeleton-bar {
   width: 100%;
   height: 10px;
-}
-.skeleton-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 10px;
-}
-.skeleton-tile {
-  height: 178px;
-  border-radius: 18px;
 }
 @keyframes skeleton-pulse {
   0%,
@@ -4505,17 +4500,16 @@ html[lang='en'] .access-tabs button {
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .skeleton-line,
-  .skeleton-tile {
+  .skeleton-line {
     animation: skeleton-pulse 1500ms ease-in-out infinite;
   }
-  .skeleton-grid > :nth-child(2) {
+  .passport-skeleton > :nth-child(2) {
     animation-delay: 120ms;
   }
-  .skeleton-grid > :nth-child(3) {
+  .skeleton-card > :nth-child(2) {
     animation-delay: 240ms;
   }
-  .skeleton-grid > :nth-child(4) {
+  .skeleton-card > :nth-child(3) {
     animation-delay: 360ms;
   }
 }
@@ -4563,7 +4557,9 @@ html[lang='en'] .access-tabs button {
   .qr-laser {
     animation: qr-sweep 2400ms ease-in-out infinite;
   }
-  .qr-guide i {
+  /* The laser is only rendered while scanning, so it also gates the corners:
+     a failed camera shows a still frame rather than a pulsing one. */
+  .camera-preview:has(.qr-laser) .qr-guide i {
     animation: qr-corner 2400ms ease-in-out infinite;
   }
   .camera-preview.busy .qr-laser {
@@ -4651,5 +4647,340 @@ html[lang='en'] .access-tabs button {
   }
   .rally-progress {
     border: 1px solid #999;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Reward hand-over: claim button, staff PIN dialog and the redeemed receipt.
+   --------------------------------------------------------------------------- */
+.reward-claim-button {
+  width: 100%;
+  min-height: 56px !important;
+  margin: 20px 0 4px;
+  gap: 8px;
+  border-radius: 14px !important;
+  font-size: 17px !important;
+}
+.reward-dialog {
+  text-align: center;
+  gap: 14px;
+}
+.reward-dialog-icon {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto;
+  border-radius: 20px;
+  background: var(--accent-fill, #3857e8);
+  color: #fff;
+}
+.reward-pin-form {
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+.reward-pin-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.reward-pin-form input {
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 22px;
+  letter-spacing: 0.4em;
+  text-align: center;
+}
+.reward-pin-form .primary-action {
+  min-height: 52px !important;
+  gap: 8px;
+}
+
+/* Receipt shown after staff confirm, styled like a stamped paper slip. */
+.reward-receipt {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  margin: 20px 0 4px;
+  padding: 22px 18px;
+  border: 2px solid var(--accent-ink);
+  border-radius: 18px;
+  background: var(--surface);
+  text-align: left;
+  overflow: hidden;
+}
+.reward-stamp {
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: 118px;
+  height: 118px;
+  border: 3px double #d8443c;
+  border-radius: 50%;
+  color: #d8443c;
+  rotate: -9deg;
+  padding: 6px;
+}
+.reward-stamp span {
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+.reward-stamp small {
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.35;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+.reward-receipt-body {
+  display: grid;
+  gap: 8px;
+}
+.reward-receipt-body h3 {
+  font-size: 19px;
+  font-weight: 800;
+}
+.reward-times {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: var(--soft-bg);
+}
+.reward-times > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.reward-times dt {
+  font-size: 12px;
+  color: var(--muted-ink);
+  white-space: nowrap;
+}
+.reward-times dd {
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.reward-receipt-note {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted-ink);
+}
+@keyframes reward-seal {
+  0% {
+    opacity: 0;
+    scale: 2.1;
+    rotate: 12deg;
+  }
+  62% {
+    opacity: 1;
+    scale: 0.9;
+    rotate: -13deg;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+    rotate: -9deg;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reward-stamp {
+    animation: reward-seal 620ms var(--ease-out-soft);
+  }
+  .reward-receipt {
+    animation: festival-enter 320ms var(--ease-out-soft);
+  }
+}
+/* The seal keeps its own red; it follows the theme the same way the traffic
+   badges do (auto by preference, then overridden by a manual choice). */
+@media (prefers-color-scheme: dark) {
+  .reward-stamp {
+    border-color: #ff8a80;
+    color: #ff8a80;
+  }
+}
+:root[data-theme='light'] .reward-stamp {
+  border-color: #d8443c;
+  color: #d8443c;
+}
+:root[data-theme='dark'] .reward-stamp {
+  border-color: #ff8a80;
+  color: #ff8a80;
+}
+@media (min-width: 620px) {
+  .reward-receipt {
+    grid-template-columns: 118px minmax(0, 1fr);
+    align-items: center;
+    gap: 20px;
+    padding: 24px;
+  }
+}
+@media print {
+  .reward-receipt {
+    border-color: #444;
+  }
+}
+
+/* Admin: redemption status and the staff PIN control. */
+.redeem-tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--page-bg);
+  color: var(--muted-ink);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.redeem-tag.done {
+  border-color: transparent;
+  background: var(--accent-fill, #3857e8);
+  color: #fff;
+}
+.redeem-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--soft-bg);
+}
+.redeem-panel > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.redeem-panel strong {
+  font-size: 14px;
+}
+.redeem-panel small {
+  font-size: 12px;
+  color: var(--muted-ink);
+  line-height: 1.5;
+}
+.staff-pin-form {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.staff-pin-form h3 {
+  font-size: 16px;
+  font-weight: 800;
+}
+.staff-pin-state {
+  margin: 2px 0 4px;
+  padding: 10px 13px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.staff-pin-state.set {
+  background: var(--soft-bg);
+  color: var(--accent-ink);
+}
+.staff-pin-state.unset {
+  background: var(--danger-bg, #fdeceb);
+  color: var(--danger-ink, #a3231b);
+}
+.staff-pin-form input {
+  font-size: 20px;
+  letter-spacing: 0.35em;
+  text-align: center;
+}
+.staff-pin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+@media (max-width: 560px) {
+  .redeem-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Desktop refinements. The panel is ~890px wide there, which left the location
+   list as one very wide column and stretched centred reward copy to a line
+   length that is hard to read.
+   --------------------------------------------------------------------------- */
+@media (min-width: 1000px) {
+  /* Two columns of locations: less scrolling, no 800px-wide rows. Row spacing
+     comes from `gap`, so the single-column margin is cleared to avoid adding
+     both. Cards stretch so the two in a row share a bottom edge. */
+  .participant-app .places {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .participant-app .places > .places-toolbar,
+  .participant-app .places > .print-list {
+    grid-column: 1 / -1;
+  }
+  .participant-app .places > article {
+    margin-bottom: 0;
+  }
+  .participant-app .places > .places-toolbar {
+    margin-bottom: 2px;
+  }
+
+  /* Centred copy gets a readable measure instead of the full panel width. */
+  .participant-app .reward-description,
+  .participant-app .reward-progress > p:not(.eyebrow),
+  .participant-app .panel-instructions,
+  .participant-app .journey-message,
+  .participant-app .traffic-note {
+    max-width: 62ch;
+  }
+  .participant-app .reward-description,
+  .participant-app .reward-progress > p:not(.eyebrow) {
+    margin-inline: auto;
+  }
+  .participant-app .reward-note,
+  .participant-app .reward-receipt,
+  .participant-app .reward-claim-button,
+  .participant-app .reward-progress .rally-progress {
+    max-width: 620px;
+    margin-inline: auto;
+  }
+
+  /* The side nav reads as a column of controls rather than floating labels. */
+  .desktop-side-tabs button {
+    font-size: 14px;
+  }
+  .desktop-side-tabs button strong {
+    font-size: 14px;
+  }
+
+  /* Pointer users get a clearer target state on the location cards. */
+  .participant-app .places > article,
+  .participant-app .stamp-card {
+    cursor: default;
+  }
+  .floor-map-canvas {
+    padding: 20px;
+  }
+}
+
+/* Very wide screens: keep the reading column from drifting apart. */
+@media (min-width: 1400px) {
+  .participant-app .stamp-grid {
+    grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
   }
 }

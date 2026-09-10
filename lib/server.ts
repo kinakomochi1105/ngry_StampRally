@@ -53,7 +53,7 @@ export async function newParticipant(request: Request) {
   ).join('');
   const expires = Math.floor(Date.now() / 1000) + retentionSeconds;
   const signature = await sign(`session:${id}.${expires}`);
-  const secure = new URL(request.url).protocol === 'https:' ? '; Secure' : '';
+  const secure = isSecureRequest(request) ? '; Secure' : '';
   return {
     hash: await sign(`participant:${event.id}:${id}`),
     cookie: `rally_pass=${id}.${expires}.${signature}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${retentionSeconds}${secure}`,
@@ -82,6 +82,19 @@ export async function verifyQr(code: unknown) {
     return null;
   return spotId;
 }
+/**
+ * API routes deliberately return friendly Japanese messages instead of raw
+ * errors, which means a real fault (database down, bad migration) would other-
+ * wise leave no trace at all. This puts the cause on the server console while
+ * keeping the participant-facing response unchanged.
+ */
+export function logFailure(scope: string, error: unknown) {
+  const detail =
+    error instanceof Error ? (error.stack ?? error.message) : String(error);
+  console.error(
+    `${String.fromCharCode(27)}[31m✗ API ${scope}${String.fromCharCode(27)}[0m ${new Date().toISOString()}\n${detail}`,
+  );
+}
 export function json(
   data: unknown,
   status = 200,
@@ -96,6 +109,34 @@ export function json(
     },
   });
 }
+/**
+ * Behind Cloudflare Tunnel the browser speaks HTTPS to the edge while
+ * cloudflared forwards plain HTTP to this process, so `request.url` reports
+ * the wrong scheme (and sometimes the wrong host). These helpers prefer the
+ * forwarded headers, which is safe here because cloudflared dials out and the
+ * origin is never directly reachable from the internet.
+ */
+const forwarded = (request: Request, name: string) =>
+  request.headers.get(name)?.split(',')[0]?.trim() || '';
+
+export function isSecureRequest(request: Request) {
+  if (forwarded(request, 'x-forwarded-proto') === 'https') return true;
+  // Cloudflare also reports the visitor scheme as {"scheme":"https"}.
+  if (/"scheme"\s*:\s*"https"/.test(request.headers.get('cf-visitor') ?? ''))
+    return true;
+  return new URL(request.url).protocol === 'https:';
+}
+
+export function requestOrigin(request: Request) {
+  const url = new URL(request.url);
+  const host = forwarded(request, 'x-forwarded-host') || url.host;
+  return `${isSecureRequest(request) ? 'https' : 'http'}://${host}`;
+}
+
 export function validOrigin(request: Request) {
-  return request.headers.get('origin') === new URL(request.url).origin;
+  const origin = request.headers.get('origin');
+  if (!origin) return false;
+  return (
+    origin === requestOrigin(request) || origin === new URL(request.url).origin
+  );
 }

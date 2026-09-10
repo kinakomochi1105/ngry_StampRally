@@ -8,6 +8,12 @@ import { Enrollment } from '@/components/enrollment';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { ProgressBar } from '@/components/progress-bar';
 import {
+  RewardSeal,
+  RewardClaimButton,
+  RewardClaimDialog,
+  type Redemption,
+} from '@/components/reward';
+import {
   FloorMap,
   TrafficBadge,
   type TrafficPoint,
@@ -76,8 +82,12 @@ export default function Home() {
     tone: 'success' | 'info';
     at: number;
   } | null>(null);
-  const reload = useCallback(async () => {
-    setLoading(true);
+  const [claiming, setClaiming] = useState(false);
+  // `background` refreshes keep the current screen interactive: they never show
+  // the loading state, and a failure leaves the last good data in place instead
+  // of replacing the passport with an error.
+  const reload = useCallback(async (background = false) => {
+    if (!background) setLoading(true);
     try {
       const r = await fetch('/api/passport', {
         cache: 'no-store',
@@ -89,12 +99,13 @@ export default function Home() {
       setFailed(false);
       setNotice('');
     } catch {
+      if (background) return;
       setFailed(true);
       setNotice(
         'スタンプ帳を読み込めませんでした。通信を確認して再読み込みしてください。',
       );
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   }, []);
   useEffect(() => {
@@ -157,7 +168,14 @@ export default function Home() {
   useEffect(() => {
     if (!freshStamp) return;
     const card = document.querySelector('.stamp-card.freshly-stamped');
-    card?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    // A behavior option overrides the CSS scroll-behavior reset, so the
+    // reduced-motion preference has to be checked here as well.
+    card?.scrollIntoView({
+      block: 'center',
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'auto'
+        : 'smooth',
+    });
   }, [freshStamp]);
   useEffect(() => {
     const context = (
@@ -215,6 +233,9 @@ export default function Home() {
     spots.some((p) => p.id === s.spotId),
   ).length;
   const complete = total > 0 && count === total;
+  const redemption: Redemption | null = profile?.redeemedAt
+    ? { redeemedAt: profile.redeemedAt, completedAt: profile.completedAt }
+    : null;
   const has = (id: string) => stamps.some((s) => s.spotId === id);
   const trafficFor = (id: string) =>
     traffic.find((point) => point.spotId === id)?.recentCount ?? 0;
@@ -241,8 +262,26 @@ export default function Home() {
 
   useEffect(() => {
     if (!profileId) return;
-    const timer = window.setInterval(() => void reload(), 60_000);
-    return () => window.clearInterval(timer);
+    // Participants leave the page in a pocket while walking between spots, so
+    // polling pauses while hidden and catches up the moment it returns.
+    let timer = 0;
+    const start = () => {
+      window.clearInterval(timer);
+      timer = window.setInterval(() => void reload(true), 60_000);
+    };
+    const visibility = () => {
+      if (document.hidden) window.clearInterval(timer);
+      else {
+        void reload(true);
+        start();
+      }
+    };
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', visibility);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', visibility);
+    };
   }, [profileId, reload]);
   return (
     <main className="participant-app">
@@ -285,12 +324,7 @@ export default function Home() {
             <div className="skeleton-card">
               <span className="skeleton-line skeleton-row" />
               <span className="skeleton-line skeleton-bar" />
-            </div>
-            <div className="skeleton-grid">
-              <span className="skeleton-tile" />
-              <span className="skeleton-tile" />
-              <span className="skeleton-tile" />
-              <span className="skeleton-tile" />
+              <span className="skeleton-line skeleton-row short" />
             </div>
           </output>
         ) : !failed && !profile ? (
@@ -473,14 +507,32 @@ export default function Home() {
                           ? 'Collect a stamp at every active location to complete the rally.'
                           : '公開中のスポットでスタンプを集めて、コンプリートを目指しましょう。'}
                     </p>
+                    {redemption ? (
+                      <RewardSeal redemption={redemption} locale={locale} />
+                    ) : (
+                      complete && (
+                        <RewardClaimButton
+                          locale={locale}
+                          onClick={() => setClaiming(true)}
+                        />
+                      )
+                    )}
                     <div className="reward-note">
                       <strong>
                         {locale === 'en' ? 'About rewards' : '報酬について'}
                       </strong>
                       <p>
-                        {locale === 'en'
-                          ? 'Please ask the festival organizers about rewards and how to receive them.'
-                          : '報酬の内容・受け取り方法は、文化祭の運営案内をご確認ください。'}
+                        {redemption
+                          ? locale === 'en'
+                            ? 'The reward has already been handed over. Ask the organizers if anything is unclear.'
+                            : '報酬はお渡し済みです。ご不明な点は運営案内までお問い合わせください。'
+                          : complete
+                            ? locale === 'en'
+                              ? 'Take this screen to the reward desk. A staff member will confirm the hand-over.'
+                              : '受付で係員にこの画面をお見せください。係員が確認して受け取りを記録します。'
+                            : locale === 'en'
+                              ? 'Please ask the festival organizers about rewards and how to receive them.'
+                              : '報酬の内容・受け取り方法は、文化祭の運営案内をご確認ください。'}
                       </p>
                     </div>
                     {!complete && total > 0 && (
@@ -744,6 +796,33 @@ export default function Home() {
               </nav>
             </div>
             <Scanner open={scanning} onClose={close} onScan={scan} />
+            <RewardClaimDialog
+              open={claiming}
+              locale={locale}
+              onClose={() => setClaiming(false)}
+              onRedeemed={(value) => {
+                setClaiming(false);
+                // Applied locally so the seal appears immediately; the next
+                // passport refresh confirms it against the server.
+                setData((current) =>
+                  current.profile
+                    ? {
+                        ...current,
+                        profile: {
+                          ...current.profile,
+                          redeemedAt: value.redeemedAt,
+                          completedAt: value.completedAt,
+                        },
+                      }
+                    : current,
+                );
+                setToast({
+                  text: '報酬の交換を記録しました。',
+                  tone: 'success',
+                  at: Date.now(),
+                });
+              }}
+            />
           </>
         ) : null}
         {receipt && (
