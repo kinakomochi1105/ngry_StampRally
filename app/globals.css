@@ -3243,3 +3243,149 @@ html[lang='en'] .access-tabs button {
     --line: #d5e3dd;
   }
 }
+
+/* Bound the scanner to the viewport; media and file inputs must not size the grid. */
+.scanner-dialog {
+  width: calc(100vw - 24px) !important;
+  max-width: 460px !important;
+  min-width: 0 !important;
+  grid-template-columns: minmax(0, 1fr);
+  max-height: calc(
+    100dvh - 32px - env(safe-area-inset-top, 0px) -
+      env(safe-area-inset-bottom, 0px)
+  );
+  padding: 20px !important;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  gap: 14px;
+}
+.scanner-dialog > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.scanner-dialog h2,
+.scanner-dialog p,
+.scanner-dialog output {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.scanner-dialog h2 {
+  line-height: 1.4;
+}
+.scanner-dialog p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.camera-preview {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  height: min(300px, 38dvh);
+  min-height: 150px;
+  background: #14213d;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.camera-preview .camera {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  max-width: 100%;
+  object-fit: cover;
+  border-radius: 0;
+}
+.qr-guide {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: min(74%, 230px, 28dvh);
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+.qr-guide i {
+  position: absolute;
+  display: block;
+  width: 25px;
+  height: 25px;
+  border: 4px solid #fff;
+  filter: drop-shadow(0 1px 2px #000);
+}
+.qr-guide i:nth-child(1) {
+  top: 0;
+  left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 7px 0 0 0;
+}
+.qr-guide i:nth-child(2) {
+  top: 0;
+  right: 0;
+  border-left: 0;
+  border-bottom: 0;
+  border-radius: 0 7px 0 0;
+}
+.qr-guide i:nth-child(3) {
+  bottom: 0;
+  left: 0;
+  border-right: 0;
+  border-top: 0;
+  border-radius: 0 0 0 7px;
+}
+.qr-guide i:nth-child(4) {
+  bottom: 0;
+  right: 0;
+  border-left: 0;
+  border-top: 0;
+  border-radius: 0 0 7px 0;
+}
+.scanner-dialog .file-label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.6;
+  background: var(--soft-bg);
+  color: var(--accent-ink);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.scanner-dialog .file-label input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  cursor: pointer;
+}
+.scanner-dialog .file-label:focus-within {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+.scanner-dialog .file-label:has(input:disabled) {
+  opacity: 0.55;
+  cursor: wait;
+}
+.scanner-dialog button {
+  white-space: normal;
+  height: auto;
+  min-height: 48px;
+  padding: 10px 14px;
+}
+@media (max-width: 360px) {
+  .scanner-dialog {
+    padding: 16px !important;
+    gap: 12px;
+  }
+  .scanner-dialog h2 {
+    font-size: 20px !important;
+  }
+}

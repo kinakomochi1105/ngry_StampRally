@@ -164,9 +164,17 @@ export function Scanner({
       <DialogContent className="scanner-dialog" showCloseButton={false}>
         <DialogTitle>{t('QRを読み取る')}</DialogTitle>
         <DialogDescription>
-          {t('立ち止まって、設置されたQR全体をカメラに写してください。')}
+          {t('立ち止まって、四隅の枠を目安にQR全体を写してください。')}
         </DialogDescription>
-        <video ref={video} muted playsInline className="camera" />
+        <div className="camera-preview">
+          <video ref={video} muted playsInline className="camera" />
+          <div className="qr-guide" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+        </div>
         <output className={error ? 'scanner-error' : ''}>
           {busy
             ? t('押印を確認しています…')

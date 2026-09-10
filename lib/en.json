@@ -295,5 +295,6 @@
   "別の再ログイン操作が完了しました。もう一度お試しください。": "Another sign-in has completed. Please try again.",
   "再ログインできませんでした。通信を確認してお試しください。": "Could not sign in. Check your connection and retry.",
   "スタンプの指定を確認してください。": "Check the stamp selection.",
-  "設置場所が見つかりません。": "Location not found."
+  "設置場所が見つかりません。": "Location not found.",
+  "立ち止まって、四隅の枠を目安にQR全体を写してください。": "Stop walking and fit the whole QR code inside the corner guides."
 }
