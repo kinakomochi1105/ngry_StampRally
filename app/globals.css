@@ -4041,9 +4041,31 @@ html[lang='en'] .access-tabs button {
 }
 
 @media (min-width: 1000px) {
+  .participant-app .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    background: var(--page-bg);
+    border-bottom-color: transparent;
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+  .participant-app .topbar-actions {
+    flex: 0 0 auto;
+    width: auto;
+  }
+  .participant-app .topbar-actions .language-select {
+    flex: 0 0 auto;
+  }
+  .participant-app .topbar-actions .language-trigger {
+    min-width: 278px;
+  }
   .participant-app .mobile-page:has(.pass-heading) {
     grid-template-columns: 174px minmax(0, 1fr) 300px;
     column-gap: 24px;
+    row-gap: 20px;
+    padding-top: 20px;
+    padding-bottom: 64px;
   }
   .participant-app .mobile-page:has(.pass-heading) > .notice,
   .participant-app .mobile-page:has(.pass-heading) > .pass-heading,
@@ -4068,7 +4090,7 @@ html[lang='en'] .access-tabs button {
   .participant-app .mobile-page:has(.pass-heading) > .help-center {
     grid-column: 3;
     grid-row: 3;
-    margin-top: 28px;
+    margin-top: 0;
   }
   .participant-app .mobile-page:has(> .notice) > .desktop-side-nav,
   .participant-app .mobile-page:has(> .notice) > .rally-panel,
@@ -4078,7 +4100,115 @@ html[lang='en'] .access-tabs button {
   .participant-app .mobile-page:has(.pass-heading) > .rally-bottom-dock {
     display: none;
   }
+  .participant-app .pass-heading {
+    align-items: flex-end;
+    margin: 8px 0 0;
+    padding: 2px 2px 0;
+  }
+  .participant-app .pass-heading h1 {
+    font-size: 30px;
+    letter-spacing: -0.02em;
+  }
+  .participant-app .pass-heading p {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+  }
+  .participant-app .journey-summary {
+    padding: 18px 24px;
+    border-radius: 20px;
+    box-shadow: 0 12px 30px #1b2b570f;
+  }
+  .participant-app .journey-summary progress {
+    height: 9px;
+    margin-top: 13px;
+  }
+  .participant-app .rally-panel {
+    min-width: 0;
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: var(--surface);
+    box-shadow: 0 16px 34px #1b2b570b;
+  }
+  .participant-app .rally-panel-title {
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 23px;
+  }
+  .participant-app .panel-instructions {
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+  .participant-app .stamp-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .participant-app .stamp-card {
+    min-width: 0;
+    padding: 20px 10px 15px;
+    border-radius: 16px;
+  }
+  .participant-app .stamp-card.collected {
+    padding: 19px 9px 14px;
+  }
+  .participant-app .help-center {
+    margin-top: 0;
+    border-radius: 20px;
+    padding-right: 20px;
+    padding-left: 20px;
+    box-shadow: 0 16px 34px #1b2b570b;
+  }
+  .participant-app .help-center > summary {
+    min-height: 58px;
+    font-size: 14px;
+  }
+  .desktop-nav-heading {
+    display: grid;
+    gap: 2px;
+    padding: 2px 6px 0;
+  }
+  .desktop-nav-heading span {
+    color: var(--ink);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+  }
+  .desktop-nav-heading small {
+    color: var(--muted-ink);
+    font-size: 11px;
+  }
+  .desktop-scan-button {
+    min-height: 56px;
+    box-shadow: 0 12px 24px #3857e82b;
+  }
+  .desktop-side-nav {
+    gap: 10px;
+  }
+  .desktop-side-tabs {
+    gap: 4px;
+    padding: 6px;
+    border-radius: 18px;
+    box-shadow: 0 12px 28px #1b2b570b;
+  }
+  .desktop-side-tabs button {
+    min-height: 52px;
+    padding: 9px 10px;
+    border-radius: 12px;
+  }
+  .desktop-side-tabs button.active {
+    box-shadow: inset 3px 0 0 var(--accent-ink);
+  }
   .participant-app:has(.rally-bottom-dock) .mobile-page {
-    padding-bottom: 48px;
+    padding-bottom: 64px;
+  }
+}
+
+@media (min-width: 901px) {
+  .participant-app .topbar-actions {
+    flex: 0 0 auto;
+    width: auto;
+  }
+  .participant-app .topbar-actions .language-select {
+    flex: 0 0 auto;
   }
 }

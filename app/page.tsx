@@ -352,8 +352,8 @@ export default function Home() {
               <h2 className="rally-panel-title">
                 {tab === 'book'
                   ? locale === 'en'
-                    ? 'Stamps'
-                    : 'スタンプ'
+                    ? 'Stamp book'
+                    : 'スタンプ帳'
                   : tab === 'places'
                     ? t('設置場所')
                     : tab === 'map'
@@ -577,6 +577,14 @@ export default function Home() {
                 locale === 'en' ? 'Festival navigation' : '画面切り替え'
               }
             >
+              <div className="desktop-nav-heading">
+                <span>
+                  {locale === 'en' ? 'RALLY MENU' : 'ラリー メニュー'}
+                </span>
+                <small>
+                  {locale === 'en' ? 'Quick access' : 'すぐに切り替え'}
+                </small>
+              </div>
               <Button
                 className="desktop-scan-button"
                 disabled={failed || loading || !total}
