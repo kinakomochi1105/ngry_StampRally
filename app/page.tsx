@@ -292,13 +292,6 @@ export default function Home() {
                 <h1>{profile.nickname ?? profileLabel(profile, locale)}</h1>
                 <small>{profileLabel(profile, locale)}</small>
               </div>
-              <Button
-                variant="outline"
-                className="help-shortcut"
-                onClick={() => setDemo(true)}
-              >
-                {locale === 'en' ? 'How to play' : '使い方'}
-              </Button>
             </div>
             <section
               className="journey-summary"
