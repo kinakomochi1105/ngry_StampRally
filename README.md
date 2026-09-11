@@ -15,7 +15,7 @@
 
 ## 管理者
 
-`/admin` で管理者パスワードを入力します。初回パスワードはローカルの `outputs/admin-access.txt` に保存し、Sitesにはシークレットとして設定しています。公開ディレクトリやGitには保存しません。
+`/admin` で管理者パスワードを入力します。初回パスワードはローカルの `outputs/admin-access.txt` に保存し、本番へはVercelの環境変数として設定します。公開ディレクトリやGitには保存しません。
 
 - 参加区分別の人数、進行状況、完了人数。
 - 全体ランキング（獲得数の降順、同数は最終押印時刻の昇順、同数同時刻は同順位）。0個は順位なし。
@@ -44,7 +44,7 @@
 
 既存登録者にはニックネーム・コードを自動設定しません。現在ログイン中の端末の「ニックネームと復旧コードを設定」から登録できます。コード未設定のまま端末とCookieを失った場合は、ニックネームだけでアクセスを許可せず受付で対応します。
 
-不適切名はサーバーで再検査し、NFKC正規化・英字大小・カタカナ/ひらがな・区切り記号の差をそろえて禁止語を判定します。制御文字・不可視文字・HTML等の記号は受け付けません。管理者を装う名前も禁止します。標準のNG語はサーバーのルートにある `Config/forbidden` に、EncryptorToolで作成したAES-CBC/PKCS7・Base64形式で保存します。Node.js実行時はファイルを読み直し、Workers配信時はビルドに埋め込んだファイルを使います。管理設定から追加禁止語を100件まで登録できます。判定はルールベースであり、あらゆる隠語・差別表現や文脈を完全に検出するものではなく、誤判定の可能性もあります。追加した禁止語は新規登録時に適用し、既存名の再ログインを後から妨げません。
+不適切名はサーバーで再検査し、NFKC正規化・英字大小・カタカナ/ひらがな・区切り記号の差をそろえて禁止語を判定します。制御文字・不可視文字・HTML等の記号は受け付けません。管理者を装う名前も禁止します。標準のNG語はサーバーのルートにある `Config/forbidden` に、EncryptorToolで作成したAES-CBC/PKCS7・Base64形式で保存します。サーバーは実行時にこのファイルを読み直します。どのモジュールからも import しないファイルなので、配信物に含めるために `next.config.ts` の `outputFileTracingIncludes` で指定しています。管理設定から追加禁止語を100件まで登録できます。判定はルールベースであり、あらゆる隠語・差別表現や文脈を完全に検出するものではなく、誤判定の可能性もあります。追加した禁止語は新規登録時に適用し、既存名の再ログインを後から妨げません。
 
 ## 開発
 
@@ -54,12 +54,11 @@ Node.js 24推奨（アプリ自体の最低要件は22.13）。
 npm ci
 node scripts/setup-secret.mjs
 node scripts/setup-admin.mjs
-$env:WRANGLER_LOG_PATH='.wrangler/logs'
-npx wrangler d1 migrations apply site-creator-d1 --local --config wrangler.local.json
+npm run db:migrate
 npm run dev
 ```
 
-管理者パスワードとQR署名秘密値は `.env` の `ADMIN_PASSWORD` と `RALLY_SECRET` に置きます。本番側にも同じ値をSitesのシークレットとして設定します。管理者パスワードは16文字以上（生成されるものは十分な乱数）。QR署名秘密値は32バイト以上の乱数。開催中に署名秘密値を変更すると既存QRとCookieが無効になります。管理者パスワードを変更すると管理者セッションも無効になります。
+管理者パスワードとQR署名秘密値は `.env` の `ADMIN_PASSWORD` と `RALLY_SECRET` に置きます。本番側にも同じ値をVercelの環境変数として設定します。データベース接続は `TURSO_DATABASE_URL`（ローカルは `file:local.db`）と、Turso利用時の `TURSO_AUTH_TOKEN` で指定します。管理者パスワードは16文字以上（生成されるものは十分な乱数）。QR署名秘密値は32バイト以上の乱数。開催中に署名秘密値を変更すると既存QRとCookieが無効になります。管理者パスワードを変更すると管理者セッションも無効になります。
 
 ```powershell
 node --env-file=.env tests/api.mjs
@@ -68,11 +67,48 @@ npx oxlint app components/enrollment.tsx components/scanner.tsx lib db
 npm run build
 ```
 
-スキーマ変更時のみ `npm run db:generate` を実行し、SQLを点検してください。適用済みのSQLとスナップショットは変更しません。Sitesは保存したマイグレーションを配信時に適用します。
+スキーマ変更時のみ `npm run db:generate` を実行し、SQLを点検してください。適用済みのSQLとスナップショットは変更しません。生成したマイグレーションは `npm run db:migrate` で適用します。本番のTursoへ適用するときは、そのデータベースを指す `TURSO_DATABASE_URL` と `TURSO_AUTH_TOKEN` を環境変数に入れて同じコマンドを実行します。
 
 `tests/api.mjs` はローカルAPIへ接続し、ニックネーム判定・復旧・旧端末の失効・コード再発行・試行制限・登録・重複拒否・12人同時の一般客ID・ID再利用防止・24件同時押印・匿名の混み具合集計・本人の履歴分離・順位・管理権限・CSRF拒否・独自学年/組の設定・登録編集/削除・CSV・QRを検証します。テスト自身が作成した参加者は終了時に削除します。一般客の発行済み連番は巻き戻しません。初期地点がなければサンプル地点を作成します。既存設定は終了時に復元します。本番に対して実行できないようローカル接続だけを許可しています。
 
 管理画面からのQR発行を通常の運用手順にしてください。`scripts/generate-qr.mjs` は `lib/event.ts` の初期サンプル地点専用で、DBで編集した地点の出力には使用しません。
+
+## LAN内HTTPS（インターネットなしで連続スキャン）
+
+会場にインターネットがない、またはドメインを用意できない場合の手段です。`http://192.168.x.x` は secure context ではないため、ブラウザが `getUserMedia` を拒否して連続スキャンができません。自己署名証明書でLANをHTTPS化すると、この制限を正規の方法で解除できます。
+
+```powershell
+npm run setup:https
+npm run dev:https
+```
+
+`scripts/setup-https.mjs` が、この端末のLAN IPをすべてSANに含む証明書を `.certs/` に作ります（秘密鍵はGit管理外）。表示された `https://192.168.x.x:3000/` をスマホで開いてください。
+
+**トレードオフ**: この証明書を保証する第三者がいないため、**参加者の端末ごとに1回、警告画面が出ます**（「この接続ではプライバシーが保護されません」→ 詳細設定 → アクセスする）。1000人規模でこれを案内するのは現実的ではなく、セキュリティ警告を無視する習慣もつけさせたくありません。**スタッフ端末での検証や小規模開催向け**と考えてください。インターネットが使える場合は Cloudflare Tunnel か、正規証明書のホスティングを優先してください。
+
+## Vercelへの配信
+
+ホスティングはVercel、データベースはlibSQL（Turso）です。アプリのクエリはSQLiteの構文で書いてあり、`drizzle/` のマイグレーションもそのまま適用できます。
+
+1. Tursoでデータベースを作成し、URLと認証トークンを取得します。
+
+```bash
+turso db create ngry-stamprally
+turso db show ngry-stamprally --url
+turso db tokens create ngry-stamprally
+```
+
+2. 取得した値でマイグレーションを適用します（PowerShellの例）。
+
+```powershell
+$env:TURSO_DATABASE_URL='libsql://<db>.turso.io'; $env:TURSO_AUTH_TOKEN='<token>'; npm run db:migrate
+```
+
+3. Vercelのプロジェクト設定で、`TURSO_DATABASE_URL`・`TURSO_AUTH_TOKEN`・`ADMIN_PASSWORD`・`RALLY_SECRET` を環境変数に登録します。`ADMIN_PASSWORD` と `RALLY_SECRET` はローカルの `.env` と同じ値です。
+
+4. リポジトリをVercelに接続すると、`next build` が実行されデプロイされます。追加の設定ファイルは不要です。
+
+`db/index.ts` はCloudflare D1と同じ文（`prepare().bind().first()/all()/run()` と `batch()`）をlibSQL上で実行するアダプタです。呼び出し側のSQLは移行前のまま変更していません。
 
 ## HTTPS化（Cloudflare Tunnel）
 
@@ -107,7 +143,7 @@ Cloudflareはエッジでhttpsを終端し、cloudflaredはローカルへhttp�
 
 ## データの保護と1000人規模の運用
 
-参加者は署名付きHttpOnly/SameSite=Strict Cookieで識別し、HTTPSではSecure属性を付けます。有効期限は30日。ニックネーム、生徒の学年・組・出席番号と一般客IDはD1に保存します。氏名・メール・位置情報は収集しません。カメラ映像・画像はアップロードしません。CookieやQRの署名検証はサーバー側です。
+参加者は署名付きHttpOnly/SameSite=Strict Cookieで識別し、HTTPSではSecure属性を付けます。有効期限は30日。ニックネーム、生徒の学年・組・出席番号と一般客IDはlibSQL（Turso）に保存します。氏名・メール・位置情報は収集しません。カメラ映像・画像はアップロードしません。CookieやQRの署名検証はサーバー側です。
 
 管理者Cookieは8時間で期限切れになり、管理API専用パスに限定します。管理APIは毎回サーバーで認証を確認し、更新は同一オリジンのみ受け付けます。ログイン試行は接続元ごとに15分で10回まで。接続元はHMACでハッシュ化して保存し、平文IPはアプリDBに残しません。配信基盤側ではIPなどのアクセスログが記録され得ます。
 
@@ -121,9 +157,9 @@ Cloudflareはエッジでhttpsを終端し、cloudflaredはローカルへhttp�
 
 ## ビルドと確認の制限
 
-手元のWindows環境では配信用ビルドがネイティブ処理で異常終了するため、Sites側のリモートビルドを使用します。型検査・静的検査・API試験はローカルで実行します。実機カメラ・ブラウザUI試験・本番1000人同時負荷試験は未実施です。WebMCPの設置場所表示ツールは対応環境での実行検証が未実施です。
+この作業コピーが置かれたexFATのドライブはシンボリックリンクを作成できず、Next.jsのビルドとdev serverがその場所では起動しません（Turbopack・webpackとも失敗します）。NTFSのパスに複製するか、Vercelのリモートビルドを使ってください。型検査・静的検査・API試験・本番ビルドはNTFS上の複製で実行し、いずれも通過しています。実機カメラ・ブラウザUI試験・本番1000人同時負荷試験は未実施です。WebMCPの設置場所表示ツールは対応環境での実行検証が未実施です。
 
-サーバー側React/vinextと配信ツールは監査を受け修正版に更新済みです。残る監査指摘は開発用Drizzleのesbuild、Miniflareのsharpおよび依存元です。開発サーバーはループバックに限定しています。配布物の欠けたRolldown 1.2.8を避け、Viteが対応する1.2.7に固定しています。公開前に依存関係の監査を再確認してください。
+残る `npm audit` の指摘は開発用Drizzle（drizzle-kitが依存するesbuild）だけで、配信物には含まれません。開発サーバーはループバックに限定しています。公開前に依存関係の監査を再確認してください。
 
 ## 言語とテーマ
 

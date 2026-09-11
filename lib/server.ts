@@ -1,4 +1,4 @@
-import { env } from 'cloudflare:workers';
+import { env } from './env';
 import { event } from './event';
 import { database } from '@/db';
 const encoder = new TextEncoder();
@@ -118,6 +118,18 @@ export function json(
  */
 const forwarded = (request: Request, name: string) =>
   request.headers.get(name)?.split(',')[0]?.trim() || '';
+
+/**
+ * Bucket key for the login and recovery rate limits. Vercel sets
+ * `x-forwarded-for` on every request; Cloudflare Tunnel, still used to expose a
+ * laptop at a venue, sets `cf-connecting-ip`. Neither header is trustworthy if
+ * the process is reachable directly, which is why a LAN dev server simply
+ * shares one bucket.
+ */
+export const clientAddress = (request: Request) =>
+  forwarded(request, 'x-forwarded-for') ||
+  request.headers.get('cf-connecting-ip')?.trim() ||
+  'local';
 
 export function isSecureRequest(request: Request) {
   if (forwarded(request, 'x-forwarded-proto') === 'https') return true;

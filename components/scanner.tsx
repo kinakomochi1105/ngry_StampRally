@@ -2,6 +2,7 @@
 import { useI18n } from '@/components/language';
 import { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
+import { Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,14 +27,25 @@ export function Scanner({
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [retry, setRetry] = useState(0);
+  // Live camera frames need a secure context. Over plain HTTP the OS camera is
+  // still reachable through a file input with `capture`, which is not gated the
+  // same way, so the dialog switches to a shoot-then-decode flow instead of
+  // showing an error the participant cannot act on.
+  const [liveCamera] = useState(
+    () =>
+      typeof window === 'undefined' ||
+      (window.isSecureContext && !!navigator.mediaDevices?.getUserMedia),
+  );
   useEffect(() => {
     if (!open) return;
+    // Reopening the dialog clears the previous device/decoder error. This runs
+    // for the capture-only path too, which returns before any camera setup.
+    // eslint-disable-next-line react/react-compiler
+    setError('');
+    if (!liveCamera) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     handled.current = false;
-    // A new camera session clears the previous device/decoder error.
-    // eslint-disable-next-line react/react-compiler
-    setError('');
     const stop = () => {
       stream.current?.getTracks().forEach((t) => t.stop());
       stream.current = null;
@@ -117,7 +129,7 @@ export function Scanner({
       clearTimeout(timer);
       stop();
     };
-  }, [open, retry, onScan, onClose]);
+  }, [open, retry, liveCamera, onScan, onClose]);
   async function image(file: File | undefined) {
     if (!file) return;
     setError('');
@@ -164,24 +176,36 @@ export function Scanner({
       <DialogContent className="scanner-dialog" showCloseButton={false}>
         <DialogTitle>{t('QRを読み取る')}</DialogTitle>
         <DialogDescription>
-          {t('立ち止まって、四隅の枠を目安にQR全体を写してください。')}
+          {liveCamera
+            ? t('立ち止まって、四隅の枠を目安にQR全体を写してください。')
+            : t('立ち止まって、QR全体が入るように撮影してください。')}
         </DialogDescription>
-        <div className={busy ? 'camera-preview busy' : 'camera-preview'}>
-          <video ref={video} muted playsInline className="camera" />
-          <div className="qr-guide" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-            <i />
+        {liveCamera ? (
+          <div className={busy ? 'camera-preview busy' : 'camera-preview'}>
+            <video ref={video} muted playsInline className="camera" />
+            <div className="qr-guide" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              <i />
+            </div>
+            {!error && <span className="qr-laser" aria-hidden="true" />}
           </div>
-          {!error && <span className="qr-laser" aria-hidden="true" />}
-        </div>
+        ) : (
+          <div className="camera-shot">
+            <Camera size={34} aria-hidden="true" />
+            <p>{t('カメラで撮影してQRを読み取ります。')}</p>
+          </div>
+        )}
         <output className={error ? 'scanner-error' : ''}>
           {busy
             ? t('押印を確認しています…')
-            : t(error) || t('QRにカメラを向けてください。')}
+            : t(error) ||
+              (liveCamera
+                ? t('QRにカメラを向けてください。')
+                : t('下のボタンでカメラが開きます。'))}
         </output>
-        {error && (
+        {liveCamera && error && (
           <Button
             disabled={busy}
             onClick={() => {
@@ -191,6 +215,22 @@ export function Scanner({
           >
             {t('カメラで再試行')}
           </Button>
+        )}
+        {!liveCamera && (
+          <label className="file-label capture-action">
+            <Camera size={19} aria-hidden="true" />
+            {busy ? t('読み取り中…') : t('カメラでQRを撮影する')}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={busy}
+              onChange={(e) => {
+                void image(e.target.files?.[0]);
+                e.target.value = '';
+              }}
+            />
+          </label>
         )}
         <label className="file-label">
           {t('撮影済みのQR画像を選ぶ')}

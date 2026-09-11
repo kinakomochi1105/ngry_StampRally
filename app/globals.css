@@ -4984,3 +4984,47 @@ html[lang='en'] .access-tabs button {
     grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Plain-HTTP camera path. getUserMedia needs a secure context, but a file input
+   with `capture` opens the OS camera without one, so over HTTP the dialog leads
+   with a shoot-then-decode action instead of a dead video element.
+   --------------------------------------------------------------------------- */
+.camera-shot {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 26px 18px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--soft-bg);
+  color: var(--accent-ink);
+  text-align: center;
+}
+.camera-shot p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted-ink);
+}
+/* The capture control is the primary action here, so it reads as a button
+   rather than the quieter "choose a saved image" fallback below it. */
+.scanner-dialog .file-label.capture-action {
+  gap: 8px;
+  min-height: 56px;
+  border-radius: 13px;
+  background: var(--accent-fill, #3857e8);
+  color: #fff;
+  font-weight: 800;
+  font-size: 16px;
+}
+.scanner-dialog .file-label.capture-action svg {
+  flex-shrink: 0;
+}
+.scanner-dialog .file-label.capture-action:focus-within {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 3px;
+}
+.scanner-dialog .file-label.capture-action:has(input:disabled) {
+  opacity: 0.6;
+}

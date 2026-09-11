@@ -1,4 +1,4 @@
-import { env } from 'cloudflare:workers';
+import { env } from './env';
 import { sign, safeEqual, json, validOrigin, isSecureRequest } from './server';
 export async function admin(request: Request) {
   const value = request.headers
