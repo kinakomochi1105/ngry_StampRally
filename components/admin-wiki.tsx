@@ -7,11 +7,14 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
   BookOpen,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Copy,
   FileCode,
+  House,
   ListTree,
+  Menu,
   Printer,
   Search,
   ShieldCheck,
@@ -140,14 +143,14 @@ function WikiSearch({
   }, []);
   return (
     <div className="wiki-search">
-      <Search size={18} aria-hidden="true" />
+      <Search size={17} aria-hidden="true" />
       <input
         ref={box}
         type="search"
         aria-label={t('マニュアルを検索')}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder={t('マニュアルを検索（QRコード、復旧コード、暗証番号…）')}
+        placeholder={t('マニュアルを検索')}
       />
       {hits !== null && (
         <output className="wiki-search-count">
@@ -162,7 +165,7 @@ function WikiSearch({
           aria-label={t('検索を解除')}
           onClick={() => setQuery('')}
         >
-          <X size={16} />
+          <X size={15} />
         </button>
       ) : (
         <kbd className="wiki-search-key" aria-hidden="true">
@@ -196,28 +199,60 @@ function WikiHits({ hits }: { hits: Hit[] }) {
     </ul>
   );
 }
-function WikiNav({ sections, slug }: { sections: Section[]; slug: string }) {
+/**
+ * The page list on the left. Each category folds away the way a documentation
+ * site behaves; every category starts open so the whole manual is visible.
+ */
+function WikiNav({
+  sections,
+  slug,
+  onNavigate,
+}: {
+  sections: Section[];
+  slug: string;
+  onNavigate?: () => void;
+}) {
+  const [closed, setClosed] = useState<string[]>([]);
   return (
     <>
-      {sections.map((section) => (
-        <div key={section.category} className="wiki-nav-group">
-          <h2>{section.category}</h2>
-          <ul>
-            {section.pages.map((entry) => (
-              <li key={entry.slug}>
-                <Link
-                  href={wikiPath(entry.slug)}
-                  className={entry.slug === slug ? 'active' : undefined}
-                  aria-current={entry.slug === slug ? 'page' : undefined}
-                >
-                  <strong>{entry.title}</strong>
-                  <small>{entry.audience}</small>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+      {sections.map((section) => {
+        const open = !closed.includes(section.category);
+        return (
+          <div key={section.category} className="wiki-nav-group">
+            <button
+              type="button"
+              className="wiki-nav-group-head"
+              aria-expanded={open}
+              onClick={() =>
+                setClosed((previous) =>
+                  open
+                    ? [...previous, section.category]
+                    : previous.filter((name) => name !== section.category),
+                )
+              }
+            >
+              <span>{section.category}</span>
+              <ChevronDown size={16} aria-hidden="true" />
+            </button>
+            {open && (
+              <ul>
+                {section.pages.map((entry) => (
+                  <li key={entry.slug}>
+                    <Link
+                      href={wikiPath(entry.slug)}
+                      onClick={onNavigate}
+                      className={entry.slug === slug ? 'active' : undefined}
+                      aria-current={entry.slug === slug ? 'page' : undefined}
+                    >
+                      {entry.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })}
     </>
   );
 }
@@ -244,7 +279,31 @@ function WikiSkeleton() {
     </div>
   );
 }
-/** Shared chrome: back link, heading, search box and the page list. */
+/** Breadcrumbs: the home icon, then where the reader is now. */
+function WikiCrumbs({ trail }: { trail: string[] }) {
+  const { t } = useI18n();
+  return (
+    <nav className="wiki-crumbs" aria-label={t('現在位置')}>
+      <Link href="/admin/wiki" aria-label={t('運営マニュアル')}>
+        <House size={15} aria-hidden="true" />
+      </Link>
+      {trail.map((step, position) => (
+        <span key={step}>
+          <ChevronRight size={13} aria-hidden="true" />
+          <span
+            className={position === trail.length - 1 ? 'current' : undefined}
+          >
+            {step}
+          </span>
+        </span>
+      ))}
+    </nav>
+  );
+}
+/**
+ * Shared chrome: the top bar with the search box, the page list on the left
+ * and the article column beside it.
+ */
 function WikiShell({
   slug = '',
   children,
@@ -256,95 +315,121 @@ function WikiShell({
   const { index, denied, error } = useManualIndex();
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [searchError, setSearchError] = useState('');
+  const [menu, setMenu] = useState(false);
   const onFailure = useCallback((e: unknown) => {
     setSearchError(message(e));
   }, []);
+  const closeMenu = useCallback(() => setMenu(false), []);
+  useEffect(() => {
+    // On a phone the page list opens over the article, so Escape closes it.
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenu(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   const notice = searchError || error;
   return (
-    <main className="wiki-shell">
-      <div className="wiki-topbar">
-        <Link href="/admin" className="back-link">
-          <ChevronLeft size={18} />
-          {t('管理センターへ')}
+    <div className="wiki-app">
+      <header className="wiki-topbar">
+        {!denied && (
+          <button
+            type="button"
+            className="wiki-menu-button"
+            aria-expanded={menu}
+            aria-controls="wiki-sidebar"
+            aria-label={t('マニュアルの一覧')}
+            onClick={() => setMenu(!menu)}
+          >
+            {menu ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        )}
+        <Link href="/admin/wiki" className="wiki-brand">
+          <span className="wiki-brand-mark">
+            <BookOpen size={17} aria-hidden="true" />
+          </span>
+          {t('運営マニュアル')}
         </Link>
-        <div className="admin-top-actions">
+        <nav className="wiki-top-links" aria-label={t('サイト内の移動')}>
+          <Link href="/admin/wiki" className={slug ? undefined : 'active'}>
+            {t('ドキュメント')}
+          </Link>
+          <Link
+            href={wikiPath('troubleshooting')}
+            className={slug === 'troubleshooting' ? 'active' : undefined}
+          >
+            {t('当日の対応')}
+          </Link>
+          <Link href="/admin">{t('管理センター')}</Link>
+        </nav>
+        {!denied && (
+          <WikiSearch hits={hits} onHits={setHits} onFailure={onFailure} />
+        )}
+        <div className="wiki-top-actions">
           <ThemeToggle />
           <LanguageSelect />
         </div>
-      </div>
-      <header className="wiki-head">
-        <div>
-          <p className="eyebrow">FESTIVAL HANDBOOK</p>
-          <h1>
-            <BookOpen size={26} aria-hidden="true" />
-            {t('運営マニュアル')}
-          </h1>
-          <p className="wiki-lead">
-            {t(
-              '運営・受付・安全・技術など、視点ごとのマニュアルです。本文はリポジトリのMarkdownで管理しています。',
-            )}
-          </p>
-        </div>
-        {index && (
-          <dl className="wiki-meta">
-            <div>
-              <dt>{t('ページ数')}</dt>
-              <dd>{index.count}</dd>
-            </div>
-            <div>
-              <dt>{t('最終更新')}</dt>
-              <dd>{index.updated}</dd>
-            </div>
-          </dl>
-        )}
       </header>
       {denied ? (
-        <section className="wiki-denied">
+        <main className="wiki-denied">
           <ShieldCheck size={30} aria-hidden="true" />
           <h2>{t('管理者ログインが必要です。')}</h2>
           <p>{t('管理センターでログインしてから開いてください。')}</p>
           <Button render={<Link href="/admin" />}>
             {t('管理者ログインへ')}
           </Button>
-        </section>
+        </main>
       ) : (
-        <>
-          <WikiSearch hits={hits} onHits={setHits} onFailure={onFailure} />
-          {notice && <output className="form-error">{t(notice)}</output>}
-          {locale === 'en' && (
-            <p className="wiki-language-note">
-              {t('マニュアル本文は日本語のまま表示します。')}
-            </p>
-          )}
-          {!index ? (
-            <WikiSkeleton />
-          ) : hits !== null ? (
-            <WikiHits hits={hits} />
-          ) : (
-            <div className={slug ? 'wiki-layout' : 'wiki-layout landing'}>
-              {slug && (
-                <>
-                  <nav className="wiki-side" aria-label={t('マニュアルの一覧')}>
-                    <WikiNav sections={index.sections} slug={slug} />
-                  </nav>
-                  <details className="wiki-side-compact">
-                    <summary>
-                      <ListTree size={16} aria-hidden="true" />
-                      {t('マニュアルの一覧')}
-                    </summary>
-                    <WikiNav sections={index.sections} slug={slug} />
-                  </details>
-                </>
-              )}
-              {children(index)}
-            </div>
-          )}
-        </>
+        <div className="wiki-frame">
+          <aside
+            id="wiki-sidebar"
+            className="wiki-side"
+            data-open={menu ? 'true' : undefined}
+            aria-label={t('マニュアルの一覧')}
+          >
+            {index ? (
+              <WikiNav
+                sections={index.sections}
+                slug={slug}
+                onNavigate={closeMenu}
+              />
+            ) : (
+              <WikiSkeleton />
+            )}
+          </aside>
+          <button
+            type="button"
+            className="wiki-scrim"
+            hidden={!menu}
+            tabIndex={-1}
+            aria-hidden="true"
+            onClick={closeMenu}
+          />
+          <main className="wiki-main">
+            {notice && <output className="form-error">{t(notice)}</output>}
+            {locale === 'en' && (
+              <p className="wiki-language-note">
+                {t('マニュアル本文は日本語のまま表示します。')}
+              </p>
+            )}
+            {!index ? (
+              <WikiSkeleton />
+            ) : hits !== null ? (
+              <>
+                <WikiCrumbs trail={[t('検索結果')]} />
+                <h1 className="wiki-title">{t('検索結果')}</h1>
+                <WikiHits hits={hits} />
+              </>
+            ) : (
+              children(index)
+            )}
+            <footer className="wiki-foot">
+              {t('管理者専用 · 参加者サイトからは開けません。')}
+            </footer>
+          </main>
+        </div>
       )}
-      <footer className="wiki-foot">
-        {t('管理者専用 · 参加者サイトからは開けません。')}
-      </footer>
-    </main>
+    </div>
   );
 }
 /** Landing page: the day-of shortcuts, then every category with its pages. */
@@ -364,6 +449,23 @@ export function WikiIndexPage() {
           .filter((page): page is Meta => page !== undefined);
         return (
           <div className="wiki-landing">
+            <WikiCrumbs trail={[t('ドキュメント')]} />
+            <h1 className="wiki-title">{t('運営マニュアル')}</h1>
+            <p className="wiki-lead">
+              {t(
+                '運営・受付・安全・技術など、視点ごとのマニュアルです。本文はリポジトリのMarkdownで管理しています。',
+              )}
+            </p>
+            <dl className="wiki-meta">
+              <div>
+                <dt>{t('ページ数')}</dt>
+                <dd>{index.count}</dd>
+              </div>
+              <div>
+                <dt>{t('最終更新')}</dt>
+                <dd>{index.updated}</dd>
+              </div>
+            </dl>
             {quick.length > 0 && (
               <section className="wiki-quick">
                 <h2>{t('当日よく開くページ')}</h2>
@@ -445,14 +547,10 @@ export function WikiArticlePage({ slug }: { slug: string }) {
         !article ? (
           <WikiSkeleton />
         ) : (
-          <>
+          <div className="wiki-doc-frame">
             <article className="wiki-doc">
-              <nav className="wiki-crumbs" aria-label={t('現在位置')}>
-                <Link href="/admin/wiki">{t('運営マニュアル')}</Link>
-                <ChevronRight size={14} aria-hidden="true" />
-                <span>{article.category}</span>
-              </nav>
-              <h1>{article.title}</h1>
+              <WikiCrumbs trail={[article.category, article.title]} />
+              <h1 className="wiki-title">{article.title}</h1>
               <p className="wiki-summary">{article.summary}</p>
               <div className="wiki-doc-meta">
                 <span className="type-tag">{article.audience}</span>
@@ -551,14 +649,11 @@ export function WikiArticlePage({ slug }: { slug: string }) {
             </article>
             {!raw && article.headings.length > 1 && (
               <aside className="wiki-rail" aria-label={t('このページの目次')}>
-                <h2>
-                  <ListTree size={16} aria-hidden="true" />
-                  {t('このページの目次')}
-                </h2>
+                <h2>{t('このページの目次')}</h2>
                 <WikiToc headings={article.headings} />
               </aside>
             )}
-          </>
+          </div>
         )
       }
     </WikiShell>

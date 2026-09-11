@@ -360,6 +360,11 @@
   "マニュアルの一覧": "All manual pages",
   "当日よく開くページ": "Opened most often on the day",
   "現在位置": "Breadcrumb",
+  "ドキュメント": "Documentation",
+  "当日の対応": "On the day",
+  "管理センター": "Administration",
+  "サイト内の移動": "Site navigation",
+  "検索結果": "Search results",
   "管理者専用 · 参加者サイトからは開けません。": "Administrators only. Not reachable from the participant site.",
   "この端末ではコピーできません。Markdownを表示して選択してください。": "Copying is not available on this device. Show the markdown and select it manually."
 }

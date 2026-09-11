@@ -4047,6 +4047,11 @@ html[lang='en'] .access-tabs button {
   --line: #dfe5f2;
   --dock-bg: #fffffff5;
   --theme-accent: #3857e8;
+  /* The chosen theme has to carry the alert colours too, or a light page on a
+     dark device keeps the dark red from the media query above. */
+  --danger-ink: #9c2541;
+  --danger-bg: #fff0f2;
+  --danger-border: #edcbd2;
 }
 :root[data-theme='dark'] {
   color-scheme: dark;
@@ -4061,6 +4066,9 @@ html[lang='en'] .access-tabs button {
   --line: #35415f;
   --dock-bg: #0c1019f5;
   --theme-accent: #546df2;
+  --danger-ink: #ffb8c5;
+  --danger-bg: #422532;
+  --danger-border: #815065;
 }
 :root[data-theme='light'] .participant-app {
   --page-bg: #f6f8fc;
