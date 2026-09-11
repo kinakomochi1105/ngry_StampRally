@@ -153,9 +153,6 @@ export default function Admin() {
   const [logs, setLogs] = useState<Audit[]>([]);
   const [editingSpot, setEditingSpot] = useState<Partial<Spot> | null>(null);
   const [editingPerson, setEditingPerson] = useState<Row | null>(null);
-  const [personStamps, setPersonStamps] = useState<
-    { name: string; createdAt: number }[]
-  >([]);
   const [action, setAction] = useState('edit');
   const [confirmation, setConfirmation] = useState('');
   const [purge, setPurge] = useState(false);
@@ -239,17 +236,10 @@ export default function Admin() {
       setBusy(false);
     }
   }
-  async function openPerson(row: Row) {
+  function openPerson(row: Row) {
     setEditingPerson({ ...row });
     setAction(row.kind === 'student' ? 'edit' : 'reset');
     setConfirmation('');
-    setPersonStamps([]);
-    try {
-      const d = await api('participants?id=' + row.id);
-      setPersonStamps(d.stamps as { name: string; createdAt: number }[]);
-    } catch (e) {
-      failure(e);
-    }
   }
   async function printQr(spot: ManagedSpot) {
     try {
@@ -574,10 +564,7 @@ export default function Admin() {
                       {date(row.lastStamp, locale)}
                     </td>
                     <td className="cell-manage">
-                      <Button
-                        variant="outline"
-                        onClick={() => void openPerson(row)}
-                      >
+                      <Button variant="outline" onClick={() => openPerson(row)}>
                         {t('管理')}
                       </Button>
                     </td>
@@ -1140,29 +1127,13 @@ export default function Admin() {
           </DialogDescription>
           {editingPerson && (
             <>
+              {/* The editor above already lists every location with the time
+                  it was collected, so no second history list is needed. */}
               <AdminStamps
                 key={editingPerson.id}
                 id={editingPerson.id}
-                onUpdated={async () => {
-                  const d = await api('participants?id=' + editingPerson.id);
-                  setPersonStamps(
-                    d.stamps as { name: string; createdAt: number }[],
-                  );
-                  await load();
-                }}
+                onUpdated={load}
               />
-              <ul className="stamp-history">
-                {personStamps.length ? (
-                  personStamps.map((s, i) => (
-                    <li key={i}>
-                      <span>{s.name}</span>
-                      <small>{date(s.createdAt, locale)}</small>
-                    </li>
-                  ))
-                ) : (
-                  <li>{t('押印履歴はありません。')}</li>
-                )}
-              </ul>
               <div className="redeem-panel">
                 <div>
                   <strong>{t('報酬の交換')}</strong>

@@ -1438,23 +1438,6 @@ td small {
   list-style: none;
   padding: 15px 0;
 }
-.stamp-history {
-  list-style: none;
-  padding: 0;
-  font-size: 13px;
-  max-height: 160px;
-  overflow: auto;
-}
-.stamp-history li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 9px 0;
-  border-bottom: 1px solid #edf0f6;
-}
-.stamp-history small {
-  color: var(--muted-ink);
-}
 .qr-poster {
   text-align: center;
 }
@@ -5434,8 +5417,7 @@ html[lang='en'] .access-tabs button {
 /* Dialogs open as a sheet from the bottom edge, where a thumb reaches them. */
 @media (max-width: 640px) {
   /* One scroll instead of a scrolling box inside a scrolling sheet. */
-  .admin-dialog .stamp-editor ul,
-  .admin-dialog .stamp-history {
+  .admin-dialog .stamp-editor ul {
     max-height: none;
     overflow: visible;
   }
