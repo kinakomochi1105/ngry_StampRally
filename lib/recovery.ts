@@ -1,5 +1,5 @@
 import { database } from '@/db';
-import { sign } from './server';
+import { sign, clientAddress } from './server';
 export async function makeRecovery() {
   const raw = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
     b.toString(16).padStart(2, '0'),
@@ -19,9 +19,7 @@ export function normalizeCode(value: unknown) {
 export async function recoveryLimit(request: Request, codeHash: string) {
   const now = Math.floor(Date.now() / 1000),
     expiry = now + 900;
-  const ipKey = await sign(
-    'recovery-ip:' + (request.headers.get('cf-connecting-ip') ?? 'local'),
-  );
+  const ipKey = await sign('recovery-ip:' + clientAddress(request));
   const targetKey = await sign('recovery-target:' + codeHash);
   const results = await database().batch<{ attempts: number }>(
     [ipKey, targetKey].map((key) =>

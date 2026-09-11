@@ -1,7 +1,3 @@
-/// <reference types="vite/client" />
-
-import forbiddenText from '@/Config/forbidden?raw';
-
 const forbiddenKey = 'bunka31ngry2025tohirotogurugurus';
 const forbiddenIv = 'bunka31JumblePix';
 const textEncoder = new TextEncoder();
@@ -18,8 +14,7 @@ function decodeBase64(value: string) {
 function wordsFromJson(text: string): string[] | null {
   try {
     const value: unknown = JSON.parse(text);
-    if (!value || typeof value !== 'object' || !('words' in value))
-      return null;
+    if (!value || typeof value !== 'object' || !('words' in value)) return null;
     const words = (value as { words?: unknown }).words;
     if (!Array.isArray(words)) return null;
     return Array.from(
@@ -55,48 +50,42 @@ async function decryptFileContents(value: string) {
   }
 }
 
-async function readRuntimeFile() {
-  if (typeof process === 'undefined' || process.release?.name !== 'node')
-    return null;
-  try {
-    const [fs, path] = await Promise.all([
-      import('node:fs/promises'),
-      import('node:path'),
-    ]);
-    const candidates = [
-      path.join(process.cwd(), 'Config', 'forbidden'),
-      path.join(process.cwd(), 'Server', 'Config', 'forbidden'),
-    ];
-    for (const filePath of candidates) {
-      try {
-        return await fs.readFile(filePath, { encoding: 'utf8' });
-      } catch {
-        // Try the next supported server-root layout.
-      }
+let wordsPromise: Promise<readonly string[]> | undefined;
+
+// `Config/forbidden` is not imported by any module, so Next only ships it to
+// the serverless function because `outputFileTracingIncludes` in next.config.ts
+// names it. Read once per instance and keep the decrypted list in memory.
+async function readFile() {
+  const [fs, path] = await Promise.all([
+    import('node:fs/promises'),
+    import('node:path'),
+  ]);
+  const candidates = [
+    path.join(process.cwd(), 'Config', 'forbidden'),
+    path.join(process.cwd(), 'Server', 'Config', 'forbidden'),
+  ];
+  for (const filePath of candidates) {
+    try {
+      return await fs.readFile(filePath, { encoding: 'utf8' });
+    } catch {
+      // Try the next supported server-root layout.
     }
-  } catch {
-    // A Worker has no Node filesystem; use the embedded file below.
   }
-  return null;
-}
-
-let embeddedWordsPromise: Promise<readonly string[]> | undefined;
-
-async function embeddedWords() {
-  // Workers do not expose a filesystem, so the encrypted file is embedded by
-  // Vite and decrypted when the module is first used.
-  embeddedWordsPromise ??= decryptFileContents(forbiddenText).then((words) => {
-    if (words === null) throw new Error('Forbidden nickname list is invalid');
-    return Object.freeze(words);
-  });
-  return embeddedWordsPromise;
+  throw new Error('Forbidden nickname list is missing');
 }
 
 export async function loadForbiddenWords(): Promise<readonly string[]> {
-  const runtimeText = await readRuntimeFile();
-  if (runtimeText !== null) {
-    const words = await decryptFileContents(runtimeText);
-    if (words !== null) return Object.freeze(words);
-  }
-  return embeddedWords();
+  wordsPromise ??= readFile()
+    .then(decryptFileContents)
+    .then((words) => {
+      if (words === null) throw new Error('Forbidden nickname list is invalid');
+      return Object.freeze(words);
+    })
+    .catch((error: unknown) => {
+      // A failed read must not be cached, or one cold-start hiccup would
+      // disable the check for the life of the instance.
+      wordsPromise = undefined;
+      throw error;
+    });
+  return wordsPromise;
 }

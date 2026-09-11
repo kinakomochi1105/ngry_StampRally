@@ -1,6 +1,12 @@
-import { env } from 'cloudflare:workers';
+import { env } from '@/lib/env';
 import { database } from '@/db';
-import { json, sign, safeEqual, validOrigin } from '@/lib/server';
+import {
+  json,
+  sign,
+  safeEqual,
+  validOrigin,
+  clientAddress,
+} from '@/lib/server';
 import { bodyJson, audit } from '@/lib/data';
 import { adminCookie } from '@/lib/admin';
 export async function POST(request: Request) {
@@ -11,10 +17,7 @@ export async function POST(request: Request) {
       return json({ error: '管理者パスワードが未設定です。' }, 503);
     const data = await bodyJson(request, 1024);
     const now = Math.floor(Date.now() / 1000);
-    // Cloudflare overwrites this header. Local development uses one shared bucket.
-    const bucket = await sign(
-      'login:' + (request.headers.get('cf-connecting-ip') ?? 'local'),
-    );
+    const bucket = await sign('login:' + clientAddress(request));
     const result = await database()
       .prepare(
         'INSERT INTO login_attempts (key,attempts,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=CASE WHEN expires_at<=? THEN 1 ELSE attempts+1 END,expires_at=CASE WHEN expires_at<=? THEN ? ELSE expires_at END RETURNING attempts',

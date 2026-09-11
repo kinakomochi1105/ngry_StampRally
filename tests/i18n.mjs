@@ -64,8 +64,23 @@ console.log(
     count +
     ' localized UI strings.',
 );
+// `npm run dev:https` serves the same port over a self-signed certificate. Only
+// localhost is probed, so trusting that certificate here cannot expose anything
+// beyond this machine's own dev server.
+const origin = await (async () => {
+  try {
+    await fetch('http://localhost:3000/', { redirect: 'manual' });
+    return 'http://localhost:3000';
+  } catch {}
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  try {
+    await fetch('https://localhost:3000/', { redirect: 'manual' });
+    return 'https://localhost:3000';
+  } catch {}
+  throw Error('Dev server not reachable on port 3000.');
+})();
 for (const path of ['/', '/admin']) {
-  const r = await fetch('http://localhost:3000' + path);
+  const r = await fetch(origin + path);
   assert.equal(r.status, 200);
   assert.match(await r.text(), /Language/);
   console.log('PASS: HTTP 200 with language selector ' + path);

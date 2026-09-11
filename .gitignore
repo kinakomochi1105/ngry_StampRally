@@ -33,8 +33,9 @@ yarn-error.log*
 .vercel
 next-env.d.ts
 /dist/
-/.wrangler/
 /outputs/
+# Local libSQL database file used when TURSO_DATABASE_URL points at file:.
+/local.db*
 /work/
 
 !.env.example
@@ -47,3 +48,7 @@ next-env.d.ts
 /cloudflared.yml
 /*.cloudflared.json
 
+
+# Self-signed development certificate for LAN HTTPS (scripts/setup-https.mjs).
+# Regenerate locally; never reuse a private key across machines.
+/.certs/

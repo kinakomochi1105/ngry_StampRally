@@ -1,4 +1,9 @@
 {
+  "立ち止まって、QR全体が入るように撮影してください。": "Stand still and take a photo with the whole QR code in frame.",
+  "カメラで撮影してQRを読み取ります。": "Take a photo to read the QR code.",
+  "下のボタンでカメラが開きます。": "The button below opens your camera.",
+  "カメラでQRを撮影する": "Take a photo of the QR code",
+  "読み取り中…": "Reading…",
   "交換が完了しました": "Hand-over complete",
   "報酬交換": "Reward",
   "交換済み": "Claimed",
