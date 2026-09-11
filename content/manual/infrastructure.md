@@ -3,7 +3,7 @@ title: 配信とインフラ
 category: 技術・インフラ
 audience: 技術担当
 summary: Vercel + Turso での配信、Cloudflare Tunnel、LAN内HTTPS。どれを選ぶかの判断材料付きです。
-updated: 2026-09-11
+updated: 2026-09-12
 order: 150
 tags: [Vercel, Turso, HTTPS, トンネル]
 ---
@@ -43,6 +43,28 @@ $env:TURSO_DATABASE_URL='libsql://<db>.turso.io'; $env:TURSO_AUTH_TOKEN='<token>
 4. リポジトリを接続すると `next build` が走ります。追加の設定ファイルは不要です。実行リージョンは東京（`hnd1`）に固定しています。
 
 マニュアルのMarkdownはどのモジュールからも import しないため、`next.config.ts` の `outputFileTracingIncludes` で `content/manual` を配信物に含めています。ページを増やしても設定の変更は不要ですが、**フォルダーを移したら設定も直してください。**
+
+### 列を増やす変更をデプロイするとき
+
+`build` スクリプトが `next build` の前に未適用のマイグレーションを流します。Vercelのビルドには環境変数（`TURSO_DATABASE_URL`・`TURSO_AUTH_TOKEN`）が渡るため、**git push するだけで本番データベースにも適用されます**。手元にトークンを置く必要はありません。ビルドログの先頭付近に、接続先と `locations` の列が出ます。
+
+- 環境変数が無いビルド（クローンしただけの状態など）では移行を飛ばして `next build` だけ走ります。
+- 本番ビルドで `TURSO_DATABASE_URL` が無い場合は、列の無いまま配信してしまわないよう**ビルドを失敗させます**。
+- 適用に失敗したときもビルドが止まるので、壊れたコードが本番に出ません。
+
+手元から明示的に当てたいときは次を使います。順番を逆にすると、新しいコードが存在しない列を読みに行き、参加者の画面が503（「スタンプ帳を読み込めませんでした」）になります。
+
+```powershell
+$env:TURSO_DATABASE_URL='libsql://<db>.turso.io'
+$env:TURSO_AUTH_TOKEN='<token>'
+npm run db:migrate:remote
+```
+
+`db:migrate:remote` は `drizzle-kit migrate` と同じ内容を適用したうえで、**どのデータベースに接続したか・適用前後の件数・`locations` の列**を表示します。環境変数を設定し忘れると `drizzle-kit migrate` は黙ってローカルの `local.db` を更新して成功と表示するため、本番へ当てるときはこちらを使ってください（トークンは文字数だけ表示し、値は出しません）。
+
+列の追加は既存データを書き換えません。適用後に `https://<本番URL>/api/passport` が200を返すか確認してください。503のままなら、Vercelのプロジェクト → Logs で `no such column` が出ていないか見ます。出ている場合は、**適用したデータベースとVercelの `TURSO_DATABASE_URL` が別物**です。表示された接続先と、`contents:` 行の件数（本番なら設置場所が0件ではないはず）を照らし合わせてください。
+
+`turso db shell` で直接 `ALTER TABLE` を打つのは避けてください。`__drizzle_migrations` に記録が残らないため、次回の `db:migrate` が「列が重複している」と言って止まります。
 
 ## Cloudflare Tunnel
 
