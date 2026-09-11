@@ -93,6 +93,21 @@ assert.equal(
   markdownText('## 見出し\n- `コード` と [リンク](https://example.com)'),
   '見出し コード と リンク',
 );
+// Search snippets are read as sentences, so table pipes, checkboxes and callout
+// markers must not survive into them.
+assert.equal(
+  markdownText('| 症状 | 対応 |\n| --- | --- |\n| A | B |'),
+  '症状 対応 A B',
+);
+assert.equal(markdownText('- [ ] 点検する\n- [x] 済み'), '点検する 済み');
+assert.equal(
+  markdownText('> [!重要] 設定してください。'),
+  '設定してください。',
+);
+assert.equal(
+  markdownText('`ADMIN_PASSWORD` を変更する'),
+  'ADMIN_PASSWORD を変更する',
+);
 
 // --- Front matter ----------------------------------------------------------
 const page = parseManual(
@@ -121,8 +136,7 @@ const broken = {
     '---\ntitle: a\ncategory: b\naudience: c\nsummary: d\nupdated: 2026/09/11\norder: 1\n---\n本文',
   'order が数値でない':
     '---\ntitle: a\ncategory: b\naudience: c\nsummary: d\nupdated: 2026-09-11\norder: さん\n---\n本文',
-  本文が空:
-    '---\ntitle: a\ncategory: b\naudience: c\nsummary: d\nupdated: 2026-09-11\norder: 1\n---\n',
+  本文が空: '---\ntitle: a\ncategory: b\naudience: c\nsummary: d\nupdated: 2026-09-11\norder: 1\n---\n',
 };
 for (const [label, source] of Object.entries(broken))
   assert.throws(

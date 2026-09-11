@@ -3,7 +3,6 @@ import { useI18n, LanguageSelect } from '@/components/language';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AdminStamps } from '@/components/admin-stamps';
-import { AdminWiki } from '@/components/admin-wiki';
 import { ThemeToggle } from '@/components/theme-toggle';
 import QRCode from 'qrcode';
 import {
@@ -308,6 +307,11 @@ export default function Admin() {
             {t('参加者サイト')}
             <ChevronRight size={16} />
           </Link>
+          {/* The manual is its own screen at /admin/wiki, not a tab here. */}
+          <Button variant="outline" render={<Link href="/admin/wiki" />}>
+            <BookOpen size={16} />
+            {t('運営マニュアル')}
+          </Button>
           <Button
             variant="outline"
             onClick={async () => {
@@ -353,7 +357,6 @@ export default function Admin() {
           [Trophy, 'ranking', t('ランキング')],
           [MapPin, 'spots', t('設置場所・QRコード')],
           [Settings, 'settings', t('設定・データ管理')],
-          [BookOpen, 'wiki', t('運営マニュアル')],
         ].map(([Icon, id, label]) => {
           const I = Icon as typeof Users;
           return (
@@ -859,7 +862,6 @@ export default function Admin() {
           </details>
         </section>
       )}
-      {tab === 'wiki' && <AdminWiki onDenied={failure} />}
       <Dialog
         open={editingSpot !== null}
         onOpenChange={(open) => {

@@ -239,14 +239,21 @@ export function renderMarkdown(source: string): Rendered {
   flush();
   return { html: html.join('\n'), headings };
 }
-/** Plain text of a page, used for search matching and snippets. */
+/**
+ * Plain text of a page, used for search matching and for the snippet shown in
+ * a search result. Table pipes, checkboxes and callout markers are dropped so
+ * the snippet reads as a sentence rather than as markup.
+ */
 export function markdownText(source: string) {
+  // Line endings do not matter here: the final pass collapses all whitespace.
   return source
-    .replaceAll('\r\n', '\n')
     .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/^[>#|\s-]*/gm, '')
+    .replace(/^\|[\s:|-]+\|\s*$/gm, ' ')
+    .replace(/^[>#\s-]*/gm, '')
+    .replace(/\[!([^\]]+)\]/g, '')
+    .replace(/\[[ xX]\]/g, '')
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/[`*_]/g, '')
+    .replace(/[`*|]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }

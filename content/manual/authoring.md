@@ -13,7 +13,7 @@ tags: [編集, Markdown, 書式]
 1. `content/manual/<slug>.md` を作ります。ファイル名は英小文字・数字・ハイフンだけです（このファイル名がページのURLに使う識別子になります）。
 2. 先頭にメタ情報を書きます（下の書式）。
 3. `node tests/manual.mjs` で検査します。
-4. コミットして配信します。管理画面の「運営マニュアル」タブに自動で並びます。
+4. コミットして配信します。`/admin/wiki` の一覧に自動で並びます。URLは `/admin/wiki/<slug>` になります。
 
 アプリの画面からページを作る機能はありません。配信先のファイルシステムは読み取り専用で、履歴を残して間違いを戻せる形にしておくためです。開発サーバーではファイルを保存するとそのまま反映され、本番では1インスタンスにつき1回だけ読み込まれます。
 
@@ -84,7 +84,10 @@ node tests/manual.mjs
 | `lib/markdown.ts` | Markdown → HTML（エスケープしてから変換） |
 | `lib/manual.ts` | 読み込み、メタ情報の検査、検索 |
 | `app/api/admin/manual/route.ts` | 管理者認証つきの配信 |
-| `components/admin-wiki.tsx` | 管理画面の表示 |
+| `components/admin-wiki.tsx` | 画面（入口・本文・検索） |
+| `app/admin/wiki/page.tsx` | `/admin/wiki`（入口） |
+| `app/admin/wiki/[slug]/page.tsx` | `/admin/wiki/<slug>`（本文） |
+| `app/admin/wiki/wiki.css` | この画面だけのスタイル |
 | `next.config.ts` | `content/manual` を配信物に含める設定 |
 
 Markdownは外部ライブラリを使わず、`lib/markdown.ts` が原稿を**先に全部エスケープしてから**対応する記法だけをタグに変換します。そのため本文にHTMLを書いても文字として表示されます。ページをフォルダーごと移動した場合は `next.config.ts` の設定も直してください。

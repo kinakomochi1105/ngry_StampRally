@@ -80,7 +80,7 @@ const origin = await (async () => {
   } catch {}
   throw Error('Dev server not reachable on port 3000.');
 })();
-for (const path of ['/', '/admin']) {
+for (const path of ['/', '/admin', '/admin/wiki', '/admin/wiki/reward']) {
   const r = await fetch(origin + path);
   assert.equal(r.status, 200);
   assert.match(await r.text(), /Language/);
