@@ -63,7 +63,7 @@
   "サイト内の読み取りボタンから設置QRを読み取ります。ニックネームに加え、生徒は学年・組・出席番号、一般客は参加IDをスタンプ履歴とともに保存します。進行状況・ランキングは管理者のみ閲覧できます。氏名・連絡先・位置情報は収集せず、カメラ映像・画像も送信しません。Cookieの有効期間と履歴の表示期間は30日です。サーバーの記録は開催後に主催者が削除します。同じ端末・ブラウザでご参加ください。Cookieの削除後や端末変更時は、ニックネームと復旧コードで再ログインできます。復旧コードを紛失した場合は、元の端末で再発行するか受付へご相談ください。": "Use the scan button on this site to scan each location's QR code. We store your nickname and stamp history, together with your grade, class and attendance number for students, or participant ID for guests. Only administrators can view progress and rankings. We do not collect real names, contact details or location data, or upload camera footage or images. The cookie and visible stamp history last 30 days. Organizers delete server records after the festival. Use the same device and browser. If you delete cookies or change devices, sign in with your nickname and recovery code. If you lose the code, issue a new one on the original device or contact reception.",
   "QRを読み取る": "Scan QR code",
   "立ち止まってから、読み取りましょう。": "Stop walking before scanning.",
-  "文化祭実行委員会": "Festival Committee",
+  "生徒会総務部": "Festival Committee",
   "歩きスマホはお控えください。": "Please do not use your phone while walking.",
   "処理できませんでした。": "Could not complete the operation.",
   "通信を確認してお試しください。": "Check your connection and try again.",
