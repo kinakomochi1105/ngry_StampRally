@@ -43,6 +43,13 @@
       "when": 1789049942990,
       "tag": "0005_smart_iron_lad",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789141388620,
+      "tag": "0006_stormy_spitfire",
+      "breakpoints": true
     }
   ]
 }

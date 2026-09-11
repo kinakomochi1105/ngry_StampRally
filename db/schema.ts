@@ -81,6 +81,9 @@ export const locations = sqliteTable(
     name: text('name').notNull(),
     location: text('location').notNull(),
     description: text('description').notNull(),
+    // Either a template key ("flag", "palette", ...) or a small PNG/JPEG data
+    // URL uploaded by the organiser. Empty means the default for its position.
+    icon: text('icon').notNull().default(''),
     sortOrder: integer('sort_order').notNull().default(0),
     active: integer('active').notNull().default(1),
   },

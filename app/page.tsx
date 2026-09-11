@@ -28,12 +28,6 @@ import {
   QrCode,
   MapPin,
   Stamp,
-  Flag,
-  Music,
-  FlaskConical,
-  Palette,
-  Coffee,
-  Theater,
   Check,
   ChevronRight,
   Trophy,
@@ -41,6 +35,7 @@ import {
   Map as MapIcon,
   ScanLine,
 } from 'lucide-react';
+import { SpotIcon } from '@/components/spot-icon';
 import { Button } from '@/components/ui/button';
 import {
   defaultSettings,
@@ -49,7 +44,6 @@ import {
   type Spot,
   type FestivalSettings,
 } from '@/lib/types';
-const icons = [Flag, Palette, FlaskConical, Coffee, Music, Theater];
 type Passport = {
   profile: Profile | null;
   spots: Spot[];
@@ -573,7 +567,6 @@ export default function Home() {
                 ) : tab === 'book' ? (
                   <div className="stamp-grid">
                     {spots.map((spot, i) => {
-                      const Icon = icons[i % icons.length];
                       return (
                         <article
                           className={
@@ -592,7 +585,7 @@ export default function Home() {
                             {String(i + 1).padStart(2, '0')}
                           </span>
                           <div className="stamp-circle">
-                            <Icon size={34} strokeWidth={1.4} />
+                            <SpotIcon icon={spot.icon} index={i} size={34} />
                             {freshStamp === spot.id && (
                               <i className="stamp-ripple" aria-hidden="true" />
                             )}

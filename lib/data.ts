@@ -37,7 +37,7 @@ export async function allSpots(activeOnly = true) {
   return (
     await database()
       .prepare(
-        `SELECT id,name,location,description,sort_order AS sortOrder,active FROM locations WHERE event_id = ? ${activeOnly ? 'AND active = 1' : ''} ORDER BY sort_order,id`,
+        `SELECT id,name,location,description,icon,sort_order AS sortOrder,active FROM locations WHERE event_id = ? ${activeOnly ? 'AND active = 1' : ''} ORDER BY sort_order,id`,
       )
       .bind(event.id)
       .all<Spot>()
@@ -49,9 +49,9 @@ export async function seedSpots() {
     spots.map((s, i) =>
       database()
         .prepare(
-          'INSERT INTO locations (id,event_id,name,location,description,sort_order,active) VALUES (?,?,?,?,?,?,1) ON CONFLICT(id) DO NOTHING',
+          'INSERT INTO locations (id,event_id,name,location,description,icon,sort_order,active) VALUES (?,?,?,?,?,?,?,1) ON CONFLICT(id) DO NOTHING',
         )
-        .bind(s.id, event.id, s.name, s.location, s.description, i),
+        .bind(s.id, event.id, s.name, s.location, s.description, s.icon, i),
     ),
   );
 }

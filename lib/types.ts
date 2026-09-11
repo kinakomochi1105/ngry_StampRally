@@ -3,9 +3,37 @@ export type Spot = {
   name: string;
   location: string;
   description: string;
+  /** A template key, an uploaded PNG/JPEG data URL, or '' for the default. */
+  icon: string;
   sortOrder: number;
   active: number;
 };
+/** Template icons an organiser can choose; see components/spot-icon.tsx. */
+export const spotIconKeys = [
+  'flag',
+  'palette',
+  'flask',
+  'coffee',
+  'music',
+  'theater',
+  'book',
+  'camera',
+  'game',
+  'food',
+  'trophy',
+  'sparkles',
+];
+/** Used for locations with no icon of their own, in list order. */
+export const defaultSpotIconKeys = spotIconKeys.slice(0, 6);
+/** Uploaded icons are stored inline, so they stay small: 128px, up to 96KB. */
+export const maxSpotIconLength = 96000;
+export const isCustomSpotIcon = (icon: string) =>
+  icon.startsWith('data:image/');
+export const validSpotIcon = (icon: string) =>
+  icon === '' ||
+  spotIconKeys.includes(icon) ||
+  (/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(icon) &&
+    icon.length <= maxSpotIconLength);
 export type Profile = {
   id: number;
   kind: 'student' | 'guest';

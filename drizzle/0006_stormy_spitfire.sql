@@ -1,0 +1,1 @@
+ALTER TABLE `locations` ADD `icon` text DEFAULT '' NOT NULL;

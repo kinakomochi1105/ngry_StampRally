@@ -18,11 +18,13 @@ import {
   ChevronLeft,
   ChevronRight,
   House,
+  ImagePlus,
   ShieldCheck,
   QrCode,
   Gift,
   BookOpen,
 } from 'lucide-react';
+import { SpotIcon, spotIconTemplates } from '@/components/spot-icon';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,6 +35,8 @@ import {
 } from '@/components/ui/dialog';
 import {
   defaultSettings,
+  isCustomSpotIcon,
+  maxSpotIconLength,
   profileLabel,
   type Profile,
   type Spot,
@@ -75,6 +79,45 @@ async function api(path: string, data?: unknown) {
     throw e;
   }
   return result;
+}
+/**
+ * Turns a chosen PNG/JPEG into the small square data URL that is stored with
+ * the location: centre-cropped, 128px, and JPEG unless the source is a PNG,
+ * which may carry transparency.
+ */
+async function iconFromFile(file: File) {
+  if (!/^image\/(png|jpeg)$/.test(file.type))
+    throw new Error('PNGまたはJPEGの画像を選んでください。');
+  if (file.size > 12 * 1024 * 1024)
+    throw new Error('画像が大きすぎます。12MBまでの画像を選んでください。');
+  const source = await createImageBitmap(file);
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('この端末では画像を変換できませんでした。');
+  const side = Math.min(source.width, source.height);
+  context.drawImage(
+    source,
+    (source.width - side) / 2,
+    (source.height - side) / 2,
+    side,
+    side,
+    0,
+    0,
+    size,
+    size,
+  );
+  source.close();
+  const png = canvas.toDataURL('image/png');
+  const icon =
+    file.type === 'image/png' && png.length <= maxSpotIconLength
+      ? png
+      : canvas.toDataURL('image/jpeg', 0.82);
+  if (icon.length > maxSpotIconLength)
+    throw new Error('画像を保存できませんでした。別の画像でお試しください。');
+  return icon;
 }
 export default function Admin() {
   const { t, locale } = useI18n();
@@ -594,6 +637,7 @@ export default function Admin() {
                   name: '',
                   location: '',
                   description: '',
+                  icon: '',
                   sortOrder: spots.length,
                   active: 1,
                 })
@@ -627,9 +671,14 @@ export default function Admin() {
             <div className="admin-spots">
               {spots.map((s) => (
                 <article key={s.id}>
-                  <span className={s.active ? 'type-tag' : 'type-tag guest'}>
-                    {s.active ? t('公開中') : t('非公開')}
-                  </span>
+                  <div className="spot-card-head">
+                    <span className="spot-card-icon">
+                      <SpotIcon icon={s.icon} index={s.sortOrder} size={24} />
+                    </span>
+                    <span className={s.active ? 'type-tag' : 'type-tag guest'}>
+                      {s.active ? t('公開中') : t('非公開')}
+                    </span>
+                  </div>
                   <h3>{s.name}</h3>
                   <p>
                     <MapPin size={16} />
@@ -944,6 +993,93 @@ export default function Admin() {
                   }
                 />
               </label>
+              {/* The icon appears on the participant's stamp card: either one
+                  of the templates or a picture the organiser supplies. */}
+              <div className="icon-field">
+                <p className="icon-field-head">
+                  <span className="icon-field-preview">
+                    <SpotIcon
+                      icon={editingSpot.icon}
+                      index={editingSpot.sortOrder ?? 0}
+                      size={26}
+                    />
+                  </span>
+                  <strong>{t('スタンプのアイコン')}</strong>
+                </p>
+                <div className="icon-choices">
+                  <button
+                    type="button"
+                    className={editingSpot.icon ? undefined : 'selected'}
+                    aria-pressed={!editingSpot.icon}
+                    onClick={() => setEditingSpot({ ...editingSpot, icon: '' })}
+                  >
+                    {t('自動')}
+                  </button>
+                  {spotIconTemplates.map((choice) => (
+                    <button
+                      key={choice.key}
+                      type="button"
+                      title={t(choice.label)}
+                      aria-label={t(choice.label)}
+                      aria-pressed={editingSpot.icon === choice.key}
+                      className={
+                        editingSpot.icon === choice.key ? 'selected' : undefined
+                      }
+                      onClick={() =>
+                        setEditingSpot({ ...editingSpot, icon: choice.key })
+                      }
+                    >
+                      <choice.Icon size={20} aria-hidden="true" />
+                    </button>
+                  ))}
+                </div>
+                <div className="icon-upload">
+                  <label className="file-label">
+                    <span>
+                      <ImagePlus size={16} aria-hidden="true" />
+                      {t('画像を選ぶ（PNG・JPEG）')}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!file) return;
+                        void iconFromFile(file)
+                          .then((icon) =>
+                            setEditingSpot((current) =>
+                              current ? { ...current, icon } : current,
+                            ),
+                          )
+                          .catch((problem: unknown) =>
+                            setError(
+                              problem instanceof Error
+                                ? problem.message
+                                : '画像を読み込めませんでした。',
+                            ),
+                          );
+                      }}
+                    />
+                  </label>
+                  {isCustomSpotIcon(editingSpot.icon ?? '') && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        setEditingSpot({ ...editingSpot, icon: '' })
+                      }
+                    >
+                      {t('画像を外す')}
+                    </Button>
+                  )}
+                </div>
+                <small>
+                  {t(
+                    '画像は正方形に切り抜いて128pxに縮小して保存します。遠くからでも分かる、輪郭のはっきりした絵がおすすめです。',
+                  )}
+                </small>
+              </div>
               <label>
                 {t('表示順')}
                 <input

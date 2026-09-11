@@ -437,6 +437,39 @@ try {
       ).status,
       400,
     );
+    // Icons: a template key and a small PNG are kept; anything else is refused.
+    assert.equal(
+      (await adm('spots', { ...originalSpot, icon: 'trophy' })).status,
+      200,
+    );
+    assert.equal(
+      (await adm('spots')).data.spots.find((s) => s.id === originalSpot.id)
+        .icon,
+      'trophy',
+    );
+    const picture =
+      'data:image/png;base64,' +
+      Buffer.from('a'.repeat(600)).toString('base64');
+    assert.equal(
+      (await adm('spots', { ...originalSpot, icon: picture })).status,
+      200,
+    );
+    assert.equal(
+      (await adm('spots')).data.spots.find((s) => s.id === originalSpot.id)
+        .icon,
+      picture,
+    );
+    for (const icon of [
+      'javascript:alert(1)',
+      'data:text/html;base64,AAAA',
+      'data:image/png;base64,' + 'A'.repeat(96000),
+      'made-up-key',
+    ])
+      assert.equal(
+        (await adm('spots', { ...originalSpot, icon })).status,
+        400,
+        icon.slice(0, 32),
+      );
   } finally {
     await adm('spots', originalSpot);
   }

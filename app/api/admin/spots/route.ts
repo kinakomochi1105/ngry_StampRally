@@ -3,6 +3,7 @@ import { event } from '@/lib/event';
 import { json, sign, logFailure } from '@/lib/server';
 import { guard } from '@/lib/admin';
 import { allSpots, bodyJson, seedSpots, audit } from '@/lib/data';
+import { maxSpotIconLength, validSpotIcon } from '@/lib/types';
 export async function GET(request: Request) {
   const denied = await guard(request);
   if (denied) return denied;
@@ -25,7 +26,9 @@ export async function POST(request: Request) {
   const denied = await guard(request, true);
   if (denied) return denied;
   try {
-    const data = await bodyJson(request);
+    // An uploaded icon travels inline with the location, so this route
+    // accepts more than the default 8KB body.
+    const data = await bodyJson(request, maxSpotIconLength + 8192);
     if (data.action === 'seed') {
       await seedSpots();
       await audit('seed_spots', event.id);
@@ -40,8 +43,13 @@ export async function POST(request: Request) {
       description = (
         typeof data.description === 'string' ? data.description : ''
       ).trim(),
+      icon = (typeof data.icon === 'string' ? data.icon : '').trim(),
       sortOrder = Number(data.sortOrder ?? 0),
       active = data.active === true || data.active === 1 ? 1 : 0;
+    if (!validSpotIcon(icon))
+      throw new Error(
+        'アイコンを確認してください。画像はPNGかJPEGで、小さいものを選んでください。',
+      );
     if (
       !/^[a-z0-9-]{1,64}$/.test(id) ||
       !name ||
@@ -57,9 +65,18 @@ export async function POST(request: Request) {
     await database().batch([
       database()
         .prepare(
-          'INSERT INTO locations (id,event_id,name,location,description,sort_order,active) VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,location=excluded.location,description=excluded.description,sort_order=excluded.sort_order,active=excluded.active WHERE locations.event_id=excluded.event_id',
+          'INSERT INTO locations (id,event_id,name,location,description,icon,sort_order,active) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,location=excluded.location,description=excluded.description,icon=excluded.icon,sort_order=excluded.sort_order,active=excluded.active WHERE locations.event_id=excluded.event_id',
         )
-        .bind(id, event.id, name, location, description, sortOrder, active),
+        .bind(
+          id,
+          event.id,
+          name,
+          location,
+          description,
+          icon,
+          sortOrder,
+          active,
+        ),
       database()
         .prepare(
           'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',

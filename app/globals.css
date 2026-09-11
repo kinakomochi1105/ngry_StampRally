@@ -5455,3 +5455,106 @@ html[lang='en'] .access-tabs button {
     padding: 18px 16px calc(18px + env(safe-area-inset-bottom)) !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Location icons. Each location shows a template icon or a picture supplied by
+   the organiser, on the participant's stamp card and in the admin console.
+   --------------------------------------------------------------------------- */
+.spot-icon-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+/* Inset a little so the dashed ring - and the solid one once the stamp is
+   collected - still reads around the picture. */
+.stamp-circle .spot-icon-image {
+  width: calc(100% - 9px);
+  height: calc(100% - 9px);
+}
+.icon-field {
+  display: grid;
+  gap: 11px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.icon-field-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.icon-field-head strong {
+  font-size: 15px;
+}
+.icon-field-preview,
+.spot-card-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--soft-bg);
+  color: var(--accent-ink);
+}
+.icon-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.admin-dialog .icon-choices button {
+  display: grid;
+  place-items: center;
+  min-width: 46px;
+  min-height: 46px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--muted-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+.admin-dialog .icon-choices button:hover {
+  border-color: var(--accent-ink);
+  color: var(--ink);
+}
+.admin-dialog .icon-choices .selected {
+  border-color: var(--accent-ink);
+  background: var(--soft-bg);
+  color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--accent-ink);
+}
+.icon-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.icon-upload .file-label {
+  flex: 1 1 240px;
+  gap: 9px;
+  border-radius: 11px;
+}
+.icon-upload .file-label > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+.icon-upload .file-label input {
+  font-size: 13px;
+}
+/* Sits above `.admin-spots article > div`, which lays out the button row. */
+.admin-spots .spot-card-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
