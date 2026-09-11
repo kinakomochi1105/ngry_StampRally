@@ -2,12 +2,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useI18n } from '@/components/language';
 import { Button } from '@/components/ui/button';
+import { dateTime } from '@/lib/utils';
 type SpotStatus = {
   id: string;
   name: string;
   location: string;
   active: number;
   collected: number;
+  collectedAt: number | null;
 };
 export function AdminStamps({
   id,
@@ -82,6 +84,14 @@ export function AdminStamps({
                     : en
                       ? 'Not collected'
                       : '未獲得'}
+                  {s.collected && s.collectedAt ? (
+                    <time
+                      className="stamp-state-time"
+                      dateTime={new Date(s.collectedAt * 1000).toISOString()}
+                    >
+                      {dateTime(s.collectedAt, locale)}
+                    </time>
+                  ) : null}
                 </span>
               </div>
               <Button

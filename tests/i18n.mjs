@@ -22,8 +22,8 @@ assert.equal(
   translate('あと2か所。次のスポットへ出かけよう。', 'en'),
   '2 locations to go. Find your next stamp!',
 );
-assert.equal(translate('QRを読み取る', 'ja'), 'QRを読み取る');
-assert.equal(translate('QRを読み取る', 'en'), 'Scan QR code');
+assert.equal(translate('QRコードを読み取る', 'ja'), 'QRコードを読み取る');
+assert.equal(translate('QRコードを読み取る', 'en'), 'Scan QR code');
 assert.equal(translate('学校独自の場所', 'en'), '学校独自の場所');
 const en = JSON.parse(fs.readFileSync('lib/en.json', 'utf8'));
 let count = 0;
@@ -34,6 +34,7 @@ for (const path of [
   'components/recovery.tsx',
   'components/scanner.tsx',
   'components/reward.tsx',
+  'components/admin-wiki.tsx',
 ]) {
   const sf = ts.createSourceFile(
     path,

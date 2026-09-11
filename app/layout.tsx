@@ -3,7 +3,7 @@ import './globals.css';
 import { LanguageProvider } from '@/components/language';
 export const metadata: Metadata = {
   title: '文化祭スタンプラリー | 校内をめぐろう',
-  description: '文化祭の6つのスポットを巡って、QRでスタンプを集めよう。',
+  description: '文化祭の6つのスポットを巡って、QRコードでスタンプを集めよう。',
 };
 export default function RootLayout({
   children,

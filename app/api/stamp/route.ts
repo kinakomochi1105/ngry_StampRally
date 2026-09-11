@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       return json(
         {
           error:
-            'この文化祭の有効なQRではありません。設置されたQRを確認してください。',
+            'この文化祭の有効なQRコードではありません。設置されたQRコードを確認してください。',
         },
         400,
       );
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         error:
           e instanceof Error && /入力|JSON/.test(e.message)
             ? e.message
-            : '押印を確認できませんでした。同じQRで再試行できます。',
+            : '押印を確認できませんでした。同じQRコードで再試行できます。',
       },
       400,
     );

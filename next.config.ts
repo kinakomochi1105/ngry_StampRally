@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/register': ['./Config/forbidden'],
     '/api/recovery/setup': ['./Config/forbidden'],
+    // The administrator wiki reads its pages from disk at request time, so the
+    // markdown is traced in the same way.
+    '/api/admin/manual': ['./content/manual/**'],
   },
 };
 

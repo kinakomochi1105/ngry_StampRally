@@ -129,7 +129,7 @@ export default function Home() {
       body: JSON.stringify({ code }),
       signal: AbortSignal.timeout(15000),
     }).catch(() => {
-      throw new Error('通信を確認して、同じQRで再試行してください。');
+      throw new Error('通信を確認して、同じQRコードで再試行してください。');
     });
     const d = (await r.json()) as {
       error?: string;
@@ -409,7 +409,7 @@ export default function Home() {
                         ' stamps to go. Scan a QR code at each location.'
                       : 'あと' +
                         (total - count) +
-                        '個。設置場所でQRを読み取ろう。'}
+                        '個。設置場所でQRコードを読み取ろう。'}
               </p>
             </section>
             <section
@@ -437,7 +437,7 @@ export default function Home() {
                   {tab === 'book'
                     ? locale === 'en'
                       ? 'Find a location, then scan its QR code using the button below.'
-                      : '設置場所に着いたら、下の「QRを読み取る」を押してください。'
+                      : '設置場所に着いたら、下の「QRコードを読み取る」を押してください。'
                     : tab === 'places'
                       ? locale === 'en'
                         ? 'Check the room and directions before you start walking.'
@@ -694,7 +694,7 @@ export default function Home() {
                 onClick={() => setScanning(true)}
               >
                 <QrCode size={19} />
-                {locale === 'en' ? 'Scan QR' : 'QRを読み取る'}
+                {locale === 'en' ? 'Scan QR' : 'QRコードを読み取る'}
               </Button>
               <div className="desktop-side-tabs">
                 {navItems.map(({ id, Icon, label }) => {
@@ -743,7 +743,7 @@ export default function Home() {
                 <summary>{t('参加データ・使い方について')}</summary>
                 <p>
                   {t(
-                    'サイト内の読み取りボタンから設置QRを読み取ります。ニックネームに加え、生徒は学年・組・出席番号、一般客は参加IDをスタンプ履歴とともに保存します。進行状況・ランキングは管理者のみ閲覧できます。氏名・連絡先・位置情報は収集せず、カメラ映像・画像も送信しません。Cookieの有効期間と履歴の表示期間は30日です。サーバーの記録は開催後に主催者が削除します。同じ端末・ブラウザでご参加ください。Cookieの削除後や端末変更時は、ニックネームと復旧コードで再ログインできます。復旧コードを紛失した場合は、元の端末で再発行するか受付へご相談ください。',
+                    'サイト内の読み取りボタンから設置QRコードを読み取ります。ニックネームに加え、生徒は学年・組・出席番号、一般客は参加IDをスタンプ履歴とともに保存します。進行状況・ランキングは管理者のみ閲覧できます。氏名・連絡先・位置情報は収集せず、カメラ映像・画像も送信しません。Cookieの有効期間と履歴の表示期間は30日です。サーバーの記録は開催後に主催者が削除します。同じ端末・ブラウザでご参加ください。Cookieの削除後や端末変更時は、ニックネームと復旧コードで再ログインできます。復旧コードを紛失した場合は、元の端末で再発行するか受付へご相談ください。',
                   )}
                 </p>
               </details>
@@ -756,7 +756,7 @@ export default function Home() {
                   onClick={() => setScanning(true)}
                 >
                   <QrCode size={22} />
-                  {t('QRを読み取る')}
+                  {t('QRコードを読み取る')}
                 </Button>
                 <small>{t('立ち止まってから、読み取りましょう。')}</small>
               </div>

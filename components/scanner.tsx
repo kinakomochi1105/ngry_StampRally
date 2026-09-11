@@ -68,7 +68,7 @@ export function Scanner({
       try {
         if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia)
           throw new Error(
-            'この環境ではカメラを起動できません。QR画像を選択してください。',
+            'この環境ではカメラを起動できません。QRコード画像を選択してください。',
           );
         const media = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -116,7 +116,7 @@ export function Scanner({
         if (!cancelled)
           setError(
             e instanceof DOMException
-              ? 'カメラを使用できません。ブラウザのカメラ許可を確認するか、QR画像を選択してください。'
+              ? 'カメラを使用できません。ブラウザのカメラ許可を確認するか、QRコード画像を選択してください。'
               : e instanceof Error
                 ? e.message
                 : 'カメラを起動できませんでした。',
@@ -156,7 +156,7 @@ export function Scanner({
       });
       if (!qr)
         throw new Error(
-          'QRが見つかりません。QR全体が鮮明に写った画像を選択してください。',
+          'QRコードが見つかりません。QRコード全体が鮮明に写った画像を選択してください。',
         );
       await onScan(qr.data);
       onClose();
@@ -174,11 +174,11 @@ export function Scanner({
       }}
     >
       <DialogContent className="scanner-dialog" showCloseButton={false}>
-        <DialogTitle>{t('QRを読み取る')}</DialogTitle>
+        <DialogTitle>{t('QRコードを読み取る')}</DialogTitle>
         <DialogDescription>
           {liveCamera
-            ? t('立ち止まって、四隅の枠を目安にQR全体を写してください。')
-            : t('立ち止まって、QR全体が入るように撮影してください。')}
+            ? t('立ち止まって、四隅の枠を目安にQRコード全体を写してください。')
+            : t('立ち止まって、QRコード全体が入るように撮影してください。')}
         </DialogDescription>
         {liveCamera ? (
           <div className={busy ? 'camera-preview busy' : 'camera-preview'}>
@@ -194,7 +194,7 @@ export function Scanner({
         ) : (
           <div className="camera-shot">
             <Camera size={34} aria-hidden="true" />
-            <p>{t('カメラで撮影してQRを読み取ります。')}</p>
+            <p>{t('カメラで撮影してQRコードを読み取ります。')}</p>
           </div>
         )}
         <output className={error ? 'scanner-error' : ''}>
@@ -202,7 +202,7 @@ export function Scanner({
             ? t('押印を確認しています…')
             : t(error) ||
               (liveCamera
-                ? t('QRにカメラを向けてください。')
+                ? t('QRコードにカメラを向けてください。')
                 : t('下のボタンでカメラが開きます。'))}
         </output>
         {liveCamera && error && (
@@ -219,7 +219,7 @@ export function Scanner({
         {!liveCamera && (
           <label className="file-label capture-action">
             <Camera size={19} aria-hidden="true" />
-            {busy ? t('読み取り中…') : t('カメラでQRを撮影する')}
+            {busy ? t('読み取り中…') : t('カメラでQRコードを撮影する')}
             <input
               type="file"
               accept="image/*"
@@ -233,7 +233,7 @@ export function Scanner({
           </label>
         )}
         <label className="file-label">
-          {t('撮影済みのQR画像を選ぶ')}
+          {t('撮影済みのQRコード画像を選ぶ')}
           <input
             type="file"
             accept="image/*"

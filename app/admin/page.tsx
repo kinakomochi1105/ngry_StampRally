@@ -3,6 +3,7 @@ import { useI18n, LanguageSelect } from '@/components/language';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AdminStamps } from '@/components/admin-stamps';
+import { AdminWiki } from '@/components/admin-wiki';
 import { ThemeToggle } from '@/components/theme-toggle';
 import QRCode from 'qrcode';
 import {
@@ -20,6 +21,7 @@ import {
   ShieldCheck,
   QrCode,
   Gift,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +38,7 @@ import {
   type Spot,
   type FestivalSettings,
 } from '@/lib/types';
+import { dateTime as date } from '@/lib/utils';
 type Row = Profile & {
   stampCount: number;
   ranking: number | null;
@@ -73,16 +76,6 @@ async function api(path: string, data?: unknown) {
   }
   return result;
 }
-const date = (n: number | null, locale: string) =>
-  n
-    ? new Date(n * 1000).toLocaleString(locale, {
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      })
-    : '—';
 export default function Admin() {
   const { t, locale } = useI18n();
   const [authorized, setAuthorized] = useState(false);
@@ -221,7 +214,7 @@ export default function Admin() {
       });
       setPoster({ spot, image });
     } catch {
-      setError('QRを生成できませんでした。');
+      setError('QRコードを生成できませんでした。');
     }
   }
   async function exportCsv() {
@@ -358,8 +351,9 @@ export default function Admin() {
         {[
           [Users, 'participants', t('参加者・進行状況')],
           [Trophy, 'ranking', t('ランキング')],
-          [MapPin, 'spots', t('設置場所・QR')],
+          [MapPin, 'spots', t('設置場所・QRコード')],
           [Settings, 'settings', t('設定・データ管理')],
+          [BookOpen, 'wiki', t('運営マニュアル')],
         ].map(([Icon, id, label]) => {
           const I = Icon as typeof Users;
           return (
@@ -560,7 +554,7 @@ export default function Admin() {
         <section className="admin-panel">
           <div className="panel-title">
             <div>
-              <h2>{t('設置場所・QR管理')}</h2>
+              <h2>{t('設置場所・QRコード管理')}</h2>
               <p>
                 {t(
                   '公開中の場所がコンプリートの対象です。開催中の変更は達成状況に影響します。',
@@ -628,7 +622,7 @@ export default function Admin() {
                     </Button>
                     <Button variant="outline" onClick={() => void printQr(s)}>
                       <QrCode size={16} />
-                      {t('QR・印刷')}
+                      {t('QRコード・印刷')}
                     </Button>
                   </div>
                 </article>
@@ -865,6 +859,7 @@ export default function Admin() {
           </details>
         </section>
       )}
+      {tab === 'wiki' && <AdminWiki onDenied={failure} />}
       <Dialog
         open={editingSpot !== null}
         onOpenChange={(open) => {
@@ -877,7 +872,7 @@ export default function Admin() {
           </DialogTitle>
           <DialogDescription>
             {t(
-              'QRは場所ごとに発行されます。非公開にすると押印対象から外れます。',
+              'QRコードは場所ごとに発行されます。非公開にすると押印対象から外れます。',
             )}
           </DialogDescription>
           {editingSpot && (
@@ -1202,7 +1197,7 @@ export default function Admin() {
           className="admin-dialog poster-dialog"
           showCloseButton={false}
         >
-          <DialogTitle>{t('設置用QR')}</DialogTitle>
+          <DialogTitle>{t('設置用QRコード')}</DialogTitle>
           <DialogDescription>
             {t(
               '参加者サイト内のカメラで読み取ります。公開前に実機でお試しください。',
@@ -1217,21 +1212,23 @@ export default function Admin() {
               {/* eslint-disable-next-line next/no-img-element */}
               <img
                 src={poster.image}
-                alt={poster.spot.name + t('の設置用QR')}
+                alt={poster.spot.name + t('の設置用QRコード')}
                 width={320}
                 height={320}
               />
               <strong>
-                {t('サイト内の「QRを読み取る」から')}
+                {t('サイト内の「QRコードを読み取る」から')}
                 <br />
-                {t('このQRを読み取ってください。')}
+                {t('このQRコードを読み取ってください。')}
               </strong>
               <p>
                 {poster.spot.active ? '' : t('この場所は現在、非公開です。')}
               </p>
             </div>
           )}
-          <Button onClick={() => window.print()}>{t('このQRを印刷')}</Button>
+          <Button onClick={() => window.print()}>
+            {t('このQRコードを印刷')}
+          </Button>
           <DialogClose render={<Button variant="outline" />}>
             {t('閉じる')}
           </DialogClose>

@@ -24,9 +24,14 @@ export async function GET(request: Request) {
         .all();
       const spots = await database()
         .prepare(
-          'SELECT l.id,l.name,l.location,l.active,CASE WHEN s.created_at>? THEN 1 ELSE 0 END AS collected FROM locations l LEFT JOIN participants p ON p.id=? AND p.event_id=l.event_id LEFT JOIN stamps s ON s.spot_id=l.id AND s.event_id=l.event_id AND s.participant_hash=p.hash WHERE l.event_id=? ORDER BY l.sort_order,l.id',
+          'SELECT l.id,l.name,l.location,l.active,CASE WHEN s.created_at>? THEN 1 ELSE 0 END AS collected,CASE WHEN s.created_at>? THEN s.created_at END AS collectedAt FROM locations l LEFT JOIN participants p ON p.id=? AND p.event_id=l.event_id LEFT JOIN stamps s ON s.spot_id=l.id AND s.event_id=l.event_id AND s.participant_hash=p.hash WHERE l.event_id=? ORDER BY l.sort_order,l.id',
         )
-        .bind(Math.floor(Date.now() / 1000) - retentionSeconds, id, event.id)
+        .bind(
+          Math.floor(Date.now() / 1000) - retentionSeconds,
+          Math.floor(Date.now() / 1000) - retentionSeconds,
+          id,
+          event.id,
+        )
         .all();
       return json({ stamps: stamps.results, spots: spots.results });
     }

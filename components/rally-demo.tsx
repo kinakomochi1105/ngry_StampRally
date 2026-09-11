@@ -15,7 +15,7 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState(0);
   const titles = en
     ? ['Find a location', 'Scan and collect', 'Complete your stamp book']
-    : ['設置場所へ行こう', 'QRを読んでスタンプ獲得', '全部集めてコンプリート'];
+    : ['設置場所へ行こう', 'QRコードを読んでスタンプ獲得', '全部集めてコンプリート'];
   const descriptions = en
     ? [
         'Use Locations in the bottom menu to see where each QR code is displayed. Walk to a location first.',
@@ -23,8 +23,8 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
         'Use Stamp book to see your collection and Rewards to check how many stamps remain.',
       ]
     : [
-        '画面下部の「設置場所」でQRが置いてある場所を確認して、スポットへ向かいます。',
-        '立ち止まって「QRを読み取る」を押し、カメラを許可します。設置されたQR全体をカメラに写しましょう。',
+        '画面下部の「設置場所」でQRコードが置いてある場所を確認して、スポットへ向かいます。',
+        '立ち止まって「QRコードを読み取る」を押し、カメラを許可します。設置されたQRコード全体をカメラに写しましょう。',
         '「スタンプ帳」で獲得状況を確認できます。「特典」には残り個数が表示されます。',
       ];
   return (
@@ -64,7 +64,7 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
                   <div>
                     <strong>{name}</strong>
                     <small>
-                      {en ? 'QR by the entrance' : '入口にQRを設置'}
+                      {en ? 'QR by the entrance' : '入口にQRコードを設置'}
                     </small>
                   </div>
                   <MapPin size={17} />
@@ -84,7 +84,7 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
               </div>
               <div className="tutorial-scan-button">
                 <QrCode size={19} />
-                {en ? 'Scan QR code' : 'QRを読み取る'}
+                {en ? 'Scan QR code' : 'QRコードを読み取る'}
               </div>
             </>
           ) : (

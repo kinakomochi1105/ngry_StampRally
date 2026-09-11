@@ -191,7 +191,7 @@ export function FloorMap({
           <p className="traffic-note">
             {locale === 'en'
               ? 'Crowd levels use anonymous QR scan counts from the last 10 minutes. They are only a guide and do not show an exact wait time.'
-              : '混み具合は個人を識別しない、直近10分のQR読み取り件数による目安です。正確な待ち時間とは異なる場合があります。'}
+              : '混み具合は個人を識別しない、直近10分のQRコード読み取り件数による目安です。正確な待ち時間とは異なる場合があります。'}
           </p>
         </>
       ) : (
