@@ -839,7 +839,7 @@ export default function Home() {
         )}
         {demo && !receipt && <RallyDemo onClose={() => setDemo(false)} />}
         <footer>
-          <span>{t('文化祭実行委員会')}</span>
+          <span>{t('生徒会総務部')}</span>
           <span>{t('歩きスマホはお控えください。')}</span>
         </footer>
       </div>
