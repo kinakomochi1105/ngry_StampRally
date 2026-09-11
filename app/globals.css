@@ -5098,3 +5098,360 @@ html[lang='en'] .access-tabs button {
 .scanner-dialog .file-label.capture-action:has(input:disabled) {
   opacity: 0.6;
 }
+
+/* ---------------------------------------------------------------------------
+   Administration console (/admin). The screen is used on a laptop at the desk
+   and on a phone while walking the venue, so the chrome is one sticky bar, the
+   participant table folds into cards below a tablet width, and every control
+   keeps a finger-sized target.
+   --------------------------------------------------------------------------- */
+.admin-shell {
+  --admin-gutter: 24px;
+  padding: 0 var(--admin-gutter) 44px;
+}
+.admin-shell > .loading-state {
+  padding-top: 48px;
+}
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: 0 calc(var(--admin-gutter) * -1) 22px;
+  padding: 10px var(--admin-gutter);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  min-width: 0;
+}
+.admin-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--soft-bg);
+  color: var(--accent-ink);
+}
+.admin-brand strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+.admin-brand small {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: var(--muted-ink);
+}
+.admin-topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+  min-width: 0;
+}
+.admin-shell .admin-topbar-button {
+  min-height: 42px;
+  border-radius: 11px;
+}
+/* The shared language control is a full-width card elsewhere; in this bar it
+   shrinks to its icon and the current language. */
+.admin-topbar-actions .language-select {
+  width: auto;
+  margin: 0;
+}
+.admin-topbar-actions .language-trigger {
+  width: auto;
+  min-height: 42px;
+  gap: 7px;
+  padding: 5px 10px;
+  border-radius: 11px;
+  box-shadow: none;
+}
+.admin-topbar-actions .language-trigger-label {
+  display: none;
+}
+.admin-topbar-actions .language-symbol {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: none;
+}
+.admin-topbar-actions .language-current {
+  font-size: 13px;
+}
+.admin-topbar-actions .language-current small {
+  display: none;
+}
+.admin-topbar-actions .theme-toggle {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+}
+/* Five counters, so they flow instead of leaving a lone card on a second row. */
+.admin-stats {
+  grid-template-columns: repeat(auto-fit, minmax(186px, 1fr));
+  margin-bottom: 22px;
+}
+.admin-panel .panel-title {
+  align-items: flex-start;
+}
+.admin-spots {
+  grid-template-columns: repeat(auto-fit, minmax(252px, 1fr));
+}
+.data-actions {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.cell-manage {
+  text-align: right;
+}
+/* Desk use: the column headings stay under the bar while a long list scrolls,
+   and the row under the pointer lights up. */
+@media (min-width: 821px) {
+  /* Every column fits at this width, so the wrapper does not need its own
+     scroll box - which would keep the headings from sticking. */
+  .admin-shell .table-scroll {
+    overflow-x: visible;
+  }
+  .admin-shell thead th {
+    position: sticky;
+    top: 65px;
+    z-index: 5;
+  }
+  .admin-shell tbody tr:hover {
+    background: var(--soft-bg);
+  }
+}
+
+/* Tablet and phone */
+@media (max-width: 820px) {
+  /* The table carries seven columns, which only fits by scrolling sideways, so
+     each row becomes a card and every cell prints its own heading. */
+  .admin-shell .table-scroll {
+    overflow-x: visible;
+  }
+  .admin-shell table,
+  .admin-shell tbody,
+  .admin-shell tr,
+  .admin-shell td {
+    display: block;
+    width: 100%;
+  }
+  .admin-shell thead {
+    display: none;
+  }
+  .admin-shell tr {
+    margin-bottom: 12px;
+    padding: 2px 15px 10px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+  /* The name heads the card, so it needs no label of its own. */
+  .admin-shell .cell-person {
+    display: block;
+    padding: 12px 0 9px;
+  }
+  .admin-shell .cell-person::before {
+    display: none;
+  }
+  .admin-shell .cell-person strong {
+    margin-right: 10px;
+    font-size: 16px;
+  }
+  .admin-shell .cell-person small {
+    display: inline;
+    margin: 0 12px 0 0;
+    font-size: 12px;
+  }
+  .admin-shell td {
+    display: grid;
+    grid-template-columns: 5.5em minmax(0, 1fr);
+    align-items: baseline;
+    gap: 4px 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+    white-space: normal;
+  }
+  .admin-shell td::before {
+    content: attr(data-label);
+    grid-column: 1;
+    font-size: 12px;
+    color: var(--muted-ink);
+  }
+  /* Every value in the cell stacks in the second column, beside the heading. */
+  .admin-shell td > * {
+    grid-column: 2;
+  }
+  .admin-shell td > .type-tag,
+  .admin-shell td > .redeem-tag {
+    justify-self: start;
+  }
+  .admin-shell td:last-child {
+    border-bottom: 0;
+  }
+  .admin-shell td small {
+    margin-top: 4px;
+  }
+  .admin-shell .rank-value {
+    align-items: center;
+    font-size: 20px;
+  }
+  .admin-shell .cell-manage {
+    display: block;
+    padding-top: 12px;
+    text-align: left;
+  }
+  .admin-shell .cell-manage button {
+    width: 100%;
+  }
+  .row-progress {
+    width: 100%;
+  }
+}
+@media (max-width: 720px) {
+  .admin-shell {
+    --admin-gutter: 16px;
+  }
+  .admin-topbar {
+    gap: 8px 10px;
+    padding: 8px var(--admin-gutter);
+  }
+  /* Icons alone keep every action on one row on a phone; the label stays in
+     the accessible name of the button. */
+  .admin-shell .admin-topbar-button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .admin-shell .admin-topbar-button {
+    width: 42px;
+    padding: 0;
+  }
+  .admin-topbar-actions .language-current {
+    display: none;
+  }
+  .admin-brand small {
+    display: none;
+  }
+  .admin-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .admin-stats article {
+    padding: 14px 15px;
+    border-radius: 14px;
+  }
+  .admin-stats strong {
+    font-size: 26px;
+  }
+  .admin-stats article > svg {
+    width: 18px;
+    height: 18px;
+  }
+  /* All four sections stay visible instead of scrolling off the right edge. */
+  .admin-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    overflow: visible;
+  }
+  .admin-tabs button {
+    min-height: 52px;
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+  .panel-title {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .panel-title [data-slot='button'] {
+    width: 100%;
+  }
+  .admin-toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .admin-toolbar select,
+  .admin-toolbar input {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+  .admin-toolbar button {
+    width: 100%;
+    height: 48px;
+  }
+  .pagination {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 14px;
+    text-align: center;
+  }
+  .pagination > div {
+    justify-content: center;
+  }
+  .pagination > div [data-slot='button'] {
+    flex: 1;
+    max-width: 140px;
+  }
+  .admin-spots article > div {
+    flex-direction: column;
+  }
+  .admin-spots article > div [data-slot='button'] {
+    width: 100%;
+  }
+  .staff-pin-actions {
+    display: grid;
+    gap: 10px;
+  }
+  .admin-shell button,
+  .admin-dialog button {
+    min-height: 46px;
+  }
+}
+/* Dialogs open as a sheet from the bottom edge, where a thumb reaches them. */
+@media (max-width: 640px) {
+  /* One scroll instead of a scrolling box inside a scrolling sheet. */
+  .admin-dialog .stamp-editor ul,
+  .admin-dialog .stamp-history {
+    max-height: none;
+    overflow: visible;
+  }
+  .admin-dialog {
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 92dvh;
+    /* The dialog centres itself with Tailwind's `translate` utilities, which
+       set the translate property rather than transform. */
+    translate: none !important;
+    transform: none !important;
+    border-bottom: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom)) !important;
+  }
+}

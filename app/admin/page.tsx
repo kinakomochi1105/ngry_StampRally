@@ -1,6 +1,6 @@
 'use client';
 import { useI18n, LanguageSelect } from '@/components/language';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AdminStamps } from '@/components/admin-stamps';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -17,6 +17,7 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  House,
   ShieldCheck,
   QrCode,
   Gift,
@@ -119,6 +120,9 @@ export default function Admin() {
     spot: ManagedSpot;
     image: string;
   } | null>(null);
+  // The participant sheet is long. Focus starts on its heading so it opens at
+  // the top instead of scrolled down to the first button.
+  const personHeading = useRef<HTMLHeadingElement>(null);
   const failure = useCallback((e: unknown) => {
     if ((e as { status?: number }).status === 401) setAuthorized(false);
     setError(e instanceof Error ? e.message : '通信を確認してお試しください。');
@@ -293,27 +297,41 @@ export default function Admin() {
     );
   return (
     <main className="admin-shell">
-      <div className="admin-top-actions">
-        <ThemeToggle />
-        <LanguageSelect />
-      </div>
-      <header className="admin-header">
-        <div>
-          <p className="eyebrow">FESTIVAL CONTROL</p>
-          <h1>{t('文化祭 管理センター')}</h1>
-        </div>
-        <div>
-          <Link href="/" className="back-link">
-            {t('参加者サイト')}
-            <ChevronRight size={16} />
-          </Link>
+      {/* One bar carries the identity and every global action, so a phone shows
+          the same controls as a desktop without a screenful of header. */}
+      <header className="admin-topbar">
+        <p className="admin-brand">
+          <span className="admin-brand-mark">
+            <ShieldCheck size={17} aria-hidden="true" />
+          </span>
+          <span>
+            <strong>{t('文化祭 管理センター')}</strong>
+            <small>FESTIVAL CONTROL</small>
+          </span>
+        </p>
+        <div className="admin-topbar-actions">
           {/* The manual is its own screen at /admin/wiki, not a tab here. */}
-          <Button variant="outline" render={<Link href="/admin/wiki" />}>
+          <Button
+            variant="outline"
+            className="admin-topbar-button"
+            render={<Link href="/admin/wiki" />}
+          >
             <BookOpen size={16} />
-            {t('運営マニュアル')}
+            <span>{t('運営マニュアル')}</span>
           </Button>
           <Button
             variant="outline"
+            className="admin-topbar-button"
+            render={<Link href="/" />}
+          >
+            <House size={16} />
+            <span>{t('参加者サイト')}</span>
+          </Button>
+          <ThemeToggle />
+          <LanguageSelect />
+          <Button
+            variant="outline"
+            className="admin-topbar-button"
             onClick={async () => {
               try {
                 await api('logout', {});
@@ -326,7 +344,7 @@ export default function Admin() {
             }}
           >
             <LogOut size={16} />
-            {t('ログアウト')}
+            <span>{t('ログアウト')}</span>
           </Button>
         </div>
       </header>
@@ -455,9 +473,13 @@ export default function Admin() {
                 {rows.map((row) => (
                   <tr key={row.id}>
                     {tab === 'ranking' && (
-                      <td className="rank-value">{row.ranking ?? '—'}</td>
+                      <td className="rank-value" data-label={t('順位')}>
+                        {row.ranking ?? '—'}
+                      </td>
                     )}
-                    <td>
+                    {/* On a phone the row becomes a card and each cell prints
+                        its own heading from data-label. */}
+                    <td className="cell-person" data-label={t('参加者')}>
                       <strong>{profileLabel(row, locale)}</strong>
                       <small>{row.nickname ?? t('ニックネーム未設定')}</small>
                       <small>
@@ -465,7 +487,7 @@ export default function Admin() {
                         {date(row.createdAt, locale)}
                       </small>
                     </td>
-                    <td>
+                    <td data-label={t('区分')}>
                       <span
                         className={
                           row.kind === 'student' ? 'type-tag' : 'type-tag guest'
@@ -474,7 +496,7 @@ export default function Admin() {
                         {row.kind === 'student' ? t('生徒') : t('一般客')}
                       </span>
                     </td>
-                    <td>
+                    <td data-label={t('進行状況')}>
                       <div className="row-progress">
                         <span
                           style={{
@@ -493,7 +515,7 @@ export default function Admin() {
                           : ''}
                       </small>
                     </td>
-                    <td>
+                    <td data-label={t('報酬交換')}>
                       {row.redeemedAt ? (
                         <>
                           <span className="redeem-tag done">
@@ -505,8 +527,10 @@ export default function Admin() {
                         <span className="redeem-tag">{t('未交換')}</span>
                       )}
                     </td>
-                    <td>{date(row.lastStamp, locale)}</td>
-                    <td>
+                    <td data-label={t('最終押印')}>
+                      {date(row.lastStamp, locale)}
+                    </td>
+                    <td className="cell-manage">
                       <Button
                         variant="outline"
                         onClick={() => void openPerson(row)}
@@ -965,8 +989,12 @@ export default function Admin() {
           if (!open) setEditingPerson(null);
         }}
       >
-        <DialogContent className="admin-dialog" showCloseButton={false}>
-          <DialogTitle>
+        <DialogContent
+          className="admin-dialog"
+          showCloseButton={false}
+          initialFocus={personHeading}
+        >
+          <DialogTitle ref={personHeading} tabIndex={-1}>
             {editingPerson
               ? profileLabel(editingPerson, locale)
               : t('参加者管理')}
