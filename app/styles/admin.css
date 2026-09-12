@@ -563,6 +563,215 @@
   margin-top: 4px;
 }
 
+/* Venue maps --------------------------------------------------------------- */
+
+.admin-maps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.admin-maps article {
+  display: grid;
+  align-content: start;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* The whole picture, letterboxed: an organiser recognises their own map by
+   its shape, so it is never cropped here. */
+.admin-map-preview {
+  display: grid;
+  place-items: center;
+  height: 160px;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--soft-bg);
+}
+
+.admin-map-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.admin-map-body {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 14px 16px 16px;
+}
+
+.admin-map-body h3 {
+  font-size: var(--fs-md);
+  font-weight: 800;
+}
+
+.admin-map-body p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-ink);
+}
+
+.admin-map-body > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/* Map editor --------------------------------------------------------------- */
+
+/* The picture with the areas drawn over it. `touch-action: none` is what lets
+   a finger draw a rectangle instead of scrolling the sheet. */
+.map-editor-stage {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--soft-bg);
+  touch-action: none;
+  user-select: none;
+  cursor: crosshair;
+}
+
+.map-editor-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.map-editor-empty {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 20px;
+  font-size: var(--fs-sm);
+  text-align: center;
+  color: var(--muted-ink);
+}
+
+.map-editor-area {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--brand);
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--brand) 18%, transparent);
+  pointer-events: none;
+}
+
+.map-editor-area.unlinked {
+  border-style: dashed;
+  border-color: var(--faint-ink);
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+.map-editor-area.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+.map-editor-area em {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0 4px;
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.map-area-list {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--soft-bg);
+}
+
+.map-area-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--fs-sm);
+}
+
+.map-area-head small {
+  color: var(--muted-ink);
+}
+
+.map-area-empty {
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--muted-ink);
+}
+
+.map-area-list ul {
+  display: grid;
+  gap: 6px;
+  max-height: 34dvh;
+  overflow-y: auto;
+}
+
+.map-area-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.map-area-list li.selected {
+  border-color: var(--brand-line);
+}
+
+.map-area-list li label {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+.map-area-list li select,
+.map-area-list li input {
+  width: 100%;
+}
+
+.map-area-list li > button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted-ink);
+}
+
+.map-area-list li > button:hover {
+  border-color: var(--danger-line, var(--line));
+  color: var(--danger-ink, var(--ink));
+}
+
 /* Location icon picker ----------------------------------------------------- */
 
 .icon-field {
@@ -931,7 +1140,8 @@
      edge to edge, and short enough that the page behind still shows. */
   .admin-dialog.spot-dialog,
   .admin-dialog.person-dialog,
-  .admin-dialog.poster-dialog {
+  .admin-dialog.poster-dialog,
+  .admin-dialog.map-dialog {
     max-height: 88dvh;
     padding: 26px 28px;
     column-gap: 24px;
@@ -947,6 +1157,23 @@
 
   .admin-dialog.poster-dialog {
     width: min(100% - 64px, 860px);
+  }
+
+  /* The editor is mostly picture: the form sits beside it so both the map and
+     the list of areas are visible while drawing. */
+  .admin-dialog.map-dialog {
+    width: min(100% - 64px, 1180px);
+  }
+
+  .map-dialog .admin-form {
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+    column-gap: 22px;
+    align-items: start;
+  }
+
+  .map-dialog .admin-form > .form-error,
+  .map-dialog .admin-form > [data-slot='button'] {
+    grid-column: 1 / -1;
   }
 
   .dialog-column {

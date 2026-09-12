@@ -1,7 +1,13 @@
 import { database } from '@/db';
 import { event, spots } from './event';
 import { sign } from './server';
-import { defaultSettings, type FestivalSettings, type Spot } from './types';
+import {
+  defaultSettings,
+  readMapAreas,
+  type FestivalSettings,
+  type Spot,
+  type VenueMap,
+} from './types';
 
 // The staff PIN lives under its own settings key, never inside the settings
 // blob that `configuration()` hands to participants.
@@ -82,6 +88,46 @@ export async function seedSpots() {
         .bind(s.id, event.id, s.name, s.location, s.description, s.icon, i),
     ),
   );
+}
+/**
+ * The venue maps, without the pictures themselves: those are far too big to
+ * ride along with the rest of a screen's data, so they are fetched one at a
+ * time from /api/map/<id> and cached by the browser.
+ */
+export async function allMaps(activeOnly = true): Promise<VenueMap[]> {
+  const rows = (
+    await database()
+      .prepare(
+        `SELECT id,name,width,height,areas,sort_order AS sortOrder,active,updated_at AS updatedAt FROM venue_maps WHERE event_id = ? ${activeOnly ? 'AND active = 1' : ''} ORDER BY sort_order,id`,
+      )
+      .bind(event.id)
+      .all<Omit<VenueMap, 'areas'> & { areas: string }>()
+  ).results;
+  return rows.map((row) => {
+    let areas: unknown = [];
+    try {
+      areas = JSON.parse(row.areas);
+    } catch {}
+    return {
+      ...row,
+      width: Number(row.width),
+      height: Number(row.height),
+      sortOrder: Number(row.sortOrder),
+      active: Number(row.active),
+      updatedAt: Number(row.updatedAt),
+      areas: readMapAreas(areas),
+    };
+  });
+}
+/** One map's picture, as the data URL it was stored as. */
+export async function mapImage(id: string, activeOnly = true) {
+  const row = await database()
+    .prepare(
+      `SELECT image FROM venue_maps WHERE event_id = ? AND id = ? ${activeOnly ? 'AND active = 1' : ''}`,
+    )
+    .bind(event.id, id)
+    .first<{ image: string }>();
+  return row?.image ?? null;
 }
 export async function audit(action: string, target: string) {
   return database()

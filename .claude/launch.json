@@ -4,7 +4,22 @@
     {
       "name": "stamp-rally",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "stamp-rally-webpack",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "next",
+        "dev",
+        "--webpack",
+        "-H",
+        "0.0.0.0"
+      ],
       "port": 3000
     }
   ]

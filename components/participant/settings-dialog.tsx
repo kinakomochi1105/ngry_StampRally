@@ -1,5 +1,6 @@
 'use client';
-import { Settings } from 'lucide-react';
+import Link from 'next/link';
+import { BookOpen, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -65,16 +66,30 @@ export function SettingsDialog({
         <section className="settings-group">
           <h3>{t('使い方')}</h3>
           <p>{t('スタンプの集め方を、画面の例で順番に確認できます。')}</p>
-          <Button
-            className="replay-demo"
-            variant="outline"
-            onClick={() => {
-              onClose();
-              onShowDemo();
-            }}
-          >
-            {t('使い方デモを見る')}
-          </Button>
+          {/* The demo replays the three screens; the guide is the written
+              version, with the camera and recovery answers the demo skips.
+              They sit side by side, and wrap on a narrow phone. */}
+          <div className="settings-actions">
+            <Button
+              className="replay-demo"
+              variant="outline"
+              onClick={() => {
+                onClose();
+                onShowDemo();
+              }}
+            >
+              {t('使い方デモを見る')}
+            </Button>
+            <Button
+              variant="outline"
+              render={<Link href="/help" />}
+              nativeButton={false}
+              onClick={onClose}
+            >
+              <BookOpen size={19} aria-hidden="true" />
+              {t('使い方')}
+            </Button>
+          </div>
         </section>
 
         <section className="settings-group">

@@ -6,6 +6,7 @@ import {
   type FestivalSettings,
   type Profile,
   type Spot,
+  type VenueMap,
 } from '@/lib/types';
 
 export type Row = Profile & {
@@ -27,7 +28,12 @@ export type Stats = {
 
 export type ManagedSpot = Spot & { code: string };
 export type Audit = { action: string; target: string; createdAt: number };
-export type AdminTab = 'participants' | 'ranking' | 'spots' | 'settings';
+export type AdminTab =
+  | 'participants'
+  | 'ranking'
+  | 'spots'
+  | 'maps'
+  | 'settings';
 
 export const pageSize = 50;
 
@@ -71,6 +77,7 @@ export function useAdmin() {
   const [count, setCount] = useState(0);
   const [stats, setStats] = useState<Stats>(noStats);
   const [spots, setSpots] = useState<ManagedSpot[]>([]);
+  const [maps, setMaps] = useState<VenueMap[]>([]);
   const [settings, setSettings] = useState<FestivalSettings>(defaultSettings);
   const [staffPinSet, setStaffPinSet] = useState(false);
   const [sitePasswordSet, setSitePasswordSet] = useState(false);
@@ -98,6 +105,15 @@ export function useAdmin() {
       if (tab === 'spots') {
         const result = await api('spots');
         setSpots(result.spots as ManagedSpot[]);
+      }
+      if (tab === 'maps') {
+        // The locations come back with the maps: an area is linked by
+        // choosing one of them, so the editor needs both.
+        const result = await api('maps');
+        setMaps(result.maps as VenueMap[]);
+        setSpots(
+          (result.spots as Spot[]).map((spot) => ({ ...spot, code: '' })),
+        );
       }
       if (tab === 'settings') {
         const result = await api('settings');
@@ -234,6 +250,7 @@ export function useAdmin() {
     count,
     stats,
     spots,
+    maps,
     settings,
     staffPinSet,
     sitePasswordSet,

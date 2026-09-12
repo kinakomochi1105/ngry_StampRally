@@ -34,6 +34,83 @@ export const validSpotIcon = (icon: string) =>
   spotIconKeys.includes(icon) ||
   (/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(icon) &&
     icon.length <= maxSpotIconLength);
+/**
+ * The venue map: a picture the organiser uploads, with rectangles drawn over
+ * it. Every rectangle is stored as fractions of the picture rather than
+ * pixels, so it lands in the same place whatever size the map is shown at.
+ */
+export type MapArea = {
+  id: string;
+  /** The location this area opens, or '' for a label that only marks a place. */
+  spotId: string;
+  /** Shown when the area has no location of its own (受付, トイレ, ...). */
+  label: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+export type VenueMap = {
+  id: string;
+  name: string;
+  /** The picture's own pixel size, which fixes the aspect ratio. */
+  width: number;
+  height: number;
+  areas: MapArea[];
+  sortOrder: number;
+  active: number;
+  /** Changes whenever the map is saved; the picture's URL carries it. */
+  updatedAt: number;
+};
+/** The picture travels as a data URL, so the cap is on the encoded length. */
+export const maxMapImageLength = 1400000;
+export const maxMapAreas = 120;
+/** The longest edge the browser scales an uploaded map down to before sending. */
+export const mapImageSize = 2000;
+export const validMapImage = (image: string) =>
+  /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(image) &&
+  image.length <= maxMapImageLength;
+const fraction = (value: unknown): value is number =>
+  typeof value === 'number' &&
+  Number.isFinite(value) &&
+  value >= 0 &&
+  value <= 1;
+/** Areas arrive from the organiser's browser, so every field is checked here. */
+export function readMapAreas(value: unknown): MapArea[] {
+  const list = Array.isArray(value) ? value : [];
+  const areas: MapArea[] = [];
+  for (const item of list.slice(0, maxMapAreas)) {
+    if (!item || typeof item !== 'object') continue;
+    const area = item as Record<string, unknown>;
+    const id = typeof area.id === 'string' ? area.id : '';
+    const spotId = typeof area.spotId === 'string' ? area.spotId : '';
+    const label = typeof area.label === 'string' ? area.label.trim() : '';
+    if (!/^[a-z0-9-]{1,64}$/.test(id)) continue;
+    if (spotId && !/^[a-z0-9-]{1,64}$/.test(spotId)) continue;
+    if (label.length > 40) continue;
+    if (
+      !fraction(area.x) ||
+      !fraction(area.y) ||
+      !fraction(area.w) ||
+      !fraction(area.h) ||
+      area.w <= 0 ||
+      area.h <= 0 ||
+      area.x + area.w > 1.0001 ||
+      area.y + area.h > 1.0001
+    )
+      continue;
+    areas.push({
+      id,
+      spotId,
+      label,
+      x: area.x,
+      y: area.y,
+      w: area.w,
+      h: area.h,
+    });
+  }
+  return areas;
+}
 export type Profile = {
   id: number;
   kind: 'student' | 'guest';

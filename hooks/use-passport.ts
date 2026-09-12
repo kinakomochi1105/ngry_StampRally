@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { api, errorCode, errorMessage } from '@/lib/client';
-import type { Profile, Spot, FestivalSettings } from '@/lib/types';
+import type { Profile, Spot, FestivalSettings, VenueMap } from '@/lib/types';
 import { defaultSettings } from '@/lib/types';
 import type { TrafficPoint } from '@/components/floor-map';
 import type { CrowdReading } from '@/lib/crowd';
@@ -307,6 +307,33 @@ export function usePassport({
  * page is opened by one that offers `document.modelContext`. Participant data
  * is never exposed: only the names and rooms already printed on the page.
  */
+/**
+ * The venue maps, asked for once rather than on every poll: an organiser
+ * uploads them before the festival and rarely touches them during it, and the
+ * pictures themselves are fetched by the browser as ordinary images.
+ *
+ * `ready` is false while the access word is still being asked for, so nothing
+ * is requested until the visitor is allowed in.
+ */
+export function useVenueMaps(ready: boolean) {
+  const [maps, setMaps] = useState<VenueMap[]>([]);
+  useEffect(() => {
+    if (!ready) return;
+    let active = true;
+    void api<{ maps: VenueMap[] }>('/api/map')
+      .then((data) => {
+        // A missing map is not worth an error on the stamp screen; the
+        // generated guide stands in for it.
+        if (active) setMaps(Array.isArray(data.maps) ? data.maps : []);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [ready]);
+  return maps;
+}
+
 export function useLocationsTool(spots: Spot[], onShow: () => void) {
   useEffect(() => {
     const context = (

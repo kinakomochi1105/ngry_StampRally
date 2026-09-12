@@ -34,7 +34,12 @@ import {
 } from '@/components/participant/rally-nav';
 import { RewardPanel } from '@/components/participant/reward-panel';
 import { StampBook } from '@/components/participant/stamp-book';
-import { useLocationsTool, usePassport } from '@/hooks/use-passport';
+import { VenueMapView } from '@/components/participant/venue-map';
+import {
+  useLocationsTool,
+  usePassport,
+  useVenueMaps,
+} from '@/hooks/use-passport';
 
 /** Heading and one line of guidance for each screen of the rally panel. */
 const panelCopy: Record<RallyTab, { title: string; hint: string }> = {
@@ -111,6 +116,7 @@ export default function Home() {
     ? { redeemedAt: profile.redeemedAt, completedAt: profile.completedAt }
     : null;
 
+  const maps = useVenueMaps(!locked);
   const show = useCallback((next: RallyTab) => {
     setTab(next);
     document.getElementById('rally-panel')?.scrollIntoView({ block: 'start' });
@@ -269,12 +275,26 @@ export default function Home() {
                     />
                   ) : tab === 'map' ? (
                     <>
-                      <FloorMap
-                        spots={spots}
-                        traffic={traffic}
-                        hasStamp={hasStamp}
-                        locale={locale}
-                      />
+                      {/* The organiser's own map when there is one: a picture
+                          of the school with the groups drawn on it beats a
+                          generated diagram. The diagram stays as the fallback
+                          for a festival that has not uploaded one. */}
+                      {maps.length > 0 ? (
+                        <VenueMapView
+                          maps={maps}
+                          spots={spots}
+                          traffic={traffic}
+                          hasStamp={hasStamp}
+                          onReport={report}
+                        />
+                      ) : (
+                        <FloorMap
+                          spots={spots}
+                          traffic={traffic}
+                          hasStamp={hasStamp}
+                          locale={locale}
+                        />
+                      )}
                       <Button
                         className="map-back-button"
                         variant="outline"

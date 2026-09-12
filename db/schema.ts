@@ -112,6 +112,30 @@ export const locations = sqliteTable(
   },
   (t) => [index('locations_event_idx').on(t.eventId, t.active, t.sortOrder)],
 );
+// A picture of the venue the organiser uploads, plus the areas drawn over it.
+// Each area points at a location, so a visitor can tap the room on the map and
+// get to that group's entry.
+export const venueMaps = sqliteTable(
+  'venue_maps',
+  {
+    id: text('id').primaryKey(),
+    eventId: text('event_id').notNull(),
+    name: text('name').notNull(),
+    /** A PNG/JPEG data URL, scaled down in the browser before it is sent. */
+    image: text('image').notNull(),
+    /** The picture's own pixel size, which fixes the aspect ratio. */
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    /** JSON: [{ id, spotId, label, x, y, w, h }], x/y/w/h as 0-1 fractions. */
+    areas: text('areas').notNull().default('[]'),
+    sortOrder: integer('sort_order').notNull().default(0),
+    active: integer('active').notNull().default(1),
+    // Bumped on every save. The picture's URL carries it, so a replaced
+    // picture is never served from a browser cache.
+    updatedAt: integer('updated_at').notNull().default(0),
+  },
+  (t) => [index('venue_maps_event_idx').on(t.eventId, t.active, t.sortOrder)],
+);
 export const settings = sqliteTable('settings', {
   eventId: text('event_id').primaryKey(),
   value: text('value').notNull(),

@@ -31,6 +31,7 @@ let count = 0;
 // fails the run until each of its strings has an English entry.
 for (const path of [
   'app/page.tsx',
+  'app/help/page.tsx',
   'app/admin/page.tsx',
   'components/enrollment.tsx',
   'components/recovery.tsx',
@@ -48,6 +49,7 @@ for (const path of [
   'components/participant/crowd-report.tsx',
   'components/participant/gate-screen.tsx',
   'components/participant/settings-dialog.tsx',
+  'components/participant/venue-map.tsx',
   'components/admin/admin-login.tsx',
   'components/admin/participants-panel.tsx',
   'components/admin/spots-panel.tsx',
@@ -55,6 +57,8 @@ for (const path of [
   'components/admin/spot-dialog.tsx',
   'components/admin/person-dialog.tsx',
   'components/admin/poster-dialog.tsx',
+  'components/admin/maps-panel.tsx',
+  'components/admin/map-dialog.tsx',
   'components/theme-toggle.tsx',
 ]) {
   const sf = ts.createSourceFile(
@@ -107,7 +111,13 @@ const origin = await (async () => {
   } catch {}
   throw Error('Dev server not reachable on port 3000.');
 })();
-for (const path of ['/', '/admin', '/admin/wiki', '/admin/wiki/reward']) {
+for (const path of [
+  '/',
+  '/help',
+  '/admin',
+  '/admin/wiki',
+  '/admin/wiki/reward',
+]) {
   const r = await fetch(origin + path);
   assert.equal(r.status, 200);
   assert.match(await r.text(), /Language/);

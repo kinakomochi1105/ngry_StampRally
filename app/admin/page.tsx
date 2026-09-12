@@ -8,6 +8,7 @@ import {
   GraduationCap,
   House,
   LogOut,
+  Map as MapIcon,
   MapPin,
   Settings,
   ShieldCheck,
@@ -25,6 +26,8 @@ import {
   PurgeDialog,
   type Poster,
 } from '@/components/admin/poster-dialog';
+import { MapDialog, type MapDraft } from '@/components/admin/map-dialog';
+import { MapsPanel } from '@/components/admin/maps-panel';
 import { SettingsPanel } from '@/components/admin/settings-panel';
 import { SpotDialog } from '@/components/admin/spot-dialog';
 import { SpotsPanel } from '@/components/admin/spots-panel';
@@ -48,6 +51,7 @@ const tabs = [
   { id: 'participants', Icon: Users, label: '参加者・進行状況' },
   { id: 'ranking', Icon: Trophy, label: 'ランキング' },
   { id: 'spots', Icon: MapPin, label: '設置場所・QRコード' },
+  { id: 'maps', Icon: MapIcon, label: '会場マップ' },
   { id: 'settings', Icon: Settings, label: '設定・データ管理' },
 ] as const;
 
@@ -57,6 +61,7 @@ export default function Admin() {
   const [editingSpot, setEditingSpot] = useState<Partial<Spot> | null>(null);
   const [editingPerson, setEditingPerson] = useState<Row | null>(null);
   const [poster, setPoster] = useState<Poster | null>(null);
+  const [editingMap, setEditingMap] = useState<MapDraft | null>(null);
   const [purge, setPurge] = useState(false);
 
   /** Every change closes whatever sheet started it, then refreshes the list. */
@@ -65,6 +70,7 @@ export default function Admin() {
     if (ok) {
       setEditingSpot(null);
       setEditingPerson(null);
+      setEditingMap(null);
       setPurge(false);
     }
     return ok;
@@ -215,6 +221,22 @@ export default function Admin() {
           />
         )}
 
+        {admin.tab === 'maps' && (
+          <MapsPanel
+            maps={admin.maps}
+            spotCount={admin.spots.length}
+            busy={admin.busy}
+            onEdit={setEditingMap}
+            onDelete={(map) =>
+              void save(
+                'maps',
+                { id: map.id, action: 'delete' },
+                '会場マップを削除しました。',
+              )
+            }
+          />
+        )}
+
         {admin.tab === 'settings' && (
           <SettingsPanel
             key={admin.settingsVersion}
@@ -265,6 +287,19 @@ export default function Admin() {
         />
 
         <PosterDialog poster={poster} onClose={() => setPoster(null)} />
+
+        <MapDialog
+          draft={editingMap}
+          spots={admin.spots}
+          busy={admin.busy}
+          error={admin.error}
+          onChange={setEditingMap}
+          onClose={() => setEditingMap(null)}
+          onSave={(draft) =>
+            void save('maps', draft, '会場マップを保存しました。')
+          }
+          onProblem={admin.setError}
+        />
 
         <footer>
           <span>
