@@ -49,7 +49,16 @@ export type MapArea = {
   y: number;
   w: number;
   h: number;
+  /** '#rrggbb' for this button's own colour, or '' to follow the theme. */
+  bg: string;
+  /** '#rrggbb' for the text and number on it, or '' to follow the theme. */
+  fg: string;
 };
+/** Colours are organiser input, so only a plain hex value is ever stored. */
+export const mapColour = (value: unknown) =>
+  typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
+    ? value.toLowerCase()
+    : '';
 export type VenueMap = {
   id: string;
   name: string;
@@ -107,6 +116,8 @@ export function readMapAreas(value: unknown): MapArea[] {
       y: area.y,
       w: area.w,
       h: area.h,
+      bg: mapColour(area.bg),
+      fg: mapColour(area.fg),
     });
   }
   return areas;

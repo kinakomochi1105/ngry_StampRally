@@ -1677,16 +1677,20 @@
 
 /* Bottom bar (phone and tablet) -------------------------------------------- */
 
-/* Navigation and the scan action share one bar: three tabs plus a filled
+/* Navigation and the scan action share one bar: four tabs around a filled
    scan cell. One row instead of a stacked button keeps roughly 70px of the
-   screen for the stamp book itself. */
+   screen for the stamp book itself.
+
+   Two tabs stand either side of the scan cell, which puts it on the screen's
+   centre line and gives every tab the same width — the thumb finds the action
+   in the middle of the bar, and no tab reads as the odd one out. */
 .rally-bottom-nav {
   position: fixed;
   inset-inline: 0;
   bottom: 0;
   z-index: 45;
   display: grid;
-  grid-template-columns: 1fr 1fr 1.45fr 1fr;
+  grid-template-columns: 1fr 1fr 1.45fr 1fr 1fr;
   align-items: stretch;
   gap: 6px;
   padding: 7px max(8px, env(safe-area-inset-left))
@@ -1965,5 +1969,20 @@
 
   .brand-text small {
     display: none;
+  }
+
+  /* Five cells leave little width each, and at this size the longest label,
+     "スタンプ帳", is the first to break onto a second line. A tighter gutter
+     and a step down in the label keep every tab on one line. */
+  .rally-bottom-nav {
+    gap: 4px;
+  }
+
+  .rally-bottom-nav button {
+    padding-inline: 0;
+  }
+
+  .rally-bottom-nav button strong {
+    font-size: 10px;
   }
 }

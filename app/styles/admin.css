@@ -662,14 +662,42 @@
   color: var(--muted-ink);
 }
 
+/* Each area is a button: dragging it moves it, the corner resizes it, and the
+   arrow keys do both for anyone not using a mouse. */
 .map-editor-area {
   position: absolute;
   display: grid;
   place-items: center;
+  padding: 0;
   border: 2px solid var(--brand);
   border-radius: var(--radius-xs);
   background: color-mix(in srgb, var(--brand) 18%, transparent);
-  pointer-events: none;
+  color: inherit;
+  cursor: move;
+  touch-action: none;
+}
+
+.map-editor-area:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The corner to pull. It reaches outside the area so a small room can still
+   be resized. */
+.map-editor-handle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--brand-strong);
+  cursor: nwse-resize;
+}
+
+.map-editor-area.selected .map-editor-handle {
+  background: var(--accent);
 }
 
 .map-editor-area.unlinked {
@@ -717,10 +745,57 @@
   color: var(--muted-ink);
 }
 
-.map-area-empty {
+.map-area-empty,
+.map-area-hint {
   font-size: var(--fs-sm);
   line-height: 1.6;
   color: var(--muted-ink);
+}
+
+.map-area-hint {
+  font-size: var(--fs-xs);
+}
+
+/* The two colours of one button, side by side: the fill and the text on it. */
+.map-area-colours {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.map-area-colours input[type='color'] {
+  width: 32px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.map-area-colours input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.map-area-colours input[type='color']::-webkit-color-swatch {
+  border: 0;
+  border-radius: 4px;
+}
+
+.map-area-colours > button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted-ink);
+}
+
+.map-area-colours > button:hover {
+  background: var(--soft-bg);
+  color: var(--ink);
 }
 
 .map-area-list ul {

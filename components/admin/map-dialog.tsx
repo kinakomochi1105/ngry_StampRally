@@ -1,6 +1,11 @@
 'use client';
 import { useRef, useState } from 'react';
-import { ImagePlus, MousePointerSquareDashed, Trash2 } from 'lucide-react';
+import {
+  ImagePlus,
+  MousePointerSquareDashed,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { useI18n } from '@/components/language';
 import {
+  mapColour,
   mapImageSize,
   maxMapAreas,
   maxMapImageLength,
@@ -67,8 +73,24 @@ export async function mapFromFile(file: File) {
 }
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
+const between = (value: number, low: number, high: number) =>
+  Math.min(high, Math.max(low, value));
 /** Below this a drag is a mis-tap rather than an area. */
 const minimumSide = 0.012;
+/** What one arrow key moves or resizes an area by; Alt takes bigger steps. */
+const nudge = 0.005;
+/** Shown in the colour pickers while an area still follows the theme. */
+const defaultBackground = '#4f46e5';
+const defaultForeground = '#ffffff';
+
+/**
+ * One gesture on the picture at a time: drawing a new area, moving one, or
+ * pulling its bottom-right corner.
+ */
+type Gesture =
+  | { kind: 'draw'; area: MapArea }
+  | { kind: 'move'; id: string; grabX: number; grabY: number }
+  | { kind: 'resize'; id: string };
 
 /**
  * The map editor.
@@ -100,7 +122,7 @@ export function MapDialog({
 }) {
   const { t } = useI18n();
   const stage = useRef<HTMLDivElement>(null);
-  const [drawing, setDrawing] = useState<MapArea | null>(null);
+  const [gesture, setGesture] = useState<Gesture | null>(null);
   const [selected, setSelected] = useState('');
 
   if (!draft) return null;
@@ -111,6 +133,16 @@ export function MapDialog({
   const ratio =
     draft.width && draft.height ? draft.width / draft.height : 4 / 3;
   const spotName = (id: string) => spots.find((spot) => spot.id === id)?.name;
+  /** The organiser's own colours for one area, as the participant will see it. */
+  const areaColours = (area: MapArea) => ({
+    ...(area.bg
+      ? {
+          borderColor: area.bg,
+          background: `color-mix(in srgb, ${area.bg} 30%, transparent)`,
+        }
+      : null),
+    ...(area.fg ? { color: area.fg } : null),
+  });
 
   /** Where a pointer is, as a fraction of the picture. */
   const pointAt = (event: React.PointerEvent) => {
@@ -122,65 +154,140 @@ export function MapDialog({
     };
   };
 
-  const startDraw = (event: React.PointerEvent) => {
-    if (!source || areas.length >= maxMapAreas) return;
-    const from = pointAt(event);
-    if (!from) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setDrawing({
-      id: 'area-' + crypto.randomUUID(),
-      spotId: '',
-      label: '',
-      x: from.x,
-      y: from.y,
-      w: 0,
-      h: 0,
-    });
-  };
-
-  const moveDraw = (event: React.PointerEvent) => {
-    if (!drawing) return;
-    const to = pointAt(event);
-    if (!to) return;
-    // The drag can go in any direction, so the rectangle is rebuilt from the
-    // two corners rather than assuming the first one is the top left.
-    setDrawing((current) =>
-      current
-        ? {
-            ...current,
-            w: Math.abs(to.x - current.x),
-            h: Math.abs(to.y - current.y),
-            // Keep the origin corner in x/y, and remember the far corner by
-            // moving the origin when the drag went up or left.
-            x: Math.min(current.x, to.x) === current.x ? current.x : to.x,
-            y: Math.min(current.y, to.y) === current.y ? current.y : to.y,
-          }
-        : current,
-    );
-  };
-
-  const endDraw = () => {
-    if (!drawing) return;
-    const area = drawing;
-    setDrawing(null);
-    if (area.w < minimumSide || area.h < minimumSide) return;
-    // A new area starts pointed at the first location that has no area yet,
-    // which is usually the one being drawn.
-    const free = spots.find(
-      (spot) => !areas.some((one) => one.spotId === spot.id),
-    );
-    const added = { ...area, spotId: free?.id ?? '' };
-    onChange({ ...draft, areas: [...areas, added] });
-    setSelected(added.id);
-  };
-
   const editArea = (id: string, change: Partial<MapArea>) =>
     onChange({
       ...draft,
       areas: areas.map((one) => (one.id === id ? { ...one, ...change } : one)),
     });
 
-  const shown = drawing ? [...areas, drawing] : areas;
+  /** The picture keeps the pointer for the whole drag, wherever it wanders. */
+  const hold = (event: React.PointerEvent) => {
+    try {
+      stage.current?.setPointerCapture(event.pointerId);
+    } catch {}
+  };
+
+  /** Empty space: a drag here draws a new area. */
+  const startDraw = (event: React.PointerEvent) => {
+    if (!source || areas.length >= maxMapAreas) return;
+    const from = pointAt(event);
+    if (!from) return;
+    hold(event);
+    setSelected('');
+    setGesture({
+      kind: 'draw',
+      area: {
+        id: 'area-' + crypto.randomUUID(),
+        spotId: '',
+        label: '',
+        x: from.x,
+        y: from.y,
+        w: 0,
+        h: 0,
+        bg: '',
+        fg: '',
+      },
+    });
+  };
+
+  /** On an area a drag moves it; on its corner handle it resizes. */
+  const startGrab = (
+    event: React.PointerEvent,
+    area: MapArea,
+    kind: 'move' | 'resize',
+  ) => {
+    event.stopPropagation();
+    const from = pointAt(event);
+    if (!from) return;
+    hold(event);
+    setSelected(area.id);
+    setGesture(
+      kind === 'move'
+        ? { kind, id: area.id, grabX: from.x - area.x, grabY: from.y - area.y }
+        : { kind, id: area.id },
+    );
+  };
+
+  const drag = (event: React.PointerEvent) => {
+    if (!gesture) return;
+    const to = pointAt(event);
+    if (!to) return;
+    if (gesture.kind === 'draw') {
+      // The drag can go in any direction, so the rectangle is rebuilt from its
+      // two corners rather than assuming the first one is the top left.
+      setGesture((current) =>
+        current && current.kind === 'draw'
+          ? {
+              ...current,
+              area: {
+                ...current.area,
+                w: Math.abs(to.x - current.area.x),
+                h: Math.abs(to.y - current.area.y),
+                x: Math.min(current.area.x, to.x),
+                y: Math.min(current.area.y, to.y),
+              },
+            }
+          : current,
+      );
+      return;
+    }
+    const area = areas.find((one) => one.id === gesture.id);
+    if (!area) return;
+    if (gesture.kind === 'move')
+      editArea(area.id, {
+        x: between(to.x - gesture.grabX, 0, 1 - area.w),
+        y: between(to.y - gesture.grabY, 0, 1 - area.h),
+      });
+    else
+      editArea(area.id, {
+        w: between(to.x - area.x, minimumSide, 1 - area.x),
+        h: between(to.y - area.y, minimumSide, 1 - area.y),
+      });
+  };
+
+  const endDrag = () => {
+    if (gesture?.kind === 'draw') {
+      const area = gesture.area;
+      if (area.w >= minimumSide && area.h >= minimumSide) {
+        // A new area starts pointed at the first location that has no area
+        // yet, which is usually the one being drawn.
+        const free = spots.find(
+          (spot) => !areas.some((one) => one.spotId === spot.id),
+        );
+        const added = { ...area, spotId: free?.id ?? '' };
+        onChange({ ...draft, areas: [...areas, added] });
+        setSelected(added.id);
+      }
+    }
+    setGesture(null);
+  };
+
+  /** Arrow keys move the focused area; with Shift they resize it. */
+  const nudgeArea = (event: React.KeyboardEvent, area: MapArea) => {
+    const step = nudge * (event.altKey ? 4 : 1);
+    const moves: Record<string, [number, number]> = {
+      ArrowLeft: [-step, 0],
+      ArrowRight: [step, 0],
+      ArrowUp: [0, -step],
+      ArrowDown: [0, step],
+    };
+    const move = moves[event.key];
+    if (!move) return;
+    event.preventDefault();
+    const [dx, dy] = move;
+    if (event.shiftKey)
+      editArea(area.id, {
+        w: between(area.w + dx, minimumSide, 1 - area.x),
+        h: between(area.h + dy, minimumSide, 1 - area.y),
+      });
+    else
+      editArea(area.id, {
+        x: between(area.x + dx, 0, 1 - area.w),
+        y: between(area.y + dy, 0, 1 - area.h),
+      });
+  };
+
+  const shown = gesture?.kind === 'draw' ? [...areas, gesture.area] : areas;
 
   return (
     <Dialog
@@ -276,16 +383,16 @@ export function MapDialog({
           </div>
 
           <div className="dialog-column">
-            {/* The picture with the areas on it. Dragging anywhere on it
-                draws a new one. */}
+            {/* The picture with the areas on it: dragging empty space draws a
+                new area, dragging an area moves it, and its corner resizes. */}
             <div
               className="map-editor-stage"
               ref={stage}
               style={{ aspectRatio: `${ratio}` }}
               onPointerDown={startDraw}
-              onPointerMove={moveDraw}
-              onPointerUp={endDraw}
-              onPointerCancel={() => setDrawing(null)}
+              onPointerMove={drag}
+              onPointerUp={endDrag}
+              onPointerCancel={() => setGesture(null)}
             >
               {source ? (
                 // The picture is either a local data URL or this app's own
@@ -298,20 +405,40 @@ export function MapDialog({
                   {t('先に地図の画像を選んでください。')}
                 </p>
               )}
-              {shown.map((area) => (
-                <span
-                  key={area.id}
-                  className={`map-editor-area${area.id === selected ? ' selected' : ''}${area.spotId ? '' : ' unlinked'}`}
-                  style={{
-                    left: `${area.x * 100}%`,
-                    top: `${area.y * 100}%`,
-                    width: `${area.w * 100}%`,
-                    height: `${area.h * 100}%`,
-                  }}
-                >
-                  <em>{spotName(area.spotId) ?? area.label}</em>
-                </span>
-              ))}
+              {shown.map((area) => {
+                const name = spotName(area.spotId) ?? area.label;
+                const drawn =
+                  gesture?.kind === 'draw' && gesture.area.id === area.id;
+                return (
+                  <button
+                    key={area.id}
+                    type="button"
+                    className={`map-editor-area${area.id === selected ? ' selected' : ''}${area.spotId ? '' : ' unlinked'}`}
+                    style={{
+                      left: `${area.x * 100}%`,
+                      top: `${area.y * 100}%`,
+                      width: `${area.w * 100}%`,
+                      height: `${area.h * 100}%`,
+                      ...areaColours(area),
+                    }}
+                    aria-label={`${name || t('名前のない枠')}｜${t('ドラッグで移動、矢印キーでも動かせます')}`}
+                    onPointerDown={(e) => {
+                      if (!drawn) startGrab(e, area, 'move');
+                    }}
+                    onKeyDown={(e) => nudgeArea(e, area)}
+                    onFocus={() => setSelected(area.id)}
+                  >
+                    <em>{name}</em>
+                    {!drawn && (
+                      <span
+                        className="map-editor-handle"
+                        aria-hidden="true"
+                        onPointerDown={(e) => startGrab(e, area, 'resize')}
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="map-area-list">
@@ -321,6 +448,11 @@ export function MapDialog({
                   {areas.length}
                   {t('件')}
                 </small>
+              </p>
+              <p className="map-area-hint">
+                {t(
+                  '枠はドラッグで移動、右下の角で大きさを変えられます。選んでから矢印キーでも動かせます（Shiftで大きさ、Altで大きく動く）。',
+                )}
               </p>
               {areas.length === 0 ? (
                 <p className="map-area-empty">
@@ -334,9 +466,7 @@ export function MapDialog({
                       className={area.id === selected ? 'selected' : undefined}
                     >
                       <label>
-                        <span className="sr-only">
-                          {t('リンク先の団体')}
-                        </span>
+                        <span className="sr-only">{t('リンク先の団体')}</span>
                         <select
                           value={area.spotId}
                           onFocus={() => setSelected(area.id)}
@@ -357,9 +487,7 @@ export function MapDialog({
                       </label>
                       {!area.spotId && (
                         <label>
-                          <span className="sr-only">
-                            {t('枠の表示名')}
-                          </span>
+                          <span className="sr-only">{t('枠の表示名')}</span>
                           <input
                             value={area.label}
                             maxLength={40}
@@ -371,6 +499,48 @@ export function MapDialog({
                           />
                         </label>
                       )}
+                      {/* The colours of the button as a participant sees it:
+                          left the fill, right the text on it. */}
+                      <span className="map-area-colours">
+                        <label title={t('枠の色')}>
+                          <span className="sr-only">{t('枠の色')}</span>
+                          <input
+                            type="color"
+                            value={area.bg || defaultBackground}
+                            onFocus={() => setSelected(area.id)}
+                            onChange={(e) =>
+                              editArea(area.id, {
+                                bg: mapColour(e.target.value),
+                              })
+                            }
+                          />
+                        </label>
+                        <label title={t('文字の色')}>
+                          <span className="sr-only">{t('文字の色')}</span>
+                          <input
+                            type="color"
+                            value={area.fg || defaultForeground}
+                            onFocus={() => setSelected(area.id)}
+                            onChange={(e) =>
+                              editArea(area.id, {
+                                fg: mapColour(e.target.value),
+                              })
+                            }
+                          />
+                        </label>
+                        {(area.bg || area.fg) && (
+                          <button
+                            type="button"
+                            aria-label={t('色を既定に戻す')}
+                            title={t('色を既定に戻す')}
+                            onClick={() =>
+                              editArea(area.id, { bg: '', fg: '' })
+                            }
+                          >
+                            <RotateCcw size={14} aria-hidden="true" />
+                          </button>
+                        )}
+                      </span>
                       <button
                         type="button"
                         aria-label={t('この枠を削除')}

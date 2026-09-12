@@ -155,11 +155,23 @@ function OneMap({
           />
           {map.areas.map((item) => {
             const spot = spotOf(item);
+            const collected = spot ? hasStamp(spot.id) : false;
             const style = {
               left: `${item.x * 100}%`,
               top: `${item.y * 100}%`,
               width: `${item.w * 100}%`,
               height: `${item.h * 100}%`,
+              // The organiser's own colours for this button, when they set
+              // any; the stylesheet's own colours stand in otherwise. A
+              // collected room is filled in more strongly, the way it is in
+              // the default colours.
+              ...(item.bg
+                ? {
+                    borderColor: item.bg,
+                    background: `color-mix(in srgb, ${item.bg} ${collected ? 55 : 30}%, transparent)`,
+                  }
+                : null),
+              ...(item.fg ? { color: item.fg } : null),
             };
             if (!spot)
               return (
@@ -169,10 +181,20 @@ function OneMap({
                   style={style}
                   aria-hidden="true"
                 >
-                  <em>{item.label}</em>
+                  <em
+                    style={
+                      item.bg || item.fg
+                        ? {
+                            background: item.bg || undefined,
+                            color: item.fg || undefined,
+                          }
+                        : undefined
+                    }
+                  >
+                    {item.label}
+                  </em>
                 </span>
               );
-            const collected = hasStamp(spot.id);
             return (
               <button
                 key={item.id}
@@ -183,7 +205,17 @@ function OneMap({
                 aria-pressed={item.id === openArea}
                 onClick={() => setOpenArea(item.id === openArea ? '' : item.id)}
               >
-                <span className="venue-area-pin">
+                <span
+                  className="venue-area-pin"
+                  style={
+                    item.bg || item.fg
+                      ? {
+                          background: item.bg || undefined,
+                          color: item.fg || undefined,
+                        }
+                      : undefined
+                  }
+                >
                   {collected ? (
                     <Check size={13} aria-hidden="true" />
                   ) : (

@@ -579,5 +579,12 @@
   "混み具合はどうやって決まりますか": "How is the crowd level worked out?",
   "直近のQRコード読み取り件数と、参加者からの報告の平均で表示します。報告がある場所は報告を優先します。正確な待ち時間を示すものではないため、目安としてご覧ください。": "From the number of recent scans and the average of what participants report. Where there are reports, the reports win. It is a rough guide, not an exact waiting time.",
   "特典はどうやって受け取りますか": "How do I claim the reward?",
-  "全てのスタンプを集めると「特典」タブに「報酬を受け取る」が出ます。押すと係員用の画面になり、係員が暗証番号を入力すると交換が確定します。交換できるのは1回だけです。": "Collect every stamp and Claim your reward appears on the Rewards tab. Pressing it opens a screen for staff, and the hand-over is final once a staff member enters their PIN. A reward can only be claimed once."
+  "全てのスタンプを集めると「特典」タブに「報酬を受け取る」が出ます。押すと係員用の画面になり、係員が暗証番号を入力すると交換が確定します。交換できるのは1回だけです。": "Collect every stamp and Claim your reward appears on the Rewards tab. Pressing it opens a screen for staff, and the hand-over is final once a staff member enters their PIN. A reward can only be claimed once.",
+  "名前のない枠": "Unnamed area",
+  "ドラッグで移動、矢印キーでも動かせます": "Drag to move, or use the arrow keys",
+  "枠の色": "Area colour",
+  "文字の色": "Text colour",
+  "色を既定に戻す": "Reset to the default colours",
+  "枠はドラッグで移動、右下の角で大きさを変えられます。選んでから矢印キーでも動かせます（Shiftで大きさ、Altで大きく動く）。": "Drag an area to move it, or its bottom-right corner to resize. Once selected, the arrow keys move it too (Shift resizes, Alt takes bigger steps).",
+  "マップ": "Map"
 }

@@ -1,19 +1,20 @@
 'use client';
-import { Check, Gift, QrCode, ScanLine, Stamp } from 'lucide-react';
+import { Check, Gift, Map, QrCode, ScanLine, Stamp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/components/language';
 
 export type RallyTab = 'book' | 'places' | 'map' | 'rewards';
 
+/* Two tabs, the scan action, then two more. `short` is what the phone bar
+   shows: four labels and a filled scan cell leave about 60px a column, which
+   "フロアマップ" overruns and "マップ" does not. The rail has the room for the
+   full name. */
 const items = [
   { id: 'book', Icon: Stamp, label: 'スタンプ帳' },
   { id: 'places', Icon: ScanLine, label: '設置場所' },
+  { id: 'map', Icon: Map, label: 'フロアマップ', short: 'マップ' },
   { id: 'rewards', Icon: Gift, label: '特典' },
 ] as const;
-
-/** The floor map is opened from the locations screen, so it keeps that tab lit. */
-const isActive = (id: string, tab: RallyTab) =>
-  id === 'places' ? tab === 'places' || tab === 'map' : tab === id;
 
 type Props = {
   tab: RallyTab;
@@ -38,15 +39,8 @@ export function RallyBottomNav({
   const { t } = useI18n();
   return (
     <nav className="rally-bottom-nav" aria-label={t('画面切り替え')}>
-      {items.slice(0, 2).map(({ id, Icon, label }) => (
-        <NavButton
-          key={id}
-          id={id}
-          Icon={Icon}
-          label={t(label)}
-          tab={tab}
-          onSelect={onSelect}
-        />
+      {items.slice(0, 2).map((item) => (
+        <NavButton key={item.id} {...item} tab={tab} onSelect={onSelect} />
       ))}
       <button
         className="scan-tab"
@@ -59,14 +53,15 @@ export function RallyBottomNav({
         </span>
         <strong>{t('読み取る')}</strong>
       </button>
-      <NavButton
-        id="rewards"
-        Icon={Gift}
-        label={t('特典')}
-        tab={tab}
-        onSelect={onSelect}
-        badge={complete}
-      />
+      {items.slice(2).map((item) => (
+        <NavButton
+          key={item.id}
+          {...item}
+          tab={tab}
+          onSelect={onSelect}
+          badge={item.id === 'rewards' && complete}
+        />
+      ))}
     </nav>
   );
 }
@@ -75,6 +70,7 @@ function NavButton({
   id,
   Icon,
   label,
+  short,
   tab,
   onSelect,
   badge,
@@ -82,11 +78,13 @@ function NavButton({
   id: RallyTab;
   Icon: typeof Stamp;
   label: string;
+  short?: string;
   tab: RallyTab;
   onSelect: (tab: RallyTab) => void;
   badge?: boolean;
 }) {
-  const active = isActive(id, tab);
+  const { t } = useI18n();
+  const active = tab === id;
   return (
     <button
       type="button"
@@ -103,7 +101,7 @@ function NavButton({
           </i>
         )}
       </span>
-      <strong>{label}</strong>
+      <strong>{t(short ?? label)}</strong>
     </button>
   );
 }
@@ -129,7 +127,7 @@ export function RallyRail({
       </Button>
       <nav className="rail-nav">
         {items.map(({ id, Icon, label }) => {
-          const active = isActive(id, tab);
+          const active = tab === id;
           return (
             <button
               key={id}
