@@ -413,6 +413,15 @@
   margin-top: 2px;
 }
 
+/* Reporting the queue is a secondary action on each row: always reachable,
+   never louder than the location itself. */
+.crowd-report-button {
+  justify-self: start;
+  min-height: 38px;
+  padding-inline: 14px;
+  font-size: var(--fs-sm);
+}
+
 .print-list {
   justify-self: start;
 }
@@ -886,6 +895,126 @@
   box-shadow: var(--focus-ring);
 }
 
+/* Crowd report sheet ------------------------------------------------------- */
+
+.crowd-dialog-icon {
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-soft);
+  color: var(--accent-ink);
+}
+
+.crowd-choices {
+  display: grid;
+  gap: 10px;
+}
+
+/* One row per choice, each carrying the colour its level uses elsewhere, so a
+   reading is recognisable before the words are read. */
+.crowd-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 12px 16px;
+  border: 1.5px solid var(--choice-border, var(--line-strong));
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  text-align: start;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    transform 0.12s ease;
+}
+
+.crowd-choice:hover:not(:disabled) {
+  border-color: var(--choice-ink, var(--brand));
+  background: var(--choice-bg, var(--brand-soft));
+}
+
+.crowd-choice:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.crowd-choice i {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--choice-ink, var(--brand));
+}
+
+.crowd-choice.quiet {
+  --choice-ink: var(--success);
+  --choice-bg: var(--success-soft);
+  --choice-border: var(--success-line);
+}
+
+.crowd-choice.moving {
+  --choice-ink: var(--warning);
+  --choice-bg: var(--warning-soft);
+  --choice-border: var(--warning-line);
+}
+
+.crowd-choice.busy {
+  --choice-ink: var(--danger-ink);
+  --choice-bg: var(--danger-bg);
+  --choice-border: var(--danger-border);
+}
+
+/* Settings sheet ----------------------------------------------------------- */
+
+.settings-group {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--soft-bg);
+}
+
+/* A group whose control sits beside its label rather than under it. */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.settings-row > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-group h3 {
+  font-size: var(--fs-md);
+  font-weight: 800;
+}
+
+.settings-group > p {
+  font-size: var(--fs-sm);
+  color: var(--muted-ink);
+}
+
+.settings-group .recovery-support {
+  border: 0;
+  background: var(--surface);
+}
+
+.policy-text {
+  font-size: var(--fs-sm);
+  line-height: 1.8;
+  color: var(--muted-ink);
+}
+
 /* Registration and sign-in ------------------------------------------------- */
 
 .access-tabs {
@@ -1039,19 +1168,18 @@
   user-select: all;
 }
 
-/* Help and account --------------------------------------------------------- */
+/* Account -------------------------------------------------------------------
 
-.help-center,
-.recovery-support,
-.policy {
+   The recovery panel is a <details> inside the settings sheet: open when a
+   nickname is still missing, folded away once it is set. */
+
+.recovery-support {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--surface);
 }
 
-.help-center > summary,
-.recovery-support > summary,
-.policy > summary {
+.recovery-support > summary {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1063,9 +1191,7 @@
   list-style: none;
 }
 
-.help-center > summary::after,
-.recovery-support > summary::after,
-.policy > summary::after {
+.recovery-support > summary::after {
   content: '';
   width: 9px;
   height: 9px;
@@ -1076,53 +1202,22 @@
   transition: transform 0.18s ease;
 }
 
-.help-center[open] > summary::after,
-.recovery-support[open] > summary::after,
-.policy[open] > summary::after {
+.recovery-support[open] > summary::after {
   transform: rotate(-135deg) translate(-2px, -2px);
 }
 
-.help-center > summary::-webkit-details-marker,
-.recovery-support > summary::-webkit-details-marker,
-.policy > summary::-webkit-details-marker {
+.recovery-support > summary::-webkit-details-marker {
   display: none;
 }
 
-.help-center[open] {
+.recovery-support[open] {
   display: grid;
   gap: 14px;
   padding-bottom: 16px;
 }
 
-.help-center[open] > summary {
-  border-bottom: 1px solid var(--line);
-}
-
-.help-center > :not(summary) {
+.recovery-support > :not(summary) {
   margin-inline: 16px;
-}
-
-.recovery-support,
-.policy {
-  background: var(--soft-bg);
-}
-
-.recovery-support[open],
-.policy[open] {
-  display: grid;
-  gap: 14px;
-  padding-bottom: 16px;
-}
-
-.recovery-support > :not(summary),
-.policy > :not(summary) {
-  margin-inline: 16px;
-}
-
-.policy p {
-  font-size: var(--fs-sm);
-  line-height: 1.8;
-  color: var(--muted-ink);
 }
 
 .logout-action {

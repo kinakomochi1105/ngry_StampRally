@@ -15,7 +15,10 @@ import {
   type RecoveryReceipt,
 } from '@/components/recovery';
 import { RewardClaimDialog, type Redemption } from '@/components/reward';
-import { HelpCenter } from '@/components/participant/help-center';
+import {
+  SettingsButton,
+  SettingsDialog,
+} from '@/components/participant/settings-dialog';
 import { PassportCard } from '@/components/participant/passport-card';
 import { PlacesList } from '@/components/participant/places-list';
 import {
@@ -55,6 +58,7 @@ export default function Home() {
   const [demo, setDemo] = useState(false);
   const [demoPending, setDemoPending] = useState(false);
   const [loginMode, setLoginMode] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [receipt, setReceipt] = useState<RecoveryReceipt | null>(null);
 
   // A stamp can arrive while another screen is open — from the scanner, or
@@ -72,6 +76,7 @@ export default function Home() {
     toast,
     reload,
     scan,
+    report,
     applyRedemption,
   } = usePassport({ onCollected: showBook });
 
@@ -122,8 +127,12 @@ export default function Home() {
           </span>
         </Link>
         <div className="topbar-actions">
-          <ThemeToggle />
           <LanguageSelect />
+          {profile ? (
+            <SettingsButton onClick={() => setSettingsOpen(true)} />
+          ) : (
+            <ThemeToggle />
+          )}
         </div>
       </header>
 
@@ -202,6 +211,21 @@ export default function Home() {
                 celebrate={freshStamp !== null}
               />
 
+              {/* Passes issued before nicknames existed have no way back after
+                  a cleared cookie, so the prompt stays until one is set. */}
+              {!profile.nickname && (
+                <output className="notice">
+                  <span>
+                    {t(
+                      'ニックネームと復旧コードが未設定です。端末を変えるときに備えて設定してください。',
+                    )}
+                  </span>
+                  <button onClick={() => setSettingsOpen(true)}>
+                    {t('設定を開く')}
+                  </button>
+                </output>
+              )}
+
               <section
                 id="rally-panel"
                 className="rally-panel"
@@ -257,13 +281,16 @@ export default function Home() {
                       traffic={traffic}
                       hasStamp={hasStamp}
                       onOpenMap={() => setTab('map')}
+                      onReport={report}
                     />
                   )}
                 </div>
               </section>
 
-              <HelpCenter
+              <SettingsDialog
+                open={settingsOpen}
                 nickname={profile.nickname}
+                onClose={() => setSettingsOpen(false)}
                 onShowDemo={() => setDemo(true)}
                 onIssued={registered}
                 onLoggedOut={async () => {

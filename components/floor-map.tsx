@@ -4,45 +4,60 @@ import { useMemo, useState } from 'react';
 import { Check, MapPinned, Navigation, UsersRound } from 'lucide-react';
 import { useI18n } from '@/components/language';
 import { translate, type Locale } from '@/lib/i18n';
+import { averageLevel, levelLabel, scanLevel } from '@/lib/crowd';
 import type { Spot } from '@/lib/types';
 
-export type TrafficPoint = { spotId: string; recentCount: number };
+export type TrafficPoint = {
+  spotId: string;
+  /** Valid QR reads in the last 10 minutes. */
+  recentCount: number;
+  /** Participant reports in the last 20 minutes. */
+  reportCount: number;
+  /** Mean of those reports on the 1–3 scale, or null when there are none. */
+  reportAverage: number | null;
+};
 
-export function crowdLevel(count: number) {
-  if (count >= 8) return 'busy' as const;
-  if (count >= 3) return 'moving' as const;
-  return 'quiet' as const;
-}
-
-const crowdLabel = {
-  busy: '混雑しています',
-  moving: '少し動きがあります',
-  quiet: '今は空いています',
-} as const;
+export const emptyPoint = (spotId: string): TrafficPoint => ({
+  spotId,
+  recentCount: 0,
+  reportCount: 0,
+  reportAverage: null,
+});
 
 /**
- * How busy a spot is, from anonymous scan counts. `locale` is a prop rather
- * than a hook read because the admin screens render this outside a page that
- * owns the language context.
+ * How busy a spot is. Participant reports are used when there are any — a
+ * person in the queue knows more than a scan counter — and the automatic scan
+ * estimate stands in until then. The line underneath always says which of the
+ * two is being shown, and how much it is based on.
+ *
+ * `locale` is a prop rather than a hook read because the admin screens render
+ * this outside a page that owns the language context.
  */
 export function TrafficBadge({
-  count,
+  point,
   locale,
 }: {
-  count: number;
+  point: TrafficPoint;
   locale: string;
 }) {
   const t = (text: string) => translate(text, locale as Locale);
-  const level = crowdLevel(count);
+  const reported = point.reportCount > 0 && point.reportAverage !== null;
+  const level = reported
+    ? averageLevel(point.reportAverage as number)
+    : scanLevel(point.recentCount);
+  const average = (point.reportAverage ?? 0).toFixed(1);
+  const detail = reported
+    ? locale === 'en'
+      ? `From visitors · avg ${average} · ${point.reportCount} report${point.reportCount === 1 ? '' : 's'}`
+      : `みんなの報告 平均${average} · ${point.reportCount}件`
+    : locale === 'en'
+      ? `Last 10 min · ${point.recentCount} scan${point.recentCount === 1 ? '' : 's'}`
+      : `直近10分 · ${point.recentCount}件の読み取り`;
   return (
     <span className={`traffic-badge ${level}`}>
       <UsersRound size={15} aria-hidden="true" />
-      <strong>{t(crowdLabel[level])}</strong>
-      <small>
-        {locale === 'en'
-          ? `Last 10 min · ${count} scan${count === 1 ? '' : 's'}`
-          : `直近10分 · ${count}件の読み取り`}
-      </small>
+      <strong>{t(levelLabel[level])}</strong>
+      <small>{detail}</small>
     </span>
   );
 }
@@ -79,7 +94,7 @@ export function FloorMap({
   const { t } = useI18n();
   const [selectedFloor, setSelectedFloor] = useState('');
   const trafficById = useMemo(
-    () => new Map(traffic.map((point) => [point.spotId, point.recentCount])),
+    () => new Map(traffic.map((point) => [point.spotId, point])),
     [traffic],
   );
   const grouped = useMemo(() => {
@@ -153,7 +168,7 @@ export function FloorMap({
                     <small>{spot.description || spot.location}</small>
                   </div>
                   <TrafficBadge
-                    count={trafficById.get(spot.id) ?? 0}
+                    point={trafficById.get(spot.id) ?? emptyPoint(spot.id)}
                     locale={locale}
                   />
                   {hasStamp(spot.id) && (

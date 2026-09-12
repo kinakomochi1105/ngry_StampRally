@@ -4,6 +4,7 @@ import { api, errorMessage } from '@/lib/client';
 import type { Profile, Spot, FestivalSettings } from '@/lib/types';
 import { defaultSettings } from '@/lib/types';
 import type { TrafficPoint } from '@/components/floor-map';
+import type { CrowdReading } from '@/lib/crowd';
 
 export type Passport = {
   profile: Profile | null;
@@ -132,6 +133,39 @@ export function usePassport({
     [onCollected],
   );
 
+  /**
+   * A participant's own reading of how busy a spot is. The reply carries that
+   * spot's new average, which is merged in so the badge updates immediately
+   * instead of waiting for the next poll.
+   */
+  const report = useCallback(async (spotId: string, level: CrowdReading) => {
+    const result = await api<{
+      spotId: string;
+      reportCount: number;
+      reportAverage: number | null;
+    }>('/api/report', {
+      data: { spotId, level },
+      fallback: '混み具合を報告できませんでした。時間をおいてお試しください。',
+    });
+    setData((current) => ({
+      ...current,
+      traffic: current.traffic.map((point) =>
+        point.spotId === result.spotId
+          ? {
+              ...point,
+              reportCount: result.reportCount,
+              reportAverage: result.reportAverage,
+            }
+          : point,
+      ),
+    }));
+    setToast({
+      text: '混み具合を報告しました。ありがとうございます！',
+      tone: 'success',
+      at: Date.now(),
+    });
+  }, []);
+
   /** Applied locally so the seal appears at once; the next refresh confirms it. */
   const applyRedemption = useCallback(
     (value: { redeemedAt: number; completedAt: number | null }) => {
@@ -236,6 +270,7 @@ export function usePassport({
     toast,
     reload,
     scan,
+    report,
     applyRedemption,
   };
 }

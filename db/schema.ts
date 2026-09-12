@@ -41,6 +41,29 @@ export const spotActivity = sqliteTable(
   ],
 );
 
+// What participants themselves say about a spot, on the same anonymous terms
+// as `spotActivity`: the level and the time, never who sent it. Repeat reports
+// are held off with a short-lived key in `loginAttempts` instead, so no
+// identifier has to be stored beside the reading.
+export const spotReports = sqliteTable(
+  'spot_reports',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    eventId: text('event_id').notNull(),
+    spotId: text('spot_id').notNull(),
+    /** 1 = quiet, 2 = some activity, 3 = busy. */
+    level: integer('level').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (table) => [
+    index('spot_reports_recent_idx').on(
+      table.eventId,
+      table.spotId,
+      table.createdAt,
+    ),
+  ],
+);
+
 export const participants = sqliteTable(
   'participants',
   {

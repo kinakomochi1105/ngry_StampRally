@@ -47,6 +47,9 @@ export async function POST(request: Request) {
           .prepare('DELETE FROM spot_activity WHERE event_id=?')
           .bind(event.id),
         database()
+          .prepare('DELETE FROM spot_reports WHERE event_id=?')
+          .bind(event.id),
+        database()
           .prepare('DELETE FROM participants WHERE event_id=?')
           .bind(event.id),
         database()

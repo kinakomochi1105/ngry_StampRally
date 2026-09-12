@@ -1,8 +1,18 @@
 'use client';
+import { useState } from 'react';
 import { Check, ChevronRight, Map as MapIcon, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { TrafficBadge, type TrafficPoint } from '@/components/floor-map';
+import {
+  emptyPoint,
+  TrafficBadge,
+  type TrafficPoint,
+} from '@/components/floor-map';
+import {
+  CrowdReportButton,
+  CrowdReportDialog,
+} from '@/components/participant/crowd-report';
 import { useI18n } from '@/components/language';
+import type { CrowdReading } from '@/lib/crowd';
 import type { Spot } from '@/lib/types';
 
 /** Where to walk next: room, directions and how busy each spot is right now. */
@@ -11,15 +21,18 @@ export function PlacesList({
   traffic,
   hasStamp,
   onOpenMap,
+  onReport,
 }: {
   spots: Spot[];
   traffic: TrafficPoint[];
   hasStamp: (spotId: string) => boolean;
   onOpenMap: () => void;
+  onReport: (spotId: string, level: CrowdReading) => Promise<void>;
 }) {
   const { t, locale } = useI18n();
-  const recentAt = (spotId: string) =>
-    traffic.find((point) => point.spotId === spotId)?.recentCount ?? 0;
+  const [reporting, setReporting] = useState<Spot | null>(null);
+  const pointFor = (spotId: string) =>
+    traffic.find((point) => point.spotId === spotId) ?? emptyPoint(spotId);
   return (
     <section className="places">
       <div className="places-toolbar">
@@ -48,7 +61,8 @@ export function PlacesList({
               {spot.location}
             </p>
             {spot.description && <p>{spot.description}</p>}
-            <TrafficBadge count={recentAt(spot.id)} locale={locale} />
+            <TrafficBadge point={pointFor(spot.id)} locale={locale} />
+            <CrowdReportButton onClick={() => setReporting(spot)} />
           </div>
           {hasStamp(spot.id) ? (
             <Check
@@ -72,6 +86,11 @@ export function PlacesList({
       >
         {t('設置場所一覧を印刷')}
       </Button>
+      <CrowdReportDialog
+        spot={reporting}
+        onClose={() => setReporting(null)}
+        onSend={onReport}
+      />
     </section>
   );
 }

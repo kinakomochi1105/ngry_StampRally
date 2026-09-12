@@ -216,6 +216,82 @@ try {
   );
   assert.ok(trafficPoint);
   assert.ok(trafficPoint.recentCount >= 24);
+  assert.equal(trafficPoint.reportCount, 0);
+  assert.equal(trafficPoint.reportAverage, null);
+
+  // Participant crowd reports: authentication, validation, the once-per-five-
+  // minutes hold-off, CSRF, and the average the screens display.
+  assert.equal(
+    (await req('/api/report', { data: { spotId: managed[0].id, level: 1 } }))
+      .status,
+    401,
+  );
+  assert.equal(
+    (
+      await req('/api/report', {
+        cookie: student.cookie,
+        data: { spotId: managed[0].id, level: 4 },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await req('/api/report', {
+        cookie: student.cookie,
+        data: { spotId: 'not-a-location', level: 2 },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await req('/api/report', {
+        cookie: student.cookie,
+        origin: 'https://attacker.invalid',
+        data: { spotId: managed[0].id, level: 2 },
+      })
+    ).status,
+    403,
+  );
+  const firstReport = await req('/api/report', {
+    cookie: student.cookie,
+    data: { spotId: managed[0].id, level: 3 },
+  });
+  assert.equal(firstReport.status, 200, JSON.stringify(firstReport.data));
+  assert.equal(firstReport.data.reportCount, 1);
+  assert.equal(firstReport.data.reportAverage, 3);
+  assert.equal(firstReport.data.level, 'busy');
+  // The same participant is held off, while another one still counts.
+  assert.equal(
+    (
+      await req('/api/report', {
+        cookie: student.cookie,
+        data: { spotId: managed[0].id, level: 1 },
+      })
+    ).status,
+    429,
+  );
+  const reporter = await register({ kind: 'guest' });
+  const secondReport = await req('/api/report', {
+    cookie: reporter.cookie,
+    data: { spotId: managed[0].id, level: 1 },
+  });
+  assert.equal(secondReport.status, 200);
+  assert.equal(secondReport.data.reportCount, 2);
+  assert.equal(secondReport.data.reportAverage, 2);
+  assert.equal(secondReport.data.level, 'moving');
+  const reportedPass = (await req('/api/passport', { cookie: student.cookie }))
+    .data;
+  const reportedPoint = reportedPass.traffic.find(
+    (point) => point.spotId === managed[0].id,
+  );
+  assert.equal(reportedPoint.reportCount, 2);
+  assert.equal(reportedPoint.reportAverage, 2);
+  // A report never reveals who sent it.
+  assert.ok(
+    !JSON.stringify(reportedPass.traffic).includes(String(student.profile.id)),
+  );
   assert.equal(
     (
       await req('/api/stamp', {
@@ -638,7 +714,7 @@ try {
     assert.equal(denied.status, i < 10 ? 401 : 429);
   }
   console.log(
-    'PASS: QR link forwarding/legacy token/refused codes, nickname rules/custom blocklist, recovery preserves stamps and IDs, wrong factors rejected, session revocation, code reissue, recovery throttle, student enrollment/duplicates, 12 concurrent unique guest IDs/no reuse, profile isolation, 24 simultaneous stamps, completion/ranking, custom grade/class, admin edits/reset/delete/CSV, registration pause, protected APIs, CSRF, invalid QR, QR decoder.',
+    'PASS: crowd reports (auth, range, unknown spot, CSRF, 5-minute hold-off, anonymous average), QR link forwarding/legacy token/refused codes, nickname rules/custom blocklist, recovery preserves stamps and IDs, wrong factors rejected, session revocation, code reissue, recovery throttle, student enrollment/duplicates, 12 concurrent unique guest IDs/no reuse, profile isolation, 24 simultaneous stamps, completion/ranking, custom grade/class, admin edits/reset/delete/CSV, registration pause, protected APIs, CSRF, invalid QR, QR decoder.',
   );
 } finally {
   if (adminCookie) {

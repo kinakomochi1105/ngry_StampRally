@@ -2,6 +2,7 @@ import { database } from '@/db';
 import { event } from '@/lib/event';
 import { json, participant, retentionSeconds, logFailure } from '@/lib/server';
 import { allSpots, configuration } from '@/lib/data';
+import { reportWindow } from '@/lib/crowd';
 export async function GET(request: Request) {
   try {
     const hash = await participant(request);
@@ -12,12 +13,23 @@ export async function GET(request: Request) {
       await Promise.all([
         allSpots(),
         configuration(),
+        // Scan counts and participant reports are counted in subqueries
+        // rather than two joins, which would multiply one against the other.
         database()
           .prepare(
-            'SELECT l.id AS spotId,COUNT(a.id) AS recentCount FROM locations l LEFT JOIN spot_activity a ON a.event_id=l.event_id AND a.spot_id=l.id AND a.accessed_at>? WHERE l.event_id=? AND l.active=1 GROUP BY l.id',
+            `SELECT l.id AS spotId,
+ (SELECT COUNT(*) FROM spot_activity a WHERE a.event_id=l.event_id AND a.spot_id=l.id AND a.accessed_at>?) AS recentCount,
+ (SELECT COUNT(*) FROM spot_reports r WHERE r.event_id=l.event_id AND r.spot_id=l.id AND r.created_at>?) AS reportCount,
+ (SELECT AVG(level) FROM spot_reports r WHERE r.event_id=l.event_id AND r.spot_id=l.id AND r.created_at>?) AS reportAverage
+ FROM locations l WHERE l.event_id=? AND l.active=1`,
           )
-          .bind(now - 10 * 60, event.id)
-          .all<{ spotId: string; recentCount: number }>(),
+          .bind(now - 10 * 60, now - reportWindow, now - reportWindow, event.id)
+          .all<{
+            spotId: string;
+            recentCount: number;
+            reportCount: number;
+            reportAverage: number | null;
+          }>(),
         hash
           ? database()
               .prepare(
@@ -45,6 +57,9 @@ export async function GET(request: Request) {
       traffic: trafficRows.results.map((row) => ({
         spotId: row.spotId,
         recentCount: Number(row.recentCount),
+        reportCount: Number(row.reportCount),
+        reportAverage:
+          row.reportAverage === null ? null : Number(row.reportAverage),
       })),
     });
   } catch (e) {
