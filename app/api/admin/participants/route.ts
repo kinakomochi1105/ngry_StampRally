@@ -4,6 +4,7 @@ import { json, retentionSeconds, logFailure } from '@/lib/server';
 import { guard } from '@/lib/admin';
 import { bodyJson, configuration, studentFields } from '@/lib/data';
 import { progressSql, progressArgs, statistics } from '@/lib/progress';
+import { nicknameKey } from '@/lib/nickname';
 export async function GET(request: Request) {
   const denied = await guard(request);
   if (denied) return denied;
@@ -45,9 +46,16 @@ export async function GET(request: Request) {
       url.searchParams.get('sort') === 'rank'
         ? 'stampCount DESC,lastStamp ASC,id'
         : 'id DESC';
-    const filter = ` WHERE (?='' OR kind=?) AND (?='' OR (COALESCE(grade,'') || '年 ' || COALESCE(className,'') || '組 ' || COALESCE(number,'') || '番 #' || COALESCE(guestNumber,'')) LIKE ? ESCAPE '!')`;
-    const pattern = '%' + q.replace(/[!%_]/g, '!$&') + '%';
-    const args = [...progressArgs(), kind, kind, q, pattern];
+    // The search box matches how an administrator refers to a participant:
+    // "1年 A組 12番" or "#4" for the identifier, and the nickname. Nicknames are
+    // compared through the same normalised key the registration stores, so
+    // case and full-width characters do not have to match.
+    const filter = ` WHERE (?='' OR kind=?) AND (?='' OR (COALESCE(grade,'') || '年 ' || COALESCE(className,'') || '組 ' || COALESCE(number,'') || '番 #' || COALESCE(guestNumber,'')) LIKE ? ESCAPE '!' OR COALESCE(nicknameKey,'') LIKE ? ESCAPE '!')`;
+    const escape = (value: string) =>
+      '%' + value.replace(/[!%_]/g, '!$&') + '%';
+    const pattern = escape(q);
+    const nicknamePattern = escape(nicknameKey(q));
+    const args = [...progressArgs(), kind, kind, q, pattern, nicknamePattern];
     const [rows, count, stats] = await Promise.all([
       database()
         .prepare(

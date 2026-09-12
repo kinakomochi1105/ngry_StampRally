@@ -27,6 +27,8 @@ assert.equal(translate('QRコードを読み取る', 'en'), 'Scan QR code');
 assert.equal(translate('学校独自の場所', 'en'), '学校独自の場所');
 const en = JSON.parse(fs.readFileSync('lib/en.json', 'utf8'));
 let count = 0;
+// Every screen that renders Japanese UI copy through t(). A file added here
+// fails the run until each of its strings has an English entry.
 for (const path of [
   'app/page.tsx',
   'app/admin/page.tsx',
@@ -34,7 +36,24 @@ for (const path of [
   'components/recovery.tsx',
   'components/scanner.tsx',
   'components/reward.tsx',
+  'components/rally-demo.tsx',
+  'components/floor-map.tsx',
+  'components/admin-stamps.tsx',
   'components/admin-wiki.tsx',
+  'components/participant/passport-card.tsx',
+  'components/participant/stamp-book.tsx',
+  'components/participant/places-list.tsx',
+  'components/participant/reward-panel.tsx',
+  'components/participant/rally-nav.tsx',
+  'components/participant/help-center.tsx',
+  'components/admin/admin-login.tsx',
+  'components/admin/participants-panel.tsx',
+  'components/admin/spots-panel.tsx',
+  'components/admin/settings-panel.tsx',
+  'components/admin/spot-dialog.tsx',
+  'components/admin/person-dialog.tsx',
+  'components/admin/poster-dialog.tsx',
+  'components/theme-toggle.tsx',
 ]) {
   const sf = ts.createSourceFile(
     path,
@@ -43,19 +62,25 @@ for (const path of [
     true,
     ts.ScriptKind.TSX,
   );
-  function walk(n) {
-    if (
-      ts.isCallExpression(n) &&
-      n.expression.getText(sf) === 't' &&
-      n.arguments[0] &&
-      ts.isStringLiteral(n.arguments[0])
-    ) {
-      assert.ok(
-        en[n.arguments[0].text] !== undefined,
-        'Missing translation: ' + n.arguments[0].text,
-      );
-      count++;
+  const check = (arg) => {
+    if (!arg) return;
+    // `t(condition ? 'あ' : 'い')` is as common as a plain literal, so both
+    // branches count.
+    if (ts.isConditionalExpression(arg)) {
+      check(arg.whenTrue);
+      check(arg.whenFalse);
+      return;
     }
+    if (!ts.isStringLiteral(arg)) return;
+    assert.ok(
+      en[arg.text] !== undefined,
+      'Missing translation in ' + path + ': ' + arg.text,
+    );
+    count++;
+  };
+  function walk(n) {
+    if (ts.isCallExpression(n) && n.expression.getText(sf) === 't')
+      check(n.arguments[0]);
     ts.forEachChild(n, walk);
   }
   walk(sf);

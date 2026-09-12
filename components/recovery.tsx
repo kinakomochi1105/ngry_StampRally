@@ -9,18 +9,13 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { validateNickname } from '@/lib/nickname';
+import { api, errorMessage } from '@/lib/client';
 export type RecoveryReceipt = { nickname: string; recoveryCode: string };
-async function request(path: string, data: unknown) {
-  const r = await fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-    signal: AbortSignal.timeout(15000),
+const request = (path: string, data: unknown) =>
+  api<RecoveryReceipt>(path, {
+    data,
+    fallback: '操作を完了できませんでした。',
   });
-  const result = (await r.json()) as RecoveryReceipt & { error?: string };
-  if (!r.ok) throw new Error(result.error ?? '操作を完了できませんでした。');
-  return result;
-}
 export function RecoveryLogin({
   onRestored,
 }: {
@@ -52,9 +47,7 @@ export function RecoveryLogin({
             setCode('');
             await onRestored();
           } catch (e) {
-            setError(
-              e instanceof Error ? e.message : '再ログインできませんでした。',
-            );
+            setError(errorMessage(e, '再ログインできませんでした。'));
           } finally {
             setBusy(false);
           }
@@ -137,7 +130,7 @@ export function RecoverySetup({
             await onIssued(receipt);
             setConfirm(false);
           } catch (e) {
-            setError(e instanceof Error ? e.message : '設定できませんでした。');
+            setError(errorMessage(e, '設定できませんでした。'));
           } finally {
             setBusy(false);
           }
@@ -211,9 +204,7 @@ export function RecoverySetup({
               await request('/api/logout', {});
               await onLoggedOut();
             } catch (e) {
-              setError(
-                e instanceof Error ? e.message : 'ログアウトできませんでした。',
-              );
+              setError(errorMessage(e, 'ログアウトできませんでした。'));
             } finally {
               setBusy(false);
             }

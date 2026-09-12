@@ -2,7 +2,7 @@ import { database } from '@/db';
 import { event } from '@/lib/event';
 import { retentionSeconds } from './server';
 export const progressSql = `WITH progress AS (
- SELECT p.id,p.nickname,p.kind,p.grade,p.class_name AS className,p.number,p.guest_number AS guestNumber,p.created_at AS createdAt,
+ SELECT p.id,p.nickname,p.nickname_key AS nicknameKey,p.kind,p.grade,p.class_name AS className,p.number,p.guest_number AS guestNumber,p.created_at AS createdAt,
  p.completed_at AS completedAt,p.redeemed_at AS redeemedAt,
  COUNT(l.id) AS stampCount,MAX(CASE WHEN l.id IS NOT NULL THEN s.created_at END) AS lastStamp
  FROM participants p LEFT JOIN stamps s ON s.participant_hash=p.hash AND s.event_id=p.event_id AND s.created_at>?

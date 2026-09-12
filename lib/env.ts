@@ -6,6 +6,10 @@ export const env = {
   get RALLY_SECRET() {
     return process.env.RALLY_SECRET ?? '';
   },
+  /** Public address printed into QR links, e.g. https://rally.example.jp */
+  get RALLY_SITE_URL() {
+    return process.env.RALLY_SITE_URL ?? '';
+  },
   get ADMIN_PASSWORD() {
     return process.env.ADMIN_PASSWORD ?? '';
   },

@@ -1,0 +1,214 @@
+/* ---------------------------------------------------------------------------
+   Design tokens.
+
+   One place defines every colour, size and shape used by the festival app.
+   Screens never hard-code a hex value: they read a semantic token, so the
+   light theme, the dark theme and print all follow from this file alone.
+
+   Themes resolve in three steps, in this order:
+     1. `:root`                          — the light palette, always defined.
+     2. `prefers-color-scheme: dark`     — the device preference.
+     3. `[data-theme]`                   — the visitor's explicit choice, which
+                                           wins over the device preference.
+--------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces and text ---------------------------------------------------- */
+  --page-bg: #f3f5fb;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --soft-bg: #eceffb;
+  --ink: #161a2b;
+  --muted-ink: #596076;
+  --faint-ink: #838ba4;
+  --line: #e0e4f0;
+  --line-strong: #c9d0e4;
+
+  /* Brand: indigo for actions, a warm festival amber for celebration ------ */
+  --brand: #4f46e5;
+  --brand-strong: #4338ca;
+  --brand-ink: #ffffff;
+  --brand-soft: #ebeafe;
+  --brand-line: #c7c4f8;
+  --accent-ink: #4f46e5;
+  --accent: #e07a15;
+  --accent-soft: #fdf1e1;
+
+  /* Status --------------------------------------------------------------- */
+  --success: #15803d;
+  --success-soft: #e6f6ec;
+  --success-line: #b6e2c5;
+  --warning: #b45309;
+  --warning-soft: #fdf3e2;
+  --warning-line: #f0d5a8;
+  --danger-ink: #be123c;
+  --danger-bg: #fff1f4;
+  --danger-border: #f4c9d4;
+
+  /* Focus ring: kept a different hue from the brand so it stays visible on
+     top of a primary button as well as on a plain surface. */
+  --focus: #e0a112;
+  --focus-ring: 0 0 0 3px #e0a11255;
+
+  /* Elevation ------------------------------------------------------------ */
+  --shadow-sm: 0 1px 2px #131b3612;
+  --shadow-md: 0 4px 14px -4px #131b361f, 0 2px 4px -2px #131b3614;
+  --shadow-lg: 0 18px 44px -18px #131b3640, 0 6px 16px -8px #131b361f;
+  --dock-bg: #ffffffec;
+
+  /* Shape ---------------------------------------------------------------- */
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* Layout --------------------------------------------------------------- */
+  --content-max: 780px;
+  --wide-max: 1240px;
+  --rail-width: 268px;
+  --gutter: 16px;
+  --tap: 44px;
+  --bar-height: 60px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Type: fluid between a small phone and a desktop, so nothing has to be
+     re-declared per breakpoint. */
+  --font-sans:
+    'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, system-ui,
+    sans-serif;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-md: 0.9375rem;
+  --fs-base: 1rem;
+  --fs-lg: clamp(1.0625rem, 0.9rem + 0.6vw, 1.1875rem);
+  --fs-xl: clamp(1.25rem, 1rem + 1vw, 1.5rem);
+  --fs-2xl: clamp(1.5rem, 1.15rem + 1.6vw, 2rem);
+  --fs-3xl: clamp(1.875rem, 1.3rem + 2.4vw, 2.5rem);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --page-bg: #0b0e17;
+    --surface: #141926;
+    --surface-raised: #1a2031;
+    --soft-bg: #1f2637;
+    --ink: #eef1fb;
+    --muted-ink: #a2abc4;
+    --faint-ink: #7b849c;
+    --line: #2a3145;
+    --line-strong: #3b445e;
+
+    --brand: #6366f1;
+    --brand-strong: #7c7ff5;
+    --brand-ink: #ffffff;
+    --brand-soft: #232744;
+    --brand-line: #3d4275;
+    --accent-ink: #a5b0ff;
+    --accent: #f0a052;
+    --accent-soft: #2e2418;
+
+    --success: #4ade80;
+    --success-soft: #16281d;
+    --success-line: #2f5a3f;
+    --warning: #fbbf24;
+    --warning-soft: #2c2312;
+    --warning-line: #5c4718;
+    --danger-ink: #ff9db0;
+    --danger-bg: #331722;
+    --danger-border: #6d2f43;
+
+    --focus: #f2c14e;
+    --focus-ring: 0 0 0 3px #f2c14e4d;
+
+    --shadow-sm: 0 1px 2px #00000059;
+    --shadow-md: 0 4px 14px -4px #0000007a, 0 2px 4px -2px #00000052;
+    --shadow-lg: 0 18px 44px -18px #000000a6, 0 6px 16px -8px #00000080;
+    --dock-bg: #0b0e17ee;
+  }
+}
+
+/* An explicit choice from the theme toggle. Both blocks are written out in
+   full so switching works in either direction, whatever the device prefers. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --page-bg: #0b0e17;
+  --surface: #141926;
+  --surface-raised: #1a2031;
+  --soft-bg: #1f2637;
+  --ink: #eef1fb;
+  --muted-ink: #a2abc4;
+  --faint-ink: #7b849c;
+  --line: #2a3145;
+  --line-strong: #3b445e;
+
+  --brand: #6366f1;
+  --brand-strong: #7c7ff5;
+  --brand-ink: #ffffff;
+  --brand-soft: #232744;
+  --brand-line: #3d4275;
+  --accent-ink: #a5b0ff;
+  --accent: #f0a052;
+  --accent-soft: #2e2418;
+
+  --success: #4ade80;
+  --success-soft: #16281d;
+  --success-line: #2f5a3f;
+  --warning: #fbbf24;
+  --warning-soft: #2c2312;
+  --warning-line: #5c4718;
+  --danger-ink: #ff9db0;
+  --danger-bg: #331722;
+  --danger-border: #6d2f43;
+
+  --focus: #f2c14e;
+  --focus-ring: 0 0 0 3px #f2c14e4d;
+
+  --shadow-sm: 0 1px 2px #00000059;
+  --shadow-md: 0 4px 14px -4px #0000007a, 0 2px 4px -2px #00000052;
+  --shadow-lg: 0 18px 44px -18px #000000a6, 0 6px 16px -8px #00000080;
+  --dock-bg: #0b0e17ee;
+}
+
+/* Bridge to Tailwind and the shadcn primitives in components/ui. `inline`
+   keeps the reference to the custom property, so a theme change updates every
+   generated utility without rebuilding anything. */
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-heading: var(--font-sans);
+
+  --color-background: var(--page-bg);
+  --color-foreground: var(--ink);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--surface-raised);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--brand);
+  --color-primary-foreground: var(--brand-ink);
+  --color-secondary: var(--soft-bg);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--soft-bg);
+  --color-muted-foreground: var(--muted-ink);
+  --color-accent: var(--soft-bg);
+  --color-accent-foreground: var(--ink);
+  --color-destructive: var(--danger-ink);
+  --color-destructive-foreground: var(--brand-ink);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-ring: var(--focus);
+  --color-sidebar-border: var(--line);
+
+  --radius-md: var(--radius-sm);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius-lg);
+}

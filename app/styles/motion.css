@@ -1,0 +1,200 @@
+/* ---------------------------------------------------------------------------
+   Motion.
+
+   Every animation is short, plays once and is defined inside a
+   `prefers-reduced-motion: no-preference` block, so a visitor who asks for
+   less movement gets a completely still interface without any of it having to
+   be disabled again further down.
+--------------------------------------------------------------------------- */
+
+@keyframes rally-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rally-stamp-press {
+  0% {
+    transform: scale(0.55) rotate(-14deg);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.14) rotate(4deg);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.96) rotate(-2deg);
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes rally-ripple {
+  from {
+    opacity: 0.55;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+@keyframes rally-count-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  60% {
+    transform: scale(1.22);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes rally-celebrate {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: scale(1.16) rotate(-7deg);
+  }
+  65% {
+    transform: scale(1.06) rotate(5deg);
+  }
+}
+
+@keyframes rally-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rally-skeleton {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes rally-qr-sweep {
+  0% {
+    top: 14%;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    top: 86%;
+    opacity: 0;
+  }
+}
+
+/* The ring that expands out of a freshly earned stamp. */
+.stamp-ripple {
+  position: absolute;
+  inset: -6px;
+  border: 3px solid var(--brand);
+  border-radius: var(--radius-pill);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .panel-swap {
+    animation: rally-fade-up 0.26s ease-out both;
+  }
+
+  .passport-card,
+  .enrollment {
+    animation: rally-fade-up 0.3s ease-out both;
+  }
+
+  /* A newly collected stamp presses onto the page, then a ring expands. */
+  .stamp-card.freshly-stamped .stamp-circle {
+    animation: rally-stamp-press 0.62s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  }
+
+  .stamp-card.freshly-stamped {
+    animation: rally-fade-up 0.3s ease-out both;
+  }
+
+  .stamp-ripple {
+    animation: rally-ripple 0.72s ease-out both;
+  }
+
+  .count-value {
+    animation: rally-count-pop 0.42s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  }
+
+  .completion-pop {
+    animation: rally-celebrate 0.8s ease-in-out both;
+  }
+
+  .rally-toast {
+    animation: rally-toast-in 0.24s ease-out both;
+  }
+
+  .skeleton-line {
+    animation: rally-skeleton 1.4s ease-in-out infinite;
+  }
+
+  .qr-laser {
+    animation: rally-qr-sweep 2.4s ease-in-out infinite;
+  }
+
+  .tutorial-scan-line {
+    animation: rally-qr-sweep 2s ease-in-out infinite;
+  }
+
+  .tutorial-screen {
+    animation: rally-fade-up 0.28s ease-out both;
+  }
+
+  /* A card lifts slightly on a device that really has a pointer. */
+  @media (hover: hover) {
+    .stamp-card:hover,
+    .places > article:hover,
+    .admin-spots article:hover {
+      border-color: var(--brand-line);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useI18n, LanguageSelect } from '@/components/language';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { api, errorMessage, isUnauthorized } from '@/lib/client';
 import {
   BookOpen,
   ChevronDown,
@@ -42,26 +43,13 @@ type Article = Meta & {
 };
 type Hit = Meta & { snippet: string };
 export const wikiPath = (slug: string) => '/admin/wiki/' + slug;
-async function manual(query: string) {
-  const r = await fetch('/api/admin/manual' + query, {
-    cache: 'no-store',
-    signal: AbortSignal.timeout(15000),
+const manual = (query: string) =>
+  api('/api/admin/manual' + query, {
+    fallback: 'マニュアルを読み込めませんでした。',
   });
-  const data = (await r.json()) as Record<string, unknown>;
-  if (!r.ok) {
-    const error = new Error(
-      typeof data.error === 'string'
-        ? data.error
-        : 'マニュアルを読み込めませんでした。',
-    ) as Error & { status: number };
-    error.status = r.status;
-    throw error;
-  }
-  return data;
-}
-const isDenied = (e: unknown) => (e as { status?: number }).status === 401;
+const isDenied = isUnauthorized;
 const message = (e: unknown) =>
-  e instanceof Error ? e.message : '通信を確認してお試しください。';
+  errorMessage(e, '通信を確認してお試しください。');
 /** The index backs the sidebar, the landing page and the search box. */
 function useManualIndex() {
   const [index, setIndex] = useState<Index | null>(null);

@@ -1,6 +1,6 @@
 import { database } from '@/db';
 import { event } from '@/lib/event';
-import { json, sign, logFailure } from '@/lib/server';
+import { json, sign, logFailure, siteOrigin, stampPath } from '@/lib/server';
 import { guard } from '@/lib/admin';
 import { allSpots, bodyJson, seedSpots, audit } from '@/lib/data';
 import { maxSpotIconLength, validSpotIcon } from '@/lib/types';
@@ -9,11 +9,14 @@ export async function GET(request: Request) {
   if (denied) return denied;
   try {
     const rows = await allSpots(false);
+    const origin = siteOrigin(request);
     return json({
       spots: await Promise.all(
         rows.map(async (s) => ({
           ...s,
-          code: `rally:${event.id}:${s.id}:${await sign(`qr:${event.id}:${s.id}`)}`,
+          // A link, so a phone camera app can open it without the in-app
+          // scanner. Signed per spot; see verifyQr.
+          code: origin + stampPath(s.id, await sign(`qr:${event.id}:${s.id}`)),
         })),
       ),
     });

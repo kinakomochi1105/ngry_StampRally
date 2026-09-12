@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
+import { event } from '../lib/event.ts';
 const base = process.env.TEST_BASE_URL || 'http://localhost:3000';
 if (!['localhost', '127.0.0.1'].includes(new URL(base).hostname))
   throw Error('Tests write data and must run locally.');
@@ -234,6 +235,44 @@ try {
     ).status,
     403,
   );
+  // Posters carry a link, so a phone camera app can open them without the
+  // in-app scanner: /s/<spot>/<signature> forwards to the participant screen,
+  // which posts the same code back. The path on its own, an absolute link
+  // printed for another host and a poster made before the link format are all
+  // accepted, because only the signature binds a code to this festival.
+  const poster = new URL(managed[0].code);
+  const signature = poster.pathname.split('/').pop();
+  const forwarded = await fetch(base + poster.pathname, { redirect: 'manual' });
+  assert.equal(forwarded.status, 303);
+  assert.equal(
+    new URL(forwarded.headers.get('location')).searchParams.get('stamp'),
+    managed[0].id + '.' + signature,
+  );
+  for (const code of [
+    poster.pathname,
+    'https://rally.example.invalid' + poster.pathname,
+    `rally:${event.id}:${managed[0].id}:${signature}`,
+  ]) {
+    const accepted = await req('/api/stamp', {
+      cookie: student.cookie,
+      data: { code },
+    });
+    assert.equal(accepted.status, 200, code);
+    assert.equal(accepted.data.spotId, managed[0].id);
+    assert.equal(accepted.data.duplicate, true);
+  }
+  for (const code of [
+    poster.pathname.slice(0, -1) + '0',
+    `rally:${event.id}-other:${managed[0].id}:${signature}`,
+    '/s/../api/admin/spots',
+    '/s/' + managed[0].id,
+  ])
+    assert.equal(
+      (await req('/api/stamp', { cookie: student.cookie, data: { code } }))
+        .status,
+      400,
+      code,
+    );
   for (const spot of managed.slice(1))
     assert.equal(
       (
@@ -402,6 +441,22 @@ try {
   assert.equal(
     (await adm('participants?q=' + encodeURIComponent('not-found%_'))).status,
     200,
+  );
+  // Nicknames are searchable, through the same normalised key registration
+  // stores, so case and full-width characters do not have to match.
+  const named = await register({ kind: 'guest', nickname: 'SakuraGuest' });
+  for (const term of ['SakuraGuest', 'sakura', 'ＳＡＫＵＲＡ']) {
+    const found = await adm('participants?q=' + encodeURIComponent(term));
+    assert.equal(found.status, 200, term);
+    assert.ok(
+      found.data.rows.some((row) => row.id === named.profile.id),
+      'nickname search missed: ' + term,
+    );
+  }
+  assert.equal(
+    (await adm('participants?q=' + encodeURIComponent('sakura-not-here'))).data
+      .rows.length,
+    0,
   );
   const originalSpot = managed[0];
   try {
@@ -583,7 +638,7 @@ try {
     assert.equal(denied.status, i < 10 ? 401 : 429);
   }
   console.log(
-    'PASS: nickname rules/custom blocklist, recovery preserves stamps and IDs, wrong factors rejected, session revocation, code reissue, recovery throttle, student enrollment/duplicates, 12 concurrent unique guest IDs/no reuse, profile isolation, 24 simultaneous stamps, completion/ranking, custom grade/class, admin edits/reset/delete/CSV, registration pause, protected APIs, CSRF, invalid QR, QR decoder.',
+    'PASS: QR link forwarding/legacy token/refused codes, nickname rules/custom blocklist, recovery preserves stamps and IDs, wrong factors rejected, session revocation, code reissue, recovery throttle, student enrollment/duplicates, 12 concurrent unique guest IDs/no reuse, profile isolation, 24 simultaneous stamps, completion/ranking, custom grade/class, admin edits/reset/delete/CSV, registration pause, protected APIs, CSRF, invalid QR, QR decoder.',
   );
 } finally {
   if (adminCookie) {

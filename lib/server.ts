@@ -59,18 +59,45 @@ export async function newParticipant(request: Request) {
     cookie: `rally_pass=${id}.${expires}.${signature}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${retentionSeconds}${secure}`,
   };
 }
+/**
+ * Printed QR codes carry a link so the phone's own camera app can open them:
+ * `https://<site>/s/<spotId>/<signature>`. That path forwards to the
+ * participant screen, which posts the same link back here. Posters printed
+ * before the link format hold the bare `rally:<event>:<spot>:<signature>`
+ * token, which the in-app scanner still decodes, so both shapes stay valid.
+ * Only the signature binds a code to this festival: the host of the link is
+ * never trusted and is never compared with anything.
+ */
+export function stampPath(spotId: string, signature: string) {
+  return `/s/${spotId}/${signature}`;
+}
+function qrParts(value: string) {
+  if (value.startsWith('rally:')) {
+    const parts = value.split(':');
+    return parts.length === 4 && parts[1] === event.id
+      ? [parts[2], parts[3]]
+      : null;
+  }
+  let path = value;
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      path = new URL(value).pathname;
+    } catch {
+      return null;
+    }
+  }
+  const link = /^\/?s\/([^/?#]+)\/([^/?#]+)\/?$/.exec(path);
+  return link ? [decodeURIComponent(link[1]), link[2]] : null;
+}
 export async function verifyQr(code: unknown) {
   if (typeof code !== 'string' || code.length > 512) return null;
-  const parts = code.trim().split(':');
-  if (parts.length !== 4) return null;
-  const [prefix, eventId, spotId, signature] = parts;
-  if (
-    prefix !== 'rally' ||
-    eventId !== event.id ||
-    !/^[a-z0-9-]{1,64}$/.test(spotId)
-  )
+  const parts = qrParts(code.trim());
+  if (!parts) return null;
+  const [spotId, signature] = parts;
+  if (!/^[a-z0-9-]{1,64}$/.test(spotId) || !/^[a-f0-9]{64}$/.test(signature))
     return null;
-  if (!safeEqual(signature, await sign(`qr:${eventId}:${spotId}`))) return null;
+  if (!safeEqual(signature, await sign(`qr:${event.id}:${spotId}`)))
+    return null;
   if (
     !(await database()
       .prepare(
@@ -143,6 +170,19 @@ export function requestOrigin(request: Request) {
   const url = new URL(request.url);
   const host = forwarded(request, 'x-forwarded-host') || url.host;
   return `${isSecureRequest(request) ? 'https' : 'http'}://${host}`;
+}
+
+/**
+ * Absolute origin baked into printed QR links. Posters are usually produced on
+ * a laptop at localhost, or through a tunnel host that changes on restart,
+ * while participants open the public address, so an explicit RALLY_SITE_URL
+ * always wins over the origin of the request that asked for the poster.
+ */
+export function siteOrigin(request: Request) {
+  const configured = env.RALLY_SITE_URL.trim().replace(/\/+$/, '');
+  return /^https?:\/\/[^/?#\s]+$/i.test(configured)
+    ? configured
+    : requestOrigin(request);
 }
 
 export function validOrigin(request: Request) {

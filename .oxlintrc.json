@@ -32,6 +32,7 @@
   ],
   "rules": {
     "no-array-constructor": "error",
+    "no-use-before-define": ["error", { "functions": false, "classes": false }],
     "no-var": "error",
     "prefer-const": "error",
     "prefer-rest-params": "error",

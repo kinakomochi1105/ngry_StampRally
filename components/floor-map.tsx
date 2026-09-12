@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { Check, MapPinned, Navigation, UsersRound } from 'lucide-react';
+import { useI18n } from '@/components/language';
+import { translate, type Locale } from '@/lib/i18n';
 import type { Spot } from '@/lib/types';
 
 export type TrafficPoint = { spotId: string; recentCount: number };
@@ -12,6 +14,17 @@ export function crowdLevel(count: number) {
   return 'quiet' as const;
 }
 
+const crowdLabel = {
+  busy: '混雑しています',
+  moving: '少し動きがあります',
+  quiet: '今は空いています',
+} as const;
+
+/**
+ * How busy a spot is, from anonymous scan counts. `locale` is a prop rather
+ * than a hook read because the admin screens render this outside a page that
+ * owns the language context.
+ */
 export function TrafficBadge({
   count,
   locale,
@@ -19,28 +32,17 @@ export function TrafficBadge({
   count: number;
   locale: string;
 }) {
+  const t = (text: string) => translate(text, locale as Locale);
   const level = crowdLevel(count);
-  const label =
-    locale === 'en'
-      ? level === 'busy'
-        ? 'Busy now'
-        : level === 'moving'
-          ? 'Some activity'
-          : 'Quiet now'
-      : level === 'busy'
-        ? '混雑しています'
-        : level === 'moving'
-          ? '少し動きがあります'
-          : '今は空いています';
-  const detail =
-    locale === 'en'
-      ? `Last 10 min · ${count} scan${count === 1 ? '' : 's'}`
-      : `直近10分 · ${count}件の読み取り`;
   return (
     <span className={`traffic-badge ${level}`}>
       <UsersRound size={15} aria-hidden="true" />
-      <strong>{label}</strong>
-      <small>{detail}</small>
+      <strong>{t(crowdLabel[level])}</strong>
+      <small>
+        {locale === 'en'
+          ? `Last 10 min · ${count} scan${count === 1 ? '' : 's'}`
+          : `直近10分 · ${count}件の読み取り`}
+      </small>
     </span>
   );
 }
@@ -62,6 +64,7 @@ function floorLabel(floor: string, locale: string) {
   return floor;
 }
 
+/** A plain guide to the venue, grouped by the floor written on each location. */
 export function FloorMap({
   spots,
   traffic,
@@ -73,6 +76,7 @@ export function FloorMap({
   hasStamp: (spotId: string) => boolean;
   locale: string;
 }) {
+  const { t } = useI18n();
   const [selectedFloor, setSelectedFloor] = useState('');
   const trafficById = useMemo(
     () => new Map(traffic.map((point) => [point.spotId, point.recentCount])),
@@ -92,20 +96,15 @@ export function FloorMap({
       ? selectedFloor
       : (floors[0] ?? '');
   const visible = floor ? (grouped.get(floor) ?? []) : [];
-  const title = locale === 'en' ? 'Floor map' : 'フロアマップ';
+  const title = t('フロアマップ');
+
   return (
     <section className="floor-map" aria-label={title}>
       <div className="floor-map-heading">
         <div>
-          <p className="eyebrow">
-            {locale === 'en' ? 'FIND YOUR WAY' : '会場案内'}
-          </p>
+          <p className="eyebrow">{t('会場案内')}</p>
           <h3>{title}</h3>
-          <p>
-            {locale === 'en'
-              ? 'A simple guide based on the locations registered by the organizers.'
-              : '管理者が登録した設置場所と階情報をもとにした案内図です。'}
-          </p>
+          <p>{t('管理者が登録した設置場所と階情報をもとにした案内図です。')}</p>
         </div>
         <MapPinned size={31} aria-hidden="true" />
       </div>
@@ -114,7 +113,7 @@ export function FloorMap({
           <div
             className="floor-picker"
             role="tablist"
-            aria-label={locale === 'en' ? 'Floor' : '階を選ぶ'}
+            aria-label={t('階を選ぶ')}
           >
             {floors.map((item) => (
               <button
@@ -134,71 +133,64 @@ export function FloorMap({
             aria-label={`${floorLabel(floor, locale)} ${title}`}
           >
             <div className="map-corridor" aria-hidden="true">
-              <span>{locale === 'en' ? 'Main corridor' : 'メイン通路'}</span>
+              <span>{t('メイン通路')}</span>
             </div>
-            <div className="map-entrance">
-              <Navigation size={16} />
-              {locale === 'en' ? 'You are here / Entrance' : '入口・受付'}
-            </div>
+            <p className="map-entrance">
+              <Navigation size={16} aria-hidden="true" />
+              {t('入口・受付')}
+            </p>
             <div className="map-rooms">
-              {visible.map((spot, index) => {
-                const count = trafficById.get(spot.id) ?? 0;
-                return (
-                  <article
-                    key={spot.id}
-                    className={`map-room ${hasStamp(spot.id) ? 'collected' : ''}`}
-                  >
-                    <span className="map-room-number">
-                      {String(spots.indexOf(spot) + 1).padStart(2, '0')}
-                    </span>
-                    <div>
-                      <strong>{spot.name}</strong>
-                      <small>{spot.description || spot.location}</small>
-                    </div>
-                    <TrafficBadge count={count} locale={locale} />
-                    {hasStamp(spot.id) && (
-                      <Check
-                        className="map-room-check"
-                        size={18}
-                        aria-label={locale === 'en' ? 'Collected' : '獲得済み'}
-                      />
-                    )}
-                    <span className="map-room-index" aria-hidden="true">
-                      {index + 1}
-                    </span>
-                  </article>
-                );
-              })}
+              {visible.map((spot) => (
+                <article
+                  key={spot.id}
+                  className={`map-room ${hasStamp(spot.id) ? 'collected' : ''}`}
+                >
+                  <span className="map-room-number">
+                    {String(spots.indexOf(spot) + 1).padStart(2, '0')}
+                  </span>
+                  <div>
+                    <strong>{spot.name}</strong>
+                    <small>{spot.description || spot.location}</small>
+                  </div>
+                  <TrafficBadge
+                    count={trafficById.get(spot.id) ?? 0}
+                    locale={locale}
+                  />
+                  {hasStamp(spot.id) && (
+                    <Check
+                      className="map-room-check"
+                      size={18}
+                      aria-label={t('獲得済み')}
+                    />
+                  )}
+                </article>
+              ))}
             </div>
           </div>
           <div className="traffic-legend">
-            <strong>
-              {locale === 'en' ? 'Crowd guide' : '混み具合の目安'}
-            </strong>
+            <strong>{t('混み具合の目安')}</strong>
             <span>
               <i className="quiet" />
-              {locale === 'en' ? 'Quiet' : '空いている'}
+              {t('空いている')}
             </span>
             <span>
               <i className="moving" />
-              {locale === 'en' ? 'Some activity' : '少し動きあり'}
+              {t('少し動きあり')}
             </span>
             <span>
               <i className="busy" />
-              {locale === 'en' ? 'Busy' : '混雑'}
+              {t('混雑')}
             </span>
           </div>
           <p className="traffic-note">
-            {locale === 'en'
-              ? 'Crowd levels use anonymous QR scan counts from the last 10 minutes. They are only a guide and do not show an exact wait time.'
-              : '混み具合は個人を識別しない、直近10分のQRコード読み取り件数による目安です。正確な待ち時間とは異なる場合があります。'}
+            {t(
+              '混み具合は個人を識別しない、直近10分のQRコード読み取り件数による目安です。正確な待ち時間とは異なる場合があります。',
+            )}
           </p>
         </>
       ) : (
         <div className="empty-state">
-          {locale === 'en'
-            ? 'The map will appear when locations are ready.'
-            : '設置場所が登録されると、ここに表示されます。'}
+          {t('設置場所が登録されると、ここに表示されます。')}
         </div>
       )}
     </section>

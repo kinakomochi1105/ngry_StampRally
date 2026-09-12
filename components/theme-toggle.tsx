@@ -1,69 +1,68 @@
 'use client';
-
-import { Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
 import { useI18n } from '@/components/language';
 
 type Theme = 'light' | 'dark';
+const storageKey = 'festival-theme';
 
-function systemTheme(): Theme {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light';
-}
+const stored = () => {
+  try {
+    const value = localStorage.getItem(storageKey);
+    return value === 'dark' || value === 'light' ? value : null;
+  } catch {
+    return null;
+  }
+};
 
+const deviceTheme = (): Theme =>
+  window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+/**
+ * Light/dark, remembered per browser and shared across open tabs.
+ *
+ * With no stored choice nothing is written to the document: the stylesheet's
+ * `prefers-color-scheme` block already follows the device, and leaving the
+ * attribute off is what lets it keep following. A choice sets `data-theme`,
+ * which wins over that block in both directions. The same value is applied
+ * before the first paint by a small script in app/layout.tsx.
+ */
 export function ThemeToggle() {
-  const { locale } = useI18n();
+  const { t } = useI18n();
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    let saved: string | null = null;
-    try {
-      saved = localStorage.getItem('festival-theme');
-    } catch {}
-    const next: Theme =
-      saved === 'dark' || saved === 'light' ? saved : systemTheme();
-    // The theme is read from browser storage after hydration to avoid a server/client mismatch.
+    const apply = () => setTheme(stored() ?? deviceTheme());
+    // Read after hydration: the server cannot know the browser's choice.
     // eslint-disable-next-line react/react-compiler
-    setTheme(next);
-    document.documentElement.dataset.theme = next;
+    apply();
 
-    const sync = (event: StorageEvent) => {
-      if (event.key !== 'festival-theme') return;
-      const value = event.newValue;
-      const nextTheme: Theme =
-        value === 'dark' || value === 'light' ? value : systemTheme();
-      setTheme(nextTheme);
-      document.documentElement.dataset.theme = nextTheme;
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== storageKey) return;
+      const value =
+        event.newValue === 'dark' || event.newValue === 'light'
+          ? event.newValue
+          : null;
+      document.documentElement.dataset.theme = value ?? '';
+      if (!value) delete document.documentElement.dataset.theme;
+      setTheme(value ?? deviceTheme());
     };
     const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const syncSystem = () => {
-      let preference: string | null = null;
-      try {
-        preference = localStorage.getItem('festival-theme');
-      } catch {}
-      if (preference === 'dark' || preference === 'light') return;
-      const nextTheme = systemTheme();
-      setTheme(nextTheme);
-      document.documentElement.dataset.theme = nextTheme;
+    const onDevice = () => {
+      if (!stored()) setTheme(deviceTheme());
     };
-    window.addEventListener('storage', sync);
-    media.addEventListener('change', syncSystem);
+    window.addEventListener('storage', onStorage);
+    media.addEventListener('change', onDevice);
     return () => {
-      window.removeEventListener('storage', sync);
-      media.removeEventListener('change', syncSystem);
+      window.removeEventListener('storage', onStorage);
+      media.removeEventListener('change', onDevice);
     };
   }, []);
 
-  const next = theme === 'dark' ? 'light' : 'dark';
-  const label =
-    locale === 'en'
-      ? next === 'dark'
-        ? 'Switch to dark theme'
-        : 'Switch to light theme'
-      : next === 'dark'
-        ? 'ダークテーマに切り替え'
-        : 'ライトテーマに切り替え';
+  const next: Theme = theme === 'dark' ? 'light' : 'dark';
+  const label = t(
+    next === 'dark' ? 'ダークテーマに切り替え' : 'ライトテーマに切り替え',
+  );
   return (
     <button
       className="theme-toggle"
@@ -74,7 +73,7 @@ export function ThemeToggle() {
         setTheme(next);
         document.documentElement.dataset.theme = next;
         try {
-          localStorage.setItem('festival-theme', next);
+          localStorage.setItem(storageKey, next);
         } catch {}
       }}
     >
@@ -83,7 +82,6 @@ export function ThemeToggle() {
       ) : (
         <Moon size={20} strokeWidth={2} aria-hidden="true" />
       )}
-      <span className="sr-only">{label}</span>
     </button>
   );
 }

@@ -2,6 +2,7 @@
 import { useI18n } from '@/components/language';
 import { useState } from 'react';
 import { validateNickname } from '@/lib/nickname';
+import { api, errorMessage } from '@/lib/client';
 import type { RecoveryReceipt } from '@/components/recovery';
 import { GraduationCap, Users, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,39 +29,25 @@ export function Enrollment({
     setError('');
     try {
       validateNickname(nickname);
-      const r = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kind,
-          nickname,
-          grade,
-          className,
-          number: Number(number),
-        }),
-        signal: AbortSignal.timeout(15000),
+      const receipt = await api<RecoveryReceipt>('/api/register', {
+        data: { kind, nickname, grade, className, number: Number(number) },
+        fallback: '登録できませんでした。',
       });
-      const d = (await r.json()) as RecoveryReceipt & { error?: string };
-      if (!r.ok) throw new Error(d.error);
-      await onRegistered(d.recoveryCode ? d : undefined);
+      await onRegistered(receipt.recoveryCode ? receipt : undefined);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '登録できませんでした。');
+      setError(errorMessage(e, '登録できませんでした。'));
     } finally {
       setBusy(false);
     }
   }
   return (
     <section className="enrollment">
-      <p className="registration-step">
-        {locale === 'en' ? 'STEP 1 · JOIN THE RALLY' : 'STEP 1 · 参加の準備'}
-      </p>
-      <h1>
-        {locale === 'en' ? 'Let’s get started' : 'スタンプラリーに参加する'}
-      </h1>
+      <p className="registration-step">{t('STEP 1 · 参加の準備')}</p>
+      <h1>{t('スタンプラリーに参加する')}</h1>
       <p className="enroll-lead">
-        {locale === 'en'
-          ? 'Choose Student or Guest. After registering, we will show you how to collect stamps.'
-          : '生徒か一般のお客様かを選んでください。登録後に、スタンプの集め方をご案内します。'}
+        {t(
+          '生徒か一般のお客様かを選んでください。登録後に、スタンプの集め方をご案内します。',
+        )}
       </p>
       <div className="kind-grid">
         <button
@@ -90,11 +77,7 @@ export function Enrollment({
       </div>
       {kind && (
         <form onSubmit={submit} className="enroll-form">
-          <p className="registration-step">
-            {locale === 'en'
-              ? 'STEP 2 · YOUR DETAILS'
-              : 'STEP 2 · 参加情報を入力'}
-          </p>
+          <p className="registration-step">{t('STEP 2 · 参加情報を入力')}</p>
           {kind === 'student' ? (
             <>
               <h2>{t('生徒情報を確認')}</h2>

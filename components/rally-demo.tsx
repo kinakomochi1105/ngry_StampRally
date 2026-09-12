@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { QrCode, MapPin, Stamp, Check, Trophy, ArrowRight } from 'lucide-react';
+import { ArrowRight, Check, MapPin, QrCode, Stamp, Trophy } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,24 +9,32 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/components/language';
+
+/** Three steps, each with a miniature of the screen it describes. */
+const steps = [
+  {
+    title: '設置場所へ行こう',
+    description:
+      '画面下部の「設置場所」でQRコードが置いてある場所を確認して、スポットへ向かいます。',
+  },
+  {
+    title: 'QRコードを読んでスタンプ獲得',
+    description:
+      '立ち止まって「読み取る」を押し、カメラを許可します。設置されたQRコード全体をカメラに写しましょう。',
+  },
+  {
+    title: '全部集めてコンプリート',
+    description:
+      '「スタンプ帳」で獲得状況を確認できます。「特典」には残り個数が表示されます。',
+  },
+];
+
+const sampleRooms = ['エントランス', '美術室', '体育館'];
+
 export function RallyDemo({ onClose }: { onClose: () => void }) {
-  const { locale } = useI18n();
-  const en = locale === 'en';
+  const { t } = useI18n();
   const [step, setStep] = useState(0);
-  const titles = en
-    ? ['Find a location', 'Scan and collect', 'Complete your stamp book']
-    : ['設置場所へ行こう', 'QRコードを読んでスタンプ獲得', '全部集めてコンプリート'];
-  const descriptions = en
-    ? [
-        'Use Locations in the bottom menu to see where each QR code is displayed. Walk to a location first.',
-        'Stop walking, tap Scan QR code and allow camera access. Point at the entire displayed QR code.',
-        'Use Stamp book to see your collection and Rewards to check how many stamps remain.',
-      ]
-    : [
-        '画面下部の「設置場所」でQRコードが置いてある場所を確認して、スポットへ向かいます。',
-        '立ち止まって「QRコードを読み取る」を押し、カメラを許可します。設置されたQRコード全体をカメラに写しましょう。',
-        '「スタンプ帳」で獲得状況を確認できます。「特典」には残り個数が表示されます。',
-      ];
+  const last = step === steps.length - 1;
   return (
     <Dialog
       open
@@ -39,13 +47,14 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
         showCloseButton={false}
       >
         <div className="tutorial-top">
-          <span>{en ? 'HOW TO PLAY' : 'はじめてのスタンプラリー'}</span>
+          <span>{t('はじめてのスタンプラリー')}</span>
           <Button variant="ghost" onClick={onClose}>
-            {en ? 'Skip' : 'スキップ'}
+            {t('スキップ')}
           </Button>
         </div>
-        <DialogTitle>{titles[step]}</DialogTitle>
-        <DialogDescription>{descriptions[step]}</DialogDescription>
+        <DialogTitle>{t(steps[step].title)}</DialogTitle>
+        <DialogDescription>{t(steps[step].description)}</DialogDescription>
+
         <div className="tutorial-screen" key={step} aria-hidden="true">
           <div className="tutorial-appbar">
             <Stamp size={17} />
@@ -53,24 +62,16 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
             <span>DEMO</span>
           </div>
           {step === 0 ? (
-            <>
-              {[
-                en ? 'Entrance' : 'エントランス',
-                en ? 'Art room' : '美術室',
-                en ? 'Gymnasium' : '体育館',
-              ].map((name, i) => (
-                <div className="tutorial-place" key={name}>
-                  <b>{String(i + 1).padStart(2, '0')}</b>
-                  <div>
-                    <strong>{name}</strong>
-                    <small>
-                      {en ? 'QR by the entrance' : '入口にQRコードを設置'}
-                    </small>
-                  </div>
-                  <MapPin size={17} />
+            sampleRooms.map((name, i) => (
+              <div className="tutorial-place" key={name}>
+                <b>{String(i + 1).padStart(2, '0')}</b>
+                <div>
+                  <strong>{t(name)}</strong>
+                  <small>{t('入口にQRコードを設置')}</small>
                 </div>
-              ))}
-            </>
+                <MapPin size={17} />
+              </div>
+            ))
           ) : step === 1 ? (
             <>
               <div className="tutorial-camera">
@@ -80,11 +81,11 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
               </div>
               <div className="tutorial-success">
                 <Check size={19} />
-                {en ? 'Stamp collected!' : 'スタンプを獲得しました！'}
+                {t('スタンプを獲得しました！')}
               </div>
               <div className="tutorial-scan-button">
                 <QrCode size={19} />
-                {en ? 'Scan QR code' : 'QRコードを読み取る'}
+                {t('QRコードを読み取る')}
               </div>
             </>
           ) : (
@@ -92,7 +93,7 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
               <div className="tutorial-complete">
                 <Trophy size={33} />
                 <div>
-                  <strong>{en ? 'Complete!' : 'コンプリート！'}</strong>
+                  <strong>{t('コンプリート！')}</strong>
                   <span>3 / 3</span>
                 </div>
               </div>
@@ -104,53 +105,43 @@ export function RallyDemo({ onClose }: { onClose: () => void }) {
                     </span>
                     <small>
                       <Check size={12} />
-                      {en ? 'Collected' : '獲得済み'}
+                      {t('獲得済み')}
                     </small>
                   </div>
                 ))}
               </div>
               <p className="tutorial-congrats">
-                {en
-                  ? 'You visited every location!'
-                  : '全スポット達成、おめでとう！'}
+                {t('全スポット達成、おめでとう！')}
               </p>
             </>
           )}
         </div>
+
         <div className="tutorial-tabs tutorial-nav-preview" aria-hidden="true">
-          <strong>{en ? 'Stamp book' : 'スタンプ帳'}</strong>
-          <span>{en ? 'Locations' : '設置場所'}</span>
-          <span>{en ? 'Rewards' : '特典'}</span>
+          <strong>{t('スタンプ帳')}</strong>
+          <span>{t('設置場所')}</span>
+          <span>{t('特典')}</span>
         </div>
         <p className="tutorial-note">
-          {en
-            ? 'Illustration only. This demo does not use your camera or add real stamps.'
-            : '説明用の画面です。デモではカメラを起動せず、実際のスタンプも増えません。'}
+          {t(
+            '説明用の画面です。デモではカメラを起動せず、実際のスタンプも増えません。',
+          )}
         </p>
+
         <div className="tutorial-bottom">
-          <span
-            aria-label={
-              en ? 'Step ' + (step + 1) + ' of 3' : step + 1 + ' / 3 ステップ'
-            }
-          >
-            {[0, 1, 2].map((i) => (
-              <i key={i} className={step === i ? 'active' : ''} />
+          <span aria-label={`${step + 1} / ${steps.length}`}>
+            {steps.map((item, i) => (
+              <i key={item.title} className={step === i ? 'active' : ''} />
             ))}
           </span>
           <div>
             {step > 0 && (
               <Button variant="outline" onClick={() => setStep(step - 1)}>
-                {en ? 'Back' : '戻る'}
+                {t('戻る')}
               </Button>
             )}
-            <Button onClick={() => (step < 2 ? setStep(step + 1) : onClose())}>
-              {step === 2
-                ? en
-                  ? 'Start exploring'
-                  : 'スタンプ帳を使う'
-                : en
-                  ? 'Next'
-                  : '次へ'}
+            <Button onClick={() => (last ? onClose() : setStep(step + 1))}>
+              {t(last ? 'スタンプ帳を使う' : '次へ')}
               <ArrowRight size={17} />
             </Button>
           </div>

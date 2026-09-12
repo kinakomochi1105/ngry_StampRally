@@ -5,6 +5,14 @@ import { spots, event } from '../lib/event.ts';
 const secret = process.env.RALLY_SECRET;
 if (!secret || secret.length < 32)
   throw new Error('Load RALLY_SECRET with node --env-file=.env');
+// Posters carry a link so a phone camera app can open them, which means the
+// public address has to be known before printing. RALLY_SITE_URL is the same
+// value the server uses for the codes shown in the admin screen.
+const site = (process.env.RALLY_SITE_URL ?? '').trim().replace(/\/+$/, '');
+if (!/^https?:\/\/[^/?#\s]+$/.test(site))
+  throw new Error(
+    'Set RALLY_SITE_URL to the public address, e.g. RALLY_SITE_URL=https://rally.example.jp',
+  );
 mkdirSync('outputs', { recursive: true });
 const esc = (s) =>
   s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
@@ -13,14 +21,14 @@ for (const [index, spot] of spots.entries()) {
   const signature = createHmac('sha256', secret)
     .update(`qr:${event.id}:${spot.id}`)
     .digest('hex');
-  const code = `rally:${event.id}:${spot.id}:${signature}`;
+  const code = `${site}/s/${spot.id}/${signature}`;
   const qr = await QRCode.toString(code, {
     type: 'svg',
     errorCorrectionLevel: 'M',
     margin: 4,
     width: 320,
   });
-  cards += `<section><p>文化祭 STAMP RALLY / ${index + 1}</p><h1>${esc(spot.name)}</h1><h2>${esc(spot.location)}</h2>${qr}<h2>サイト内の「QRコードを読み取る」から<br>このQRコードを読み取ってください。</h2><p>${esc(spot.description)}</p><small>開催準備用サンプル。本番の場所へ差し替えてから印刷してください。</small></section>`;
+  cards += `<section><p>文化祭 STAMP RALLY / ${index + 1}</p><h1>${esc(spot.name)}</h1><h2>${esc(spot.location)}</h2>${qr}<h2>スマホのカメラで読み取ってください。<br>スタンプラリーのサイトが開き、自動でスタンプが押されます。</h2><p>${esc(site)}</p><p>${esc(spot.description)}</p><small>開催準備用サンプル。本番の場所へ差し替えてから印刷してください。</small></section>`;
 }
 writeFileSync(
   'outputs/qr-posters.html',
