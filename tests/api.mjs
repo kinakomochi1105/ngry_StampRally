@@ -52,6 +52,7 @@ async function register(data) {
   };
 }
 let original;
+const gateWord = 'ぶんかさい-テスト';
 try {
   for (const path of ['participants', 'spots', 'settings', 'export'])
     assert.equal((await req('/api/admin/' + path)).status, 401);
@@ -713,12 +714,114 @@ try {
     });
     assert.equal(denied.status, i < 10 ? 401 : 429);
   }
+  // Site-wide access word. Set last, because everything above runs on an open
+  // site, and cleared again in the teardown below whatever happens here.
+  assert.equal((await req('/api/gate')).data.required, false);
+  assert.equal(
+    (
+      await adm('settings', {
+        action: 'sitePassword',
+        password: 'ab',
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await adm('settings', { action: 'sitePassword', password: gateWord }))
+      .status,
+    200,
+  );
+  assert.equal((await adm('settings')).data.sitePasswordSet, true);
+  assert.equal((await req('/api/gate')).data.required, true);
+  // Every participant entry point closes, including one holding a valid pass.
+  const closed = await req('/api/passport', { cookie: student.cookie });
+  assert.equal(closed.status, 401);
+  assert.equal(closed.data.code, 'gate');
+  assert.equal((await req('/api/passport')).status, 401);
+  assert.equal(
+    (
+      await req('/api/stamp', {
+        cookie: student.cookie,
+        data: { code: managed[0].code },
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await req('/api/report', {
+        cookie: student.cookie,
+        data: { spotId: managed[0].id, level: 1 },
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await req('/api/register', {
+        data: { kind: 'guest', nickname: '通行人' },
+      })
+    ).status,
+    401,
+  );
+  // The organiser console stays reachable, or a typo would lock out the only
+  // person who can undo it.
+  assert.equal((await adm('participants')).status, 200);
+  // A wrong word is refused, the right one hands back a pass, and the pass
+  // then opens the participant API again.
+  assert.equal(
+    (await req('/api/gate', { data: { password: gateWord + 'x' } })).status,
+    401,
+  );
+  assert.equal(
+    (
+      await req('/api/gate', {
+        origin: 'https://attacker.invalid',
+        data: { password: gateWord },
+      })
+    ).status,
+    403,
+  );
+  const opened = await req('/api/gate', { data: { password: gateWord } });
+  assert.equal(opened.status, 200);
+  assert.match(opened.cookie, /^rally_gate=/);
+  assert.equal(
+    (
+      await req('/api/passport', {
+        cookie: student.cookie + '; ' + opened.cookie,
+      })
+    ).status,
+    200,
+  );
+  // Changing the word invalidates passes handed out under the old one.
+  assert.equal(
+    (
+      await adm('settings', {
+        action: 'sitePassword',
+        password: gateWord + '-new',
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await req('/api/passport', { cookie: opened.cookie })).status,
+    401,
+  );
+  assert.equal(
+    (await adm('settings', { action: 'sitePassword', clear: true })).status,
+    200,
+  );
+  assert.equal((await adm('settings')).data.sitePasswordSet, false);
+  assert.equal((await req('/api/passport')).status, 200);
+
   console.log(
-    'PASS: crowd reports (auth, range, unknown spot, CSRF, 5-minute hold-off, anonymous average), QR link forwarding/legacy token/refused codes, nickname rules/custom blocklist, recovery preserves stamps and IDs, wrong factors rejected, session revocation, code reissue, recovery throttle, student enrollment/duplicates, 12 concurrent unique guest IDs/no reuse, profile isolation, 24 simultaneous stamps, completion/ranking, custom grade/class, admin edits/reset/delete/CSV, registration pause, protected APIs, CSRF, invalid QR, QR decoder.',
+    'PASS: site access word (set/clear, validation, every participant entry point closed, admin still reachable, wrong word, CSRF, pass issued, old pass invalidated on change), crowd reports (auth, range, unknown spot, CSRF, 5-minute hold-off, anonymous average), QR link forwarding/legacy token/refused codes, nickname rules/custom blocklist, recovery preserves stamps and IDs, wrong factors rejected, session revocation, code reissue, recovery throttle, student enrollment/duplicates, 12 concurrent unique guest IDs/no reuse, profile isolation, 24 simultaneous stamps, completion/ranking, custom grade/class, admin edits/reset/delete/CSV, registration pause, protected APIs, CSRF, invalid QR, QR decoder.',
   );
 } finally {
   if (adminCookie) {
     if (original) await adm('settings', { settings: original });
+    // The site must never be left locked by a failed run.
+    await adm('settings', { action: 'sitePassword', clear: true });
     for (const id of tracked)
       await adm('participants', {
         id,

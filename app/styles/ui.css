@@ -545,10 +545,6 @@
   display: inline-flex;
 }
 
-.language-trigger-label {
-  display: none;
-}
-
 /* Below ~420px the festival name needs the room more than the language name
    does, so the trigger falls back to its icon alone. */
 .language-current {
@@ -565,9 +561,7 @@
 }
 
 .language-current small {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--muted-ink);
+  display: none;
 }
 
 .language-chevron {
@@ -649,18 +643,28 @@
   color: var(--accent-ink);
 }
 
-@media (min-width: 900px) {
-  .language-trigger-label {
-    display: grid;
-    text-align: start;
-    line-height: 1.25;
-  }
+/* Navigation bars: the manual, the console and the rally all carry the same
+   row of text links beside their name. */
+.top-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
 
-  .language-trigger-label strong {
-    font-size: var(--fs-sm);
-  }
+.top-links a {
+  padding: 8px 11px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--muted-ink);
+}
 
-  .language-trigger-label small {
-    display: none;
-  }
+.top-links a:hover {
+  color: var(--ink);
+  background: var(--soft-bg);
+}
+
+.top-links a.active {
+  color: var(--accent-ink);
 }

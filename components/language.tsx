@@ -85,12 +85,6 @@ export function LanguageSelect() {
           <span className="language-symbol">
             <Languages size={22} aria-hidden="true" />
           </span>
-          <span className="language-trigger-label">
-            <strong>言語 / Language</strong>
-            <small>
-              {locale === 'ja' ? 'タップして切り替え' : 'Tap to change'}
-            </small>
-          </span>
           <span className="language-current">
             {current}
             {preference === 'auto' && (

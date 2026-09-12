@@ -6,6 +6,7 @@ import { LanguageSelect, useI18n } from '@/components/language';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { Enrollment } from '@/components/enrollment';
+import { GateScreen } from '@/components/participant/gate-screen';
 import { FloorMap } from '@/components/floor-map';
 import { RallyDemo } from '@/components/rally-demo';
 import { Scanner } from '@/components/scanner';
@@ -15,6 +16,11 @@ import {
   type RecoveryReceipt,
 } from '@/components/recovery';
 import { RewardClaimDialog, type Redemption } from '@/components/reward';
+import {
+  CrowdReportDialog,
+  CrowdReportPrompt,
+  useCrowdPrompt,
+} from '@/components/participant/crowd-report';
 import {
   SettingsButton,
   SettingsDialog,
@@ -61,13 +67,25 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [receipt, setReceipt] = useState<RecoveryReceipt | null>(null);
 
+  const crowd = useCrowdPrompt();
+  const { ask } = crowd;
+
   // A stamp can arrive while another screen is open — from the scanner, or
-  // from a poster link. Land on the book so it is visible while it animates.
-  const showBook = useCallback(() => setTab('book'), []);
+  // from a poster link. Land on the book so it is visible while it animates,
+  // then ask the one person who can see this spot's queue about it.
+  const collected = useCallback(
+    (spotId: string) => {
+      setTab('book');
+      ask(spotId);
+    },
+    [ask],
+  );
   const showPlaces = useCallback(() => setTab('places'), []);
   const {
     data,
     loading,
+    locked,
+    unlock,
     failed,
     notice,
     pendingStamp,
@@ -78,7 +96,7 @@ export default function Home() {
     scan,
     report,
     applyRedemption,
-  } = usePassport({ onCollected: showBook });
+  } = usePassport({ onCollected: collected });
 
   const { profile, spots, settings, stamps, traffic } = data;
   const total = spots.length;
@@ -87,6 +105,8 @@ export default function Home() {
   ).length;
   const complete = total > 0 && count === total;
   const hasStamp = (spotId: string) => stamps.some((s) => s.spotId === spotId);
+  const spotById = (spotId: string | null) =>
+    spots.find((s) => s.id === spotId) ?? null;
   const redemption: Redemption | null = profile?.redeemedAt
     ? { redeemedAt: profile.redeemedAt, completedAt: profile.completedAt }
     : null;
@@ -127,12 +147,9 @@ export default function Home() {
           </span>
         </Link>
         <div className="topbar-actions">
+          <ThemeToggle />
           <LanguageSelect />
-          {profile ? (
-            <SettingsButton onClick={() => setSettingsOpen(true)} />
-          ) : (
-            <ThemeToggle />
-          )}
+          {profile && <SettingsButton onClick={() => setSettingsOpen(true)} />}
         </div>
       </header>
 
@@ -150,7 +167,9 @@ export default function Home() {
             </output>
           )}
 
-          {loading && !profile ? (
+          {locked ? (
+            <GateScreen onUnlock={unlock} />
+          ) : loading && !profile ? (
             <output
               className="passport-skeleton"
               aria-label={t('参加情報を読み込み中…')}
@@ -300,6 +319,17 @@ export default function Home() {
               />
 
               <Scanner open={scanning} onClose={closeScanner} onScan={scan} />
+              <CrowdReportPrompt
+                spot={spotById(crowd.asking)}
+                onAccept={crowd.accept}
+                onDismiss={crowd.dismiss}
+                onMute={crowd.mute}
+              />
+              <CrowdReportDialog
+                spot={spotById(crowd.reporting)}
+                onClose={crowd.closeReport}
+                onSend={report}
+              />
               <RewardClaimDialog
                 open={claiming}
                 onClose={() => setClaiming(false)}

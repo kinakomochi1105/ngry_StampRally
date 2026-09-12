@@ -48,7 +48,7 @@ export function PersonDialog({
       }}
     >
       <DialogContent
-        className="admin-dialog"
+        className="admin-dialog person-dialog"
         showCloseButton={false}
         initialFocus={heading}
       >
@@ -88,129 +88,134 @@ function PersonBody({
   return (
     <>
       {/* The editor lists every location with the time it was collected,
-                so no second history list is needed. */}
+          so no second history list is needed. On a desktop it keeps the left
+          half of the sheet and the reward and operations sit beside it; on a
+          phone `.dialog-column` is `display: contents`, so they stay stacked. */}
       <AdminStamps id={person.id} onUpdated={onReload} />
 
-      <div className="redeem-panel">
-        <div>
-          <strong>{t('報酬の交換')}</strong>
-          <small>
-            {person.redeemedAt
-              ? t('交換済み') + ' · ' + dateTime(person.redeemedAt, locale)
-              : t('まだ交換していません。')}
-          </small>
+      <div className="dialog-column">
+        <div className="redeem-panel">
+          <div>
+            <strong>{t('報酬の交換')}</strong>
+            <small>
+              {person.redeemedAt
+                ? t('交換済み') + ' · ' + dateTime(person.redeemedAt, locale)
+                : t('まだ交換していません。')}
+            </small>
+          </div>
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => {
+              const redeemed = !person.redeemedAt;
+              if (
+                !redeemed &&
+                !window.confirm(t('交換の記録を取り消します。よろしいですか？'))
+              )
+                return;
+              onSave(
+                { id: person.id, action: 'redeem', redeemed },
+                redeemed
+                  ? '報酬を交換済みにしました。'
+                  : '交換の記録を取り消しました。',
+              );
+            }}
+          >
+            {t(person.redeemedAt ? '交換を取り消す' : '交換済みにする')}
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={() => {
-            const redeemed = !person.redeemedAt;
-            if (
-              !redeemed &&
-              !window.confirm(t('交換の記録を取り消します。よろしいですか？'))
-            )
-              return;
+
+        <form
+          className="admin-form"
+          onSubmit={(e) => {
+            e.preventDefault();
             onSave(
-              { id: person.id, action: 'redeem', redeemed },
-              redeemed
-                ? '報酬を交換済みにしました。'
-                : '交換の記録を取り消しました。',
+              { ...person, action, confirm: confirmation },
+              '参加者情報を更新しました。',
             );
           }}
         >
-          {t(person.redeemedAt ? '交換を取り消す' : '交換済みにする')}
-        </Button>
-      </div>
-
-      <form
-        className="admin-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSave(
-            { ...person, action, confirm: confirmation },
-            '参加者情報を更新しました。',
-          );
-        }}
-      >
-        <label>
-          {t('操作')}
-          <select
-            value={action}
-            onChange={(e) => {
-              setAction(e.target.value as Action);
-              setConfirmation('');
-            }}
-          >
-            {person.kind === 'student' && (
-              <option value="edit">{t('登録内容を修正')}</option>
-            )}
-            <option value="reset">{t('スタンプをリセット')}</option>
-            <option value="delete">{t('参加者と履歴を削除')}</option>
-          </select>
-        </label>
-        {action === 'edit' ? (
-          <>
-            <div className="field-pair">
-              <label>
-                {t('学年')}
-                <input
-                  value={person.grade ?? ''}
-                  onChange={(e) =>
-                    onChange({ ...person, grade: e.target.value })
-                  }
-                  required
-                />
-              </label>
-              <label>
-                {t('組')}
-                <input
-                  value={person.className ?? ''}
-                  onChange={(e) =>
-                    onChange({ ...person, className: e.target.value })
-                  }
-                  required
-                />
-              </label>
-              <label>
-                {t('出席番号')}
-                <input
-                  type="number"
-                  min={1}
-                  value={person.number ?? ''}
-                  onChange={(e) =>
-                    onChange({ ...person, number: Number(e.target.value) })
-                  }
-                  required
-                />
-              </label>
-            </div>
-            <p className="form-hint">
-              {t('開催設定で登録されている学年・組を入力してください。')}
-            </p>
-          </>
-        ) : (
           <label>
-            {t('取り消せません。「')}
-            {confirmWord[action]}
-            {t('」と入力')}
-            <input
-              value={confirmation}
-              onChange={(e) => setConfirmation(e.target.value)}
-              required
-            />
+            {t('操作')}
+            <select
+              value={action}
+              onChange={(e) => {
+                setAction(e.target.value as Action);
+                setConfirmation('');
+              }}
+            >
+              {person.kind === 'student' && (
+                <option value="edit">{t('登録内容を修正')}</option>
+              )}
+              <option value="reset">{t('スタンプをリセット')}</option>
+              <option value="delete">{t('参加者と履歴を削除')}</option>
+            </select>
           </label>
-        )}
-        {error && <output className="form-error">{t(error)}</output>}
-        <Button
-          type="submit"
-          disabled={
-            busy || (action !== 'edit' && confirmation !== confirmWord[action])
-          }
-          variant={action === 'edit' ? 'default' : 'destructive'}
-        >
-          {t('実行する')}
-        </Button>
-      </form>
+          {action === 'edit' ? (
+            <>
+              <div className="field-pair">
+                <label>
+                  {t('学年')}
+                  <input
+                    value={person.grade ?? ''}
+                    onChange={(e) =>
+                      onChange({ ...person, grade: e.target.value })
+                    }
+                    required
+                  />
+                </label>
+                <label>
+                  {t('組')}
+                  <input
+                    value={person.className ?? ''}
+                    onChange={(e) =>
+                      onChange({ ...person, className: e.target.value })
+                    }
+                    required
+                  />
+                </label>
+                <label>
+                  {t('出席番号')}
+                  <input
+                    type="number"
+                    min={1}
+                    value={person.number ?? ''}
+                    onChange={(e) =>
+                      onChange({ ...person, number: Number(e.target.value) })
+                    }
+                    required
+                  />
+                </label>
+              </div>
+              <p className="form-hint">
+                {t('開催設定で登録されている学年・組を入力してください。')}
+              </p>
+            </>
+          ) : (
+            <label>
+              {t('取り消せません。「')}
+              {confirmWord[action]}
+              {t('」と入力')}
+              <input
+                value={confirmation}
+                onChange={(e) => setConfirmation(e.target.value)}
+                required
+              />
+            </label>
+          )}
+          {error && <output className="form-error">{t(error)}</output>}
+          <Button
+            type="submit"
+            disabled={
+              busy ||
+              (action !== 'edit' && confirmation !== confirmWord[action])
+            }
+            variant={action === 'edit' ? 'default' : 'destructive'}
+          >
+            {t('実行する')}
+          </Button>
+        </form>
+      </div>
     </>
   );
 }

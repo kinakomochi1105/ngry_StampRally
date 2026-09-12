@@ -77,7 +77,10 @@ export function SpotDialog({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="admin-dialog" showCloseButton={false}>
+      <DialogContent
+        className="admin-dialog spot-dialog"
+        showCloseButton={false}
+      >
         <DialogTitle>
           {t(spot?.id ? '設置場所を編集' : '設置場所を追加')}
         </DialogTitle>
@@ -94,36 +97,63 @@ export function SpotDialog({
               onSave(spot);
             }}
           >
-            <label>
-              {t('名称')}
-              <input
-                value={spot.name}
-                maxLength={60}
-                onChange={(e) => onChange({ ...spot, name: e.target.value })}
-                required
-              />
-            </label>
-            <label>
-              {t('場所・階・教室')}
-              <input
-                value={spot.location}
-                maxLength={80}
-                onChange={(e) =>
-                  onChange({ ...spot, location: e.target.value })
-                }
-                required
-              />
-            </label>
-            <label>
-              {t('設置位置の案内')}
-              <textarea
-                value={spot.description}
-                maxLength={160}
-                onChange={(e) =>
-                  onChange({ ...spot, description: e.target.value })
-                }
-              />
-            </label>
+            {/* On a desktop the written details take the left half and the
+                icon picker the right one. `.dialog-column` is `display:
+                contents` on a phone, so there the fields stay in one stream. */}
+            <div className="dialog-column">
+              <label>
+                {t('名称')}
+                <input
+                  value={spot.name}
+                  maxLength={60}
+                  onChange={(e) => onChange({ ...spot, name: e.target.value })}
+                  required
+                />
+              </label>
+              <label>
+                {t('場所・階・教室')}
+                <input
+                  value={spot.location}
+                  maxLength={80}
+                  onChange={(e) =>
+                    onChange({ ...spot, location: e.target.value })
+                  }
+                  required
+                />
+              </label>
+              <label>
+                {t('設置位置の案内')}
+                <textarea
+                  value={spot.description}
+                  maxLength={160}
+                  onChange={(e) =>
+                    onChange({ ...spot, description: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                {t('表示順')}
+                <input
+                  type="number"
+                  min={0}
+                  max={999}
+                  value={spot.sortOrder}
+                  onChange={(e) =>
+                    onChange({ ...spot, sortOrder: Number(e.target.value) })
+                  }
+                />
+              </label>
+              <label className="check-label">
+                <input
+                  type="checkbox"
+                  checked={spot.active === 1}
+                  onChange={(e) =>
+                    onChange({ ...spot, active: e.target.checked ? 1 : 0 })
+                  }
+                />
+                {t('公開して押印対象にする')}
+              </label>
+            </div>
 
             {/* The icon appears on the participant's stamp card: either one of
                 the templates or a picture the organiser supplies. */}
@@ -205,28 +235,6 @@ export function SpotDialog({
               </small>
             </div>
 
-            <label>
-              {t('表示順')}
-              <input
-                type="number"
-                min={0}
-                max={999}
-                value={spot.sortOrder}
-                onChange={(e) =>
-                  onChange({ ...spot, sortOrder: Number(e.target.value) })
-                }
-              />
-            </label>
-            <label className="check-label">
-              <input
-                type="checkbox"
-                checked={spot.active === 1}
-                onChange={(e) =>
-                  onChange({ ...spot, active: e.target.checked ? 1 : 0 })
-                }
-              />
-              {t('公開して押印対象にする')}
-            </label>
             {error && <output className="form-error">{t(error)}</output>}
             <Button type="submit" disabled={busy}>
               {t('保存')}

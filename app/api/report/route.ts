@@ -1,6 +1,7 @@
 import { database } from '@/db';
 import { event } from '@/lib/event';
 import { bodyJson } from '@/lib/data';
+import { gate } from '@/lib/gate';
 import { json, participant, sign, validOrigin } from '@/lib/server';
 import {
   averageLevel,
@@ -20,6 +21,8 @@ import {
 export async function POST(request: Request) {
   if (!validOrigin(request))
     return json({ error: 'ページを開き直してください。' }, 403);
+  const closed = await gate(request);
+  if (closed) return closed;
   try {
     const data = await bodyJson(request, 1024);
     const hash = await participant(request);

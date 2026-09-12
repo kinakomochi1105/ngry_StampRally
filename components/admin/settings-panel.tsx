@@ -22,6 +22,7 @@ const asList = (value: string) =>
 export function SettingsPanel({
   settings,
   staffPinSet,
+  sitePasswordSet,
   logs,
   busy,
   onSave,
@@ -30,6 +31,7 @@ export function SettingsPanel({
 }: {
   settings: FestivalSettings;
   staffPinSet: boolean;
+  sitePasswordSet: boolean;
   logs: Audit[];
   busy: boolean;
   onSave: (path: string, data: unknown, message: string) => Promise<boolean>;
@@ -44,6 +46,7 @@ export function SettingsPanel({
     (settings.nicknameBlockedWords ?? []).join('\n'),
   );
   const [staffPin, setStaffPin] = useState('');
+  const [sitePassword, setSitePassword] = useState('');
 
   return (
     <section className="admin-panel">
@@ -147,6 +150,84 @@ export function SettingsPanel({
         <Button type="submit" disabled={busy}>
           {t('設定を保存')}
         </Button>
+      </form>
+
+      {/* The word every visitor types before the participant screens answer.
+          The organiser console stays outside it, so a mistyped word can always
+          be cleared from here. */}
+      <form
+        className="admin-form staff-pin-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void onSave(
+            'settings',
+            { action: 'sitePassword', password: sitePassword },
+            'サイトの合言葉を設定しました。',
+          ).then((ok) => {
+            if (ok) setSitePassword('');
+          });
+        }}
+      >
+        <h3>{t('サイトの合言葉（閲覧パスワード）')}</h3>
+        <p
+          className={
+            sitePasswordSet ? 'staff-pin-state set' : 'staff-pin-state unset'
+          }
+        >
+          {t(
+            sitePasswordSet
+              ? '設定済みです。合言葉を入力しないと参加者サイトを利用できません。'
+              : '未設定です。誰でも参加者サイトを利用できます。',
+          )}
+        </p>
+        <label>
+          {t('新しい合言葉（4〜64文字）')}
+          <input
+            value={sitePassword}
+            onChange={(e) => setSitePassword(e.target.value)}
+            type="text"
+            autoComplete="off"
+            maxLength={64}
+            placeholder={t('例：ぶんかさい2026')}
+          />
+          <small>
+            {t(
+              '校内の掲示や配布物で来場者に伝えてください。変更すると、入力済みの端末でも次のアクセスから再入力が必要になります。管理センターはこの合言葉なしで開けます。',
+            )}
+          </small>
+        </label>
+        <div className="staff-pin-actions">
+          <Button
+            type="submit"
+            disabled={busy || sitePassword.trim().length < 4}
+          >
+            {t('合言葉を保存')}
+          </Button>
+          {sitePasswordSet && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    t(
+                      '合言葉を削除すると、誰でも参加者サイトを利用できるようになります。よろしいですか？',
+                    ),
+                  )
+                )
+                  return;
+                void onSave(
+                  'settings',
+                  { action: 'sitePassword', clear: true },
+                  'サイトの合言葉を削除しました。',
+                );
+              }}
+            >
+              {t('合言葉を削除')}
+            </Button>
+          )}
+        </div>
       </form>
 
       <form

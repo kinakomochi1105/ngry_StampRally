@@ -9,6 +9,7 @@ import {
   retentionSeconds,
 } from '@/lib/server';
 import { bodyJson, staffPinHash, hashStaffPin } from '@/lib/data';
+import { gate } from '@/lib/gate';
 
 // A 4-6 digit PIN is typed on the participant's own phone, so brute force has
 // to be bounded per participant rather than per IP.
@@ -18,6 +19,8 @@ const windowSeconds = 900;
 export async function POST(request: Request) {
   if (!validOrigin(request))
     return json({ error: 'ページを開き直してください。' }, 403);
+  const closed = await gate(request);
+  if (closed) return closed;
   try {
     const hash = await participant(request);
     if (!hash)

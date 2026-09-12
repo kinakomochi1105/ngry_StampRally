@@ -2,9 +2,12 @@ import { database } from '@/db';
 import { event } from '@/lib/event';
 import { json, participant, verifyQr, validOrigin } from '@/lib/server';
 import { bodyJson } from '@/lib/data';
+import { gate } from '@/lib/gate';
 export async function POST(request: Request) {
   if (!validOrigin(request))
     return json({ error: 'ページを開き直してください。' }, 403);
+  const closed = await gate(request);
+  if (closed) return closed;
   try {
     const data = await bodyJson(request, 2048);
     const hash = await participant(request);

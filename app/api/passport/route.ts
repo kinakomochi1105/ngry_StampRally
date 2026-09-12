@@ -3,8 +3,13 @@ import { event } from '@/lib/event';
 import { json, participant, retentionSeconds, logFailure } from '@/lib/server';
 import { allSpots, configuration } from '@/lib/data';
 import { reportWindow } from '@/lib/crowd';
+import { gate } from '@/lib/gate';
 export async function GET(request: Request) {
   try {
+    // Nothing about the festival is answered until the visitor has passed the
+    // access word, when one is set.
+    const closed = await gate(request);
+    if (closed) return closed;
     const hash = await participant(request);
     const now = Math.floor(Date.now() / 1000);
     // Every query is independent of the others, so they all go out together

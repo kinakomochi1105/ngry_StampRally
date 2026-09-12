@@ -9,7 +9,11 @@
  * is simply an empty one, and the caller's own wording is used instead.
  */
 
-export type ApiError = Error & { status: number };
+export type ApiError = Error & {
+  status: number;
+  /** A machine-readable reason, when the API sends one (e.g. `gate`). */
+  code?: string;
+};
 
 export type ApiOptions = {
   /** Present for a POST; absent for a GET. */
@@ -51,6 +55,7 @@ export async function api<T = Record<string, unknown>>(
         : fallbackMessage,
     ) as ApiError;
     problem.status = response.status;
+    if (typeof body.code === 'string') problem.code = body.code;
     throw problem;
   }
   return body as T;
@@ -59,6 +64,10 @@ export async function api<T = Record<string, unknown>>(
 /** True for the one failure a screen reacts to rather than reports. */
 export const isUnauthorized = (problem: unknown) =>
   (problem as { status?: number }).status === 401;
+
+/** The reason the API gave, when it gave one. */
+export const errorCode = (problem: unknown) =>
+  (problem as { code?: string }).code;
 
 /** The message to show for a rejected promise, whatever it carries. */
 export const errorMessage = (problem: unknown, fallback: string) =>

@@ -5,9 +5,12 @@ import { bodyJson, configuration } from '@/lib/data';
 import { validateNickname, nicknameKey } from '@/lib/nickname';
 import { loadForbiddenWords } from '@/lib/forbidden';
 import { makeRecovery } from '@/lib/recovery';
+import { gate } from '@/lib/gate';
 export async function POST(request: Request) {
   if (!validOrigin(request))
     return json({ error: 'ページを開き直してください。' }, 403);
+  const closed = await gate(request);
+  if (closed) return closed;
   try {
     const hash = await participant(request);
     if (!hash) return json({ error: 'ログインが必要です。' }, 401);

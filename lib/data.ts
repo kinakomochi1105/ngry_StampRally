@@ -26,6 +26,34 @@ export function saveStaffPinStatement(hash: string | null) {
         )
         .bind(staffPinKey, hash);
 }
+/**
+ * The word a visitor has to type before the participant screens will talk to
+ * them. It lives under its own settings key, like the staff PIN, so it never
+ * travels inside the settings blob that `configuration()` hands out. Only the
+ * HMAC is stored: the plain word exists in the organiser's form and nowhere
+ * else. Leaving it unset means the site is open, which is the default.
+ */
+const sitePasswordKey = 'site-password:' + event.id;
+export const hashSitePassword = (password: string) =>
+  sign('sitepassword:' + event.id + ':' + password);
+export async function sitePasswordHash() {
+  const row = await database()
+    .prepare('SELECT value FROM settings WHERE event_id = ?')
+    .bind(sitePasswordKey)
+    .first<{ value: string }>();
+  return row?.value ?? null;
+}
+export function saveSitePasswordStatement(hash: string | null) {
+  return hash === null
+    ? database()
+        .prepare('DELETE FROM settings WHERE event_id = ?')
+        .bind(sitePasswordKey)
+    : database()
+        .prepare(
+          'INSERT INTO settings (event_id,value) VALUES (?,?) ON CONFLICT(event_id) DO UPDATE SET value=excluded.value',
+        )
+        .bind(sitePasswordKey, hash);
+}
 export async function configuration() {
   const row = await database()
     .prepare('SELECT value FROM settings WHERE event_id = ?')

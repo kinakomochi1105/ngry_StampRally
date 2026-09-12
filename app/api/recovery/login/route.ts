@@ -10,10 +10,13 @@ import {
 import { bodyJson } from '@/lib/data';
 import { nicknameKey } from '@/lib/nickname';
 import { normalizeCode, recoveryLimit } from '@/lib/recovery';
+import { gate } from '@/lib/gate';
 const invalid = 'ニックネームまたは復旧コードが一致しません。';
 export async function POST(request: Request) {
   if (!validOrigin(request))
     return json({ error: 'ページを開き直してください。' }, 403);
+  const closed = await gate(request);
+  if (closed) return closed;
   try {
     const data = await bodyJson(request, 2048),
       code = normalizeCode(data.recoveryCode);

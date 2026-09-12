@@ -7,20 +7,36 @@
    keeps the same touch size as the participant app.
 --------------------------------------------------------------------------- */
 
+.admin-app {
+  min-height: 100dvh;
+}
+
 .admin-shell {
   display: grid;
   align-content: start;
   gap: 18px;
   width: 100%;
   max-width: var(--wide-max);
-  min-height: 100dvh;
   margin-inline: auto;
-  padding: 0 max(var(--gutter), env(safe-area-inset-left))
+  padding: 18px max(var(--gutter), env(safe-area-inset-left))
     calc(32px + var(--safe-bottom));
+}
+
+/* A desk screen has far more width than one column of console needs, so the
+   shell keeps widening past the shared page maximum: the participant table is
+   the thing that gains from it. */
+@media (min-width: 1400px) {
+  .admin-shell {
+    max-width: 1560px;
+    padding-inline: 28px;
+  }
 }
 
 /* Top bar ------------------------------------------------------------------ */
 
+/* The same bar as the manual: it spans the window rather than the shell, with
+   the name on the left, the links between the two screens beside it, and the
+   display controls and sign-out pushed to the right edge. */
 .admin-topbar {
   position: sticky;
   top: 0;
@@ -28,20 +44,67 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  /* Cancel the shell gutter so the bar spans the full width. */
-  margin-inline: calc(-1 * max(var(--gutter), env(safe-area-inset-left)));
+  gap: 10px 18px;
+  min-height: var(--bar-height);
   padding: 8px max(var(--gutter), env(safe-area-inset-left));
   border-bottom: 1px solid var(--line);
-  background: var(--dock-bg);
-  backdrop-filter: blur(12px);
+  background: var(--surface);
+}
+
+@media (min-width: 900px) {
+  .admin-topbar {
+    padding-inline: 22px;
+  }
+}
+
+/* The links read as words beside the name, the way they do in the manual; the
+   icon inside each one is for the phone layout below. */
+.admin-topbar .top-links svg {
+  display: none;
+}
+
+/* A phone has room for two rows, not three: the name takes the first one, and
+   the links keep their icon alone so they fit on the second beside the display
+   controls and the way out. */
+@media (max-width: 700px) {
+  .admin-topbar {
+    gap: 2px 6px;
+    padding-block: 6px;
+  }
+
+  .admin-brand {
+    flex: 1 1 100%;
+  }
+
+  .admin-brand small {
+    display: none;
+  }
+
+  .admin-topbar .top-links a {
+    display: grid;
+    place-items: center;
+    width: var(--tap);
+    height: var(--tap);
+    padding: 0;
+  }
+
+  .admin-topbar .top-links svg {
+    display: block;
+  }
+
+  .admin-topbar .top-links a span {
+    display: none;
+  }
+}
+
+.admin-topbar-actions {
+  margin-left: auto;
 }
 
 .admin-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   min-width: 0;
 }
 
@@ -49,10 +112,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   flex: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: linear-gradient(140deg, var(--brand-strong), var(--ink));
   color: #fff;
 }
@@ -82,13 +145,13 @@
   flex-wrap: wrap;
 }
 
-/* On a phone the header buttons keep only their icon; the label returns as
+/* On a phone the sign-out button keeps only its icon; the label returns as
    soon as there is room for it. */
 .admin-topbar-button span {
   display: none;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 560px) {
   .admin-topbar-button span {
     display: inline;
   }
@@ -852,4 +915,98 @@
   border-top: 1px solid var(--line);
   font-size: var(--fs-xs);
   color: var(--faint-ink);
+}
+
+/* Wide dialogs ------------------------------------------------------------- */
+
+/* An organiser sheet is one stream on a phone. `.dialog-column` marks the run
+   of blocks that becomes the second column on a desktop; until the screen is
+   wide enough it is transparent to the layout and changes nothing. */
+.dialog-column {
+  display: contents;
+}
+
+@media (min-width: 900px) {
+  /* The three working sheets go landscape: wider than the phone card, never
+     edge to edge, and short enough that the page behind still shows. */
+  .admin-dialog.spot-dialog,
+  .admin-dialog.person-dialog,
+  .admin-dialog.poster-dialog {
+    max-height: 88dvh;
+    padding: 26px 28px;
+    column-gap: 24px;
+  }
+
+  .admin-dialog.spot-dialog {
+    width: min(100% - 64px, 940px);
+  }
+
+  .admin-dialog.person-dialog {
+    width: min(100% - 64px, 1040px);
+  }
+
+  .admin-dialog.poster-dialog {
+    width: min(100% - 64px, 860px);
+  }
+
+  .dialog-column {
+    display: grid;
+    gap: 16px;
+    align-content: start;
+  }
+
+  /* Location editor: the written details on the left, the icon picker on the
+     right, and the message and save button across the foot of the form. */
+  .spot-dialog .admin-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 22px;
+    align-items: start;
+  }
+
+  .spot-dialog .admin-form > .dialog-column {
+    gap: 18px;
+  }
+
+  .spot-dialog .admin-form > .form-error,
+  .spot-dialog .admin-form > [data-slot='button'] {
+    grid-column: 1 / -1;
+  }
+
+  /* Participant editor: the stamp list on the left, the reward and the
+     operations on the right. The heading, the lead paragraph and the closing
+     button read across both. */
+  .person-dialog {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  }
+
+  .person-dialog > [data-slot='dialog-title'],
+  .person-dialog > [data-slot='dialog-description'],
+  .person-dialog > *:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .person-dialog > .stamp-editor,
+  .person-dialog > .dialog-column {
+    align-self: start;
+  }
+
+  /* With half the sheet to itself the list shows far more of the locations
+     before it has to scroll. */
+  .person-dialog .stamp-editor ul {
+    max-height: 58dvh;
+  }
+
+  /* QR poster: the sheet as it will be printed, with its actions beside it. */
+  .poster-dialog {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
+  }
+
+  .poster-dialog > [data-slot='dialog-title'],
+  .poster-dialog > [data-slot='dialog-description'] {
+    grid-column: 1 / -1;
+  }
+
+  .poster-dialog > .dialog-column {
+    align-self: center;
+  }
 }

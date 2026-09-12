@@ -73,6 +73,7 @@ export function useAdmin() {
   const [spots, setSpots] = useState<ManagedSpot[]>([]);
   const [settings, setSettings] = useState<FestivalSettings>(defaultSettings);
   const [staffPinSet, setStaffPinSet] = useState(false);
+  const [sitePasswordSet, setSitePasswordSet] = useState(false);
   const [logs, setLogs] = useState<Audit[]>([]);
   // Bumped whenever settings arrive, so the settings form remounts with the
   // values from the server instead of syncing field by field.
@@ -102,6 +103,7 @@ export function useAdmin() {
         const result = await api('settings');
         setSettings(result.settings as FestivalSettings);
         setStaffPinSet(result.staffPinSet === true);
+        setSitePasswordSet(result.sitePasswordSet === true);
         setLogs(result.logs as Audit[]);
         setSettingsVersion((v) => v + 1);
       }
@@ -234,6 +236,7 @@ export function useAdmin() {
     spots,
     settings,
     staffPinSet,
+    sitePasswordSet,
     logs,
     settingsVersion,
     load,

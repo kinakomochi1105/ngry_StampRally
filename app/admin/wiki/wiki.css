@@ -5,7 +5,7 @@
    list pinned down the left edge, the article in the middle and the table of
    contents on the right. */
 .wiki-app {
-  --wiki-bar: 58px;
+  --wiki-bar: 60px;
   --wiki-side-width: 282px;
   --wiki-rail-width: 218px;
   min-height: 100vh;
@@ -44,73 +44,19 @@
   background: var(--soft-bg);
   color: var(--accent-ink);
 }
-.wiki-top-links {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-}
-.wiki-top-links a {
-  padding: 8px 11px;
-  border-radius: 9px;
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--muted-ink);
-}
-.wiki-top-links a:hover {
-  color: var(--ink);
-  background: var(--soft-bg);
-}
-.wiki-top-links a.active {
-  color: var(--accent-ink);
-}
 .wiki-top-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-left: auto;
 }
-/* The shared language control is a full-width card elsewhere in the app; in a
-   navigation bar it shrinks to its icon and the current language. */
-.wiki-top-actions .language-select {
-  width: auto;
-  margin: 0;
-}
-.wiki-top-actions .language-trigger {
-  width: auto;
-  min-height: 40px;
-  gap: 7px;
-  padding: 5px 10px;
-  border-radius: 10px;
-  box-shadow: none;
-}
-.wiki-top-actions .language-trigger-label {
-  display: none;
-}
-.wiki-top-actions .language-symbol {
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  background: none;
-}
-.wiki-top-actions .language-current {
-  font-size: 13px;
-}
-.wiki-top-actions .language-current small {
-  display: none;
-}
-.wiki-top-actions .theme-toggle {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-}
 .wiki-menu-button {
   display: none;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: var(--tap);
+  height: var(--tap);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--ink);
 }

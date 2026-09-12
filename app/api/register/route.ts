@@ -5,9 +5,12 @@ import { bodyJson, configuration, studentFields } from '@/lib/data';
 import { validateNickname } from '@/lib/nickname';
 import { loadForbiddenWords } from '@/lib/forbidden';
 import { makeRecovery } from '@/lib/recovery';
+import { gate } from '@/lib/gate';
 export async function POST(request: Request) {
   if (!validOrigin(request))
     return json({ error: 'ページを開き直してください。' }, 403);
+  const closed = await gate(request);
+  if (closed) return closed;
   try {
     const data = await bodyJson(request);
     const config = await configuration();

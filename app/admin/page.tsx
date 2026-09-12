@@ -104,9 +104,9 @@ export default function Admin() {
     );
 
   return (
-    <main className="admin-shell">
-      {/* One bar carries the identity and every global action, so a phone shows
-          the same controls as a desktop without a screenful of header. */}
+    <div className="admin-app">
+      {/* The same bar as the manual at /admin/wiki: the name, the links between
+          the two screens, then the display controls and the way out. */}
       <header className="admin-topbar">
         <p className="admin-brand">
           <span className="admin-brand-mark">
@@ -117,26 +117,19 @@ export default function Admin() {
             <small>FESTIVAL CONTROL</small>
           </span>
         </p>
-        <div className="admin-topbar-actions">
-          {/* The manual is its own screen at /admin/wiki, not a tab here. */}
-          <Button
-            variant="outline"
-            className="admin-topbar-button"
-            render={<Link href="/admin/wiki" />}
-            aria-label={t('運営マニュアル')}
-          >
-            <BookOpen size={16} />
+        {/* The manual is its own screen at /admin/wiki, not a tab here. */}
+        <nav className="top-links" aria-label={t('サイト内の移動')}>
+          {/* The icons are for the phone layout, where the labels come off. */}
+          <Link href="/admin/wiki" aria-label={t('運営マニュアル')}>
+            <BookOpen size={18} aria-hidden="true" />
             <span>{t('運営マニュアル')}</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="admin-topbar-button"
-            render={<Link href="/" />}
-            aria-label={t('参加者サイト')}
-          >
-            <House size={16} />
+          </Link>
+          <Link href="/" aria-label={t('参加者サイト')}>
+            <House size={18} aria-hidden="true" />
             <span>{t('参加者サイト')}</span>
-          </Button>
+          </Link>
+        </nav>
+        <div className="admin-topbar-actions">
           <ThemeToggle />
           <LanguageSelect />
           <Button
@@ -151,132 +144,139 @@ export default function Admin() {
         </div>
       </header>
 
-      <div className="admin-stats">
-        {counters.map(({ Icon, label, of }) => (
-          <article key={label + of}>
-            <Icon size={22} aria-hidden="true" />
-            <span>{t(label)}</span>
-            <strong>
-              {admin.stats[of].toLocaleString()}
-              <small>{t('人')}</small>
-            </strong>
-          </article>
-        ))}
-      </div>
+      <main className="admin-shell">
+        <div className="admin-stats">
+          {counters.map(({ Icon, label, of }) => (
+            <article key={label + of}>
+              <Icon size={22} aria-hidden="true" />
+              <span>{t(label)}</span>
+              <strong>
+                {admin.stats[of].toLocaleString()}
+                <small>{t('人')}</small>
+              </strong>
+            </article>
+          ))}
+        </div>
 
-      <nav className="admin-tabs" aria-label={t('管理メニュー')}>
-        {tabs.map(({ id, Icon, label }) => (
-          <button
-            key={id}
-            className={admin.tab === id ? 'active' : ''}
-            aria-current={admin.tab === id ? 'page' : undefined}
-            onClick={() => admin.chooseTab(id as AdminTab)}
-          >
-            <Icon size={18} aria-hidden="true" />
-            {t(label)}
-          </button>
-        ))}
-      </nav>
+        <nav className="admin-tabs" aria-label={t('管理メニュー')}>
+          {tabs.map(({ id, Icon, label }) => (
+            <button
+              key={id}
+              className={admin.tab === id ? 'active' : ''}
+              aria-current={admin.tab === id ? 'page' : undefined}
+              onClick={() => admin.chooseTab(id as AdminTab)}
+            >
+              <Icon size={18} aria-hidden="true" />
+              {t(label)}
+            </button>
+          ))}
+        </nav>
 
-      {admin.error && <output className="form-error">{t(admin.error)}</output>}
-      {admin.notice && <output className="notice">{t(admin.notice)}</output>}
+        {admin.error && (
+          <output className="form-error">{t(admin.error)}</output>
+        )}
+        {admin.notice && <output className="notice">{t(admin.notice)}</output>}
 
-      {(admin.tab === 'participants' || admin.tab === 'ranking') && (
-        <ParticipantsPanel
-          tab={admin.tab}
-          rows={admin.rows}
-          count={admin.count}
-          stats={admin.stats}
+        {(admin.tab === 'participants' || admin.tab === 'ranking') && (
+          <ParticipantsPanel
+            tab={admin.tab}
+            rows={admin.rows}
+            count={admin.count}
+            stats={admin.stats}
+            busy={admin.busy}
+            kind={admin.kind}
+            query={admin.query}
+            page={admin.page}
+            onKind={(value) => {
+              admin.setKind(value);
+              admin.setPage(1);
+            }}
+            onQuery={admin.setQuery}
+            onPage={admin.setPage}
+            onReload={() => void admin.load()}
+            onExport={() => void admin.exportCsv()}
+            onOpen={(row) => setEditingPerson({ ...row })}
+          />
+        )}
+
+        {admin.tab === 'spots' && (
+          <SpotsPanel
+            spots={admin.spots}
+            busy={admin.busy}
+            onEdit={setEditingSpot}
+            onPrint={(spot) => void printQr(spot)}
+            onSeed={() =>
+              void save(
+                'spots',
+                { action: 'seed' },
+                '仮の6か所を作成しました。実際の場所へ編集してください。',
+              )
+            }
+          />
+        )}
+
+        {admin.tab === 'settings' && (
+          <SettingsPanel
+            key={admin.settingsVersion}
+            settings={admin.settings}
+            staffPinSet={admin.staffPinSet}
+            sitePasswordSet={admin.sitePasswordSet}
+            logs={admin.logs}
+            busy={admin.busy}
+            onSave={save}
+            onExport={() => void admin.exportCsv()}
+            onPurge={() => setPurge(true)}
+          />
+        )}
+
+        <SpotDialog
+          spot={editingSpot}
           busy={admin.busy}
-          kind={admin.kind}
-          query={admin.query}
-          page={admin.page}
-          onKind={(value) => {
-            admin.setKind(value);
-            admin.setPage(1);
-          }}
-          onQuery={admin.setQuery}
-          onPage={admin.setPage}
-          onReload={() => void admin.load()}
-          onExport={() => void admin.exportCsv()}
-          onOpen={(row) => setEditingPerson({ ...row })}
+          error={admin.error}
+          onChange={setEditingSpot}
+          onClose={() => setEditingSpot(null)}
+          onSave={(spot) =>
+            void save('spots', spot, '設置場所を保存しました。')
+          }
+          onProblem={admin.setError}
         />
-      )}
 
-      {admin.tab === 'spots' && (
-        <SpotsPanel
-          spots={admin.spots}
+        <PersonDialog
+          person={editingPerson}
           busy={admin.busy}
-          onEdit={setEditingSpot}
-          onPrint={(spot) => void printQr(spot)}
-          onSeed={() =>
+          error={admin.error}
+          onChange={setEditingPerson}
+          onClose={() => setEditingPerson(null)}
+          onSave={(data, message) => void save('participants', data, message)}
+          onReload={admin.load}
+        />
+
+        <PurgeDialog
+          open={purge}
+          busy={admin.busy}
+          onOpenChange={setPurge}
+          onConfirm={(confirmation) =>
             void save(
-              'spots',
-              { action: 'seed' },
-              '仮の6か所を作成しました。実際の場所へ編集してください。',
+              'settings',
+              { action: 'purge', confirm: confirmation },
+              '全参加データを削除しました。',
             )
           }
         />
-      )}
 
-      {admin.tab === 'settings' && (
-        <SettingsPanel
-          key={admin.settingsVersion}
-          settings={admin.settings}
-          staffPinSet={admin.staffPinSet}
-          logs={admin.logs}
-          busy={admin.busy}
-          onSave={save}
-          onExport={() => void admin.exportCsv()}
-          onPurge={() => setPurge(true)}
-        />
-      )}
+        <PosterDialog poster={poster} onClose={() => setPoster(null)} />
 
-      <SpotDialog
-        spot={editingSpot}
-        busy={admin.busy}
-        error={admin.error}
-        onChange={setEditingSpot}
-        onClose={() => setEditingSpot(null)}
-        onSave={(spot) => void save('spots', spot, '設置場所を保存しました。')}
-        onProblem={admin.setError}
-      />
-
-      <PersonDialog
-        person={editingPerson}
-        busy={admin.busy}
-        error={admin.error}
-        onChange={setEditingPerson}
-        onClose={() => setEditingPerson(null)}
-        onSave={(data, message) => void save('participants', data, message)}
-        onReload={admin.load}
-      />
-
-      <PurgeDialog
-        open={purge}
-        busy={admin.busy}
-        onOpenChange={setPurge}
-        onConfirm={(confirmation) =>
-          void save(
-            'settings',
-            { action: 'purge', confirm: confirmation },
-            '全参加データを削除しました。',
-          )
-        }
-      />
-
-      <PosterDialog poster={poster} onClose={() => setPoster(null)} />
-
-      <footer>
-        <span>
-          {t('管理者専用 · 参加者情報は取り扱いに注意してください。')}
-        </span>
-        <span>
-          {t('表示中の対象スポット：')}
-          {admin.stats.spotCount}
-          {t('か所')}
-        </span>
-      </footer>
-    </main>
+        <footer>
+          <span>
+            {t('管理者専用 · 参加者情報は取り扱いに注意してください。')}
+          </span>
+          <span>
+            {t('表示中の対象スポット：')}
+            {admin.stats.spotCount}
+            {t('か所')}
+          </span>
+        </footer>
+      </main>
+    </div>
   );
 }

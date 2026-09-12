@@ -969,6 +969,24 @@
   --choice-border: var(--danger-border);
 }
 
+/* The invitation that follows a scan. Its two answers sit apart: declining
+   forever is deliberately the quietest control on the sheet. */
+
+.crowd-prompt-mute {
+  justify-self: center;
+  min-height: var(--tap);
+  padding-inline: 8px;
+  color: var(--muted-ink);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.crowd-prompt-mute:hover {
+  color: var(--ink);
+}
+
 /* Settings sheet ----------------------------------------------------------- */
 
 .settings-group {
@@ -981,19 +999,6 @@
 }
 
 /* A group whose control sits beside its label rather than under it. */
-.settings-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.settings-row > div {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
 .settings-group h3 {
   font-size: var(--fs-md);
   font-weight: 800;
@@ -1013,6 +1018,55 @@
   font-size: var(--fs-sm);
   line-height: 1.8;
   color: var(--muted-ink);
+}
+
+/* Access word -------------------------------------------------------------- */
+
+/* Shown in place of the whole app while the festival's word is outstanding,
+   so it is centred on the screen rather than stacked under a heading. */
+.gate-screen {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  align-content: center;
+  min-height: min(60dvh, 520px);
+  padding: 28px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.gate-icon {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(140deg, var(--brand), var(--brand-strong));
+  color: var(--brand-ink);
+  box-shadow: var(--shadow-md);
+}
+
+.gate-screen h1 {
+  font-size: var(--fs-xl);
+}
+
+.gate-lead {
+  font-size: var(--fs-md);
+  line-height: 1.75;
+  color: var(--muted-ink);
+}
+
+.gate-screen .enroll-form {
+  width: 100%;
+  max-width: 360px;
+  text-align: start;
+}
+
+.gate-screen > small {
+  color: var(--faint-ink);
 }
 
 /* Registration and sign-in ------------------------------------------------- */
@@ -1376,17 +1430,21 @@
     box-shadow: var(--shadow-md);
   }
 
+  /* A vertical tab strip. The three destinations are the same as the phone
+     dock, but here the chosen one keeps a marker down its left edge, so the
+     panel beside it reads as the body of that tab. */
   .rail-nav {
     display: grid;
     gap: 4px;
   }
 
   .rail-nav button {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 10px;
     min-height: var(--tap);
-    padding: 10px 12px;
+    padding: 10px 12px 10px 16px;
     border: 0;
     border-radius: var(--radius);
     background: transparent;
@@ -1407,6 +1465,23 @@
   .rail-nav button.active {
     background: var(--brand-soft);
     color: var(--accent-ink);
+  }
+
+  .rail-nav button.active::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    width: 3px;
+    height: 20px;
+    border-radius: var(--radius-pill);
+    background: var(--brand-strong);
+    transform: translateY(-50%);
+  }
+
+  /* The completion tick on the rewards tab sits at the far edge. */
+  .rail-tick {
+    margin-inline-start: auto;
   }
 
   .rail-hint {
@@ -1435,9 +1510,47 @@
   }
 }
 
+/* Desk screens: the column stops being capped at reading width, because what
+   fills it is a grid of stamps rather than prose. The cards keep the size they
+   have on a laptop and the extra room becomes more of them to a row — six
+   locations land on one line instead of five and a stray. */
 @media (min-width: 1280px) {
   .app-main {
-    max-width: 880px;
+    max-width: 960px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .app-body {
+    max-width: 1600px;
+  }
+
+  .app-body:has(.app-rail) {
+    gap: 34px;
+  }
+
+  .app-body:has(.app-rail) .app-main {
+    max-width: 1180px;
+    margin-inline: 0;
+  }
+
+  /* Two locations to a row: each card still holds its number, its room and
+     the queue badge without crowding. */
+  .app-body:has(.app-rail) .places {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Narrow phones: the bar now carries the theme as well as the language and the
+   settings, so the festival's own name gets the width back that the stamp mark
+   was using. */
+@media (max-width: 430px) {
+  .brand-icon {
+    display: none;
+  }
+
+  .topbar-actions {
+    gap: 6px;
   }
 }
 

@@ -8,6 +8,9 @@ import {
   staffPinHash,
   hashStaffPin,
   saveStaffPinStatement,
+  sitePasswordHash,
+  hashSitePassword,
+  saveSitePasswordStatement,
 } from '@/lib/data';
 export async function GET(request: Request) {
   const denied = await guard(request);
@@ -15,8 +18,9 @@ export async function GET(request: Request) {
   try {
     return json({
       settings: await configuration(),
-      // Only whether a PIN exists; the value itself never leaves the server.
+      // Only whether these exist; the values themselves never leave the server.
       staffPinSet: (await staffPinHash()) !== null,
+      sitePasswordSet: (await sitePasswordHash()) !== null,
       logs: (
         await database()
           .prepare(
@@ -59,6 +63,37 @@ export async function POST(request: Request) {
           .bind('purge_event', event.id, now),
       ]);
       return json({ ok: true });
+    }
+    /**
+     * The word visitors type before the participant screens answer. Clearing
+     * it reopens the site; changing it invalidates every pass already handed
+     * out, because the signature covers the stored hash.
+     */
+    if (data.action === 'sitePassword') {
+      if (data.clear === true) {
+        await database().batch([
+          saveSitePasswordStatement(null),
+          database()
+            .prepare(
+              'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
+            )
+            .bind('site_password_clear', event.id, now),
+        ]);
+        return json({ ok: true, sitePasswordSet: false });
+      }
+      const password =
+        typeof data.password === 'string' ? data.password.trim() : '';
+      if (password.length < 4 || password.length > 64)
+        throw new Error('合言葉は4〜64文字で入力してください。');
+      await database().batch([
+        saveSitePasswordStatement(await hashSitePassword(password)),
+        database()
+          .prepare(
+            'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
+          )
+          .bind('site_password_set', event.id, now),
+      ]);
+      return json({ ok: true, sitePasswordSet: true });
     }
     if (data.action === 'staffPin') {
       const pin = typeof data.pin === 'string' ? data.pin.trim() : '';

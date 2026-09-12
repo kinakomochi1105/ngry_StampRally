@@ -141,7 +141,9 @@ export function RallyRail({
             >
               <Icon size={20} aria-hidden="true" />
               {t(label)}
-              {id === 'rewards' && complete && <Check size={16} />}
+              {id === 'rewards' && complete && (
+                <Check className="rail-tick" size={16} />
+              )}
             </button>
           );
         })}

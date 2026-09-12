@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { api, errorMessage } from '@/lib/client';
+import { api, errorCode, errorMessage } from '@/lib/client';
 import type { Profile, Spot, FestivalSettings } from '@/lib/types';
 import { defaultSettings } from '@/lib/types';
 import type { TrafficPoint } from '@/components/floor-map';
@@ -70,6 +70,10 @@ export function usePassport({
   const [freshStamp, setFreshStamp] = useState<string | null>(null);
   const [toast, setToast] = useState<RallyToast | null>(null);
   const [pendingStamp, setPendingStamp] = useState<string | null>(null);
+  // True while the festival asks for its access word and this browser has not
+  // given it. Every participant API answers the same way, so one flag covers
+  // the whole screen.
+  const [locked, setLocked] = useState(false);
   const profileId = data.profile?.id;
 
   /**
@@ -81,9 +85,18 @@ export function usePassport({
     if (!background) setLoading(true);
     try {
       setData(await api<Passport>('/api/passport'));
+      setLocked(false);
       setFailed(false);
       setNotice('');
-    } catch {
+    } catch (problem) {
+      // An access word set (or changed) mid-event reaches a background poll
+      // too, so the screen locks itself without waiting for a reload.
+      if (errorCode(problem) === 'gate') {
+        setLocked(true);
+        setFailed(false);
+        setNotice('');
+        return;
+      }
       if (background) return;
       setFailed(true);
       setNotice(
@@ -93,6 +106,18 @@ export function usePassport({
       if (!background) setLoading(false);
     }
   }, []);
+
+  /** Exchanges the festival's access word for the pass cookie, then reloads. */
+  const unlock = useCallback(
+    async (password: string) => {
+      await api('/api/gate', {
+        data: { password },
+        fallback: '合言葉を確認できませんでした。',
+      });
+      await reload();
+    },
+    [reload],
+  );
 
   const scan = useCallback(
     async (code: string) => {
@@ -261,6 +286,8 @@ export function usePassport({
   return {
     data,
     loading,
+    locked,
+    unlock,
     failed,
     notice,
     setNotice,

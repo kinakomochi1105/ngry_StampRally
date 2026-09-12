@@ -338,7 +338,10 @@ function WikiShell({
           </span>
           {t('運営マニュアル')}
         </Link>
-        <nav className="wiki-top-links" aria-label={t('サイト内の移動')}>
+        <nav
+          className="wiki-top-links top-links"
+          aria-label={t('サイト内の移動')}
+        >
           <Link href="/admin/wiki" className={slug ? undefined : 'active'}>
             {t('ドキュメント')}
           </Link>
@@ -363,7 +366,7 @@ function WikiShell({
           <ShieldCheck size={30} aria-hidden="true" />
           <h2>{t('管理者ログインが必要です。')}</h2>
           <p>{t('管理センターでログインしてから開いてください。')}</p>
-          <Button render={<Link href="/admin" />}>
+          <Button render={<Link href="/admin" />} nativeButton={false}>
             {t('管理者ログインへ')}
           </Button>
         </main>

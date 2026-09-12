@@ -46,6 +46,7 @@ for (const path of [
   'components/participant/reward-panel.tsx',
   'components/participant/rally-nav.tsx',
   'components/participant/crowd-report.tsx',
+  'components/participant/gate-screen.tsx',
   'components/participant/settings-dialog.tsx',
   'components/admin/admin-login.tsx',
   'components/admin/participants-panel.tsx',

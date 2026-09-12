@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { RecoverySetup, type RecoveryReceipt } from '@/components/recovery';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n } from '@/components/language';
 
 /** The settings entry in the top bar. */
@@ -62,16 +61,6 @@ export function SettingsDialog({
         <DialogDescription>
           {t('使い方の確認、再ログインの準備、参加データの扱いはここから。')}
         </DialogDescription>
-
-        {/* The theme lives here rather than in the top bar: it is chosen once,
-            and the bar is needed for the festival's own name. */}
-        <section className="settings-group settings-row">
-          <div>
-            <h3>{t('表示テーマ')}</h3>
-            <p>{t('端末の設定に合わせるか、明るい／暗いを選べます。')}</p>
-          </div>
-          <ThemeToggle />
-        </section>
 
         <section className="settings-group">
           <h3>{t('使い方')}</h3>

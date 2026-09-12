@@ -61,12 +61,16 @@ export function PosterDialog({
             {!poster.spot.active && <p>{t('この場所は現在、非公開です。')}</p>}
           </div>
         )}
-        <Button onClick={() => window.print()}>
-          {t('このQRコードを印刷')}
-        </Button>
-        <DialogClose render={<Button variant="outline" />}>
-          {t('閉じる')}
-        </DialogClose>
+        {/* On a desktop the sheet sits on the left and its actions beside it;
+            `.dialog-column` is `display: contents` on a phone. */}
+        <div className="dialog-column">
+          <Button onClick={() => window.print()}>
+            {t('このQRコードを印刷')}
+          </Button>
+          <DialogClose render={<Button variant="outline" />}>
+            {t('閉じる')}
+          </DialogClose>
+        </div>
       </DialogContent>
     </Dialog>
   );
