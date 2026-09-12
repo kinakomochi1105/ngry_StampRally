@@ -139,7 +139,9 @@
 }
 .wiki-main {
   min-width: 0;
+  width: 100%;
   max-width: 1240px;
+  margin-inline: auto;
   padding: 28px 40px 64px;
 }
 .wiki-doc-frame {
