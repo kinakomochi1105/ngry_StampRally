@@ -16,8 +16,7 @@ import type { CrowdReading } from '@/lib/crowd';
 import type { MapArea, Spot, VenueMap } from '@/lib/types';
 
 /** The picture, addressed by the version it was last saved at. */
-export const mapImageUrl = (map: VenueMap) =>
-  `/api/map/${map.id}?v=${map.updatedAt}`;
+const mapImageUrl = (map: VenueMap) => `/api/map/${map.id}?v=${map.updatedAt}`;
 
 const zoomSteps = [1, 1.6, 2.4, 3.2];
 
@@ -112,13 +111,12 @@ function OneMap({
   return (
     <section className="venue-map" aria-label={map.name}>
       <div className="venue-map-tools">
-        <p>{t('地図の枠をタップすると、その団体の詳細が開きます。')}</p>
         <div className="venue-zoom">
           <button
             type="button"
             aria-label={t('縮小')}
             disabled={zoom === 0}
-            onClick={() => setZoom(Math.max(0, zoom - 1))}
+            onClick={() => setZoom((step) => Math.max(0, step - 1))}
           >
             <Minus size={17} aria-hidden="true" />
           </button>
@@ -127,7 +125,9 @@ function OneMap({
             type="button"
             aria-label={t('拡大')}
             disabled={zoom === zoomSteps.length - 1}
-            onClick={() => setZoom(Math.min(zoomSteps.length - 1, zoom + 1))}
+            onClick={() =>
+              setZoom((step) => Math.min(zoomSteps.length - 1, step + 1))
+            }
           >
             <Plus size={17} aria-hidden="true" />
           </button>

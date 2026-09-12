@@ -259,10 +259,18 @@ export default function Home() {
                 <div className="panel-swap" key={tab}>
                   <div className="panel-head">
                     <h2 className="rally-panel-title">
-                      {t(panelCopy[tab].title)}
+                      {t(
+                        tab === 'map' && maps.length > 0
+                          ? '会場マップ'
+                          : panelCopy[tab].title,
+                      )}
                     </h2>
                     <p className="panel-instructions">
-                      {t(panelCopy[tab].hint)}
+                      {t(
+                        tab === 'map' && maps.length > 0
+                          ? '地図の枠をタップすると、その団体の詳細が開きます。'
+                          : panelCopy[tab].hint,
+                      )}
                     </p>
                   </div>
                   {tab === 'rewards' ? (

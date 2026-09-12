@@ -327,17 +327,14 @@
   gap: 12px;
 }
 
+/* The zoom control sits over the right corner of the picture, where the
+   heading above the panel already says what tapping a room does. */
 .venue-map-tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
-}
-
-.venue-map-tools p {
-  font-size: var(--fs-sm);
-  color: var(--muted-ink);
 }
 
 .venue-zoom {
@@ -1306,9 +1303,13 @@
   list-style: none;
 }
 
+/* `align-content: start` keeps a short card's rows packed at the top: side by
+   side the cards stretch to the tallest one, and without it the icon and the
+   heading drift apart to fill the spare height. */
 .help-steps > li,
 .help-tips > li {
   display: grid;
+  align-content: start;
   gap: 6px;
   padding: 18px;
   border: 1px solid var(--line);

@@ -80,6 +80,36 @@
     box-shadow: none;
   }
 
+  /* The venue map prints as the picture it is: full width, never zoomed, with
+     the areas still marked so a paper copy matches the phone. */
+  .venue-map-tools,
+  .venue-area-close {
+    display: none !important;
+  }
+
+  .venue-map-frame {
+    overflow: visible;
+    border-color: #999;
+  }
+
+  .venue-map-stage {
+    width: 100% !important;
+    break-inside: avoid;
+  }
+
+  .venue-area,
+  .venue-area-card {
+    border-color: #333;
+    background: none;
+    box-shadow: none;
+  }
+
+  .venue-area-pin {
+    border: 1px solid #000;
+    background: #fff;
+    color: #000;
+  }
+
   .qr-poster {
     border: 2px solid #000;
   }
