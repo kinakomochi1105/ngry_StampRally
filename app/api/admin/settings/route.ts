@@ -1,192 +1,163 @@
-import { database } from '@/db';
-import { event } from '@/lib/event';
-import { json, logFailure } from '@/lib/server';
-import { guard } from '@/lib/admin';
+import { desc, eq } from 'drizzle-orm';
+import { db, writeBatch } from '@/db';
 import {
-  bodyJson,
+  auditLog,
+  participants,
+  spotActivity,
+  spotReports,
+  stamps,
+} from '@/db/schema';
+import { requireAdmin } from '@/lib/admin';
+import { auditStatement } from '@/lib/audit';
+import { event } from '@/lib/event';
+import { blocklistProblem } from '@/lib/forbidden';
+import { bodyJson, json, nowSeconds, route, UserError } from '@/lib/http';
+import {
   configuration,
-  staffPinHash,
-  hashStaffPin,
-  saveStaffPinStatement,
-  sitePasswordHash,
-  hashSitePassword,
-  saveSitePasswordStatement,
-} from '@/lib/data';
-export async function GET(request: Request) {
-  const denied = await guard(request);
-  if (denied) return denied;
-  try {
+  hashSecret,
+  saveConfigurationStatement,
+  saveSecretStatement,
+  secretHash,
+  validateSettings,
+  type SecretName,
+} from '@/lib/settings';
+
+export const GET = route(
+  'GET /api/admin/settings',
+  '設定を取得できませんでした。',
+  async (request) => {
+    await requireAdmin(request);
+    const [settings, staffPin, sitePassword, deskPassword, logs, blocklist] =
+      await Promise.all([
+        configuration(),
+        secretHash('staff-pin'),
+        secretHash('site-password'),
+        secretHash('desk-password'),
+        db()
+          .select({
+            action: auditLog.action,
+            target: auditLog.target,
+            actor: auditLog.actor,
+            createdAt: auditLog.createdAt,
+          })
+          .from(auditLog)
+          .orderBy(desc(auditLog.id))
+          .limit(30),
+        blocklistProblem(),
+      ]);
     return json({
-      settings: await configuration(),
+      settings,
       // Only whether these exist; the values themselves never leave the server.
-      staffPinSet: (await staffPinHash()) !== null,
-      sitePasswordSet: (await sitePasswordHash()) !== null,
-      logs: (
-        await database()
-          .prepare(
-            'SELECT action,target,created_at AS createdAt FROM audit_log ORDER BY id DESC LIMIT 30',
-          )
-          .all()
-      ).results,
+      staffPinSet: staffPin !== null,
+      sitePasswordSet: sitePassword !== null,
+      deskPasswordSet: deskPassword !== null,
+      logs,
+      // Registration refuses every nickname while the blocklist cannot be
+      // read, so the console says so before the festival does.
+      warnings: blocklist
+        ? [
+            'ニックネームの禁止語リストを読み込めないため、新規登録ができません。NICKNAME_BLOCKLIST_KEY と NICKNAME_BLOCKLIST_IV を確認してください。',
+          ]
+        : [],
     });
-  } catch (e) {
-    logFailure('GET /api/admin/settings', e);
-    return json({ error: '設定を取得できませんでした。' }, 503);
+  },
+);
+
+/** How each console secret is checked, and what the history calls it. */
+const secretRules: Record<
+  string,
+  {
+    name: SecretName;
+    field: string;
+    valid: (value: string) => boolean;
+    message: string;
+    audit: string;
+    result: string;
   }
-}
-export async function POST(request: Request) {
-  const denied = await guard(request, true);
-  if (denied) return denied;
-  try {
+> = {
+  // The word visitors type before the participant screens answer. Clearing
+  // it reopens the site; changing it invalidates every pass already handed
+  // out, because the signature covers the stored hash.
+  sitePassword: {
+    name: 'site-password',
+    field: 'password',
+    valid: (value) => value.length >= 4 && value.length <= 64,
+    message: '合言葉は4〜64文字で入力してください。',
+    audit: 'site_password',
+    result: 'sitePasswordSet',
+  },
+  // Typed on a participant's phone, so it has to survive guessing under the
+  // limits in /api/reward: six digits at least.
+  staffPin: {
+    name: 'staff-pin',
+    field: 'pin',
+    valid: (value) => /^\d{6,8}$/.test(value),
+    message: '係員用暗証番号は6〜8桁の数字で入力してください。',
+    audit: 'staff_pin',
+    result: 'staffPinSet',
+  },
+  // Signs reward-desk devices in with the desk role only. Changing it signs
+  // every desk device out.
+  deskPassword: {
+    name: 'desk-password',
+    field: 'password',
+    valid: (value) => value.length >= 8 && value.length <= 64,
+    message: '引き換え係のパスワードは8〜64文字で入力してください。',
+    audit: 'desk_password',
+    result: 'deskPasswordSet',
+  },
+};
+
+export const POST = route(
+  'POST /api/admin/settings',
+  '設定を保存できませんでした。',
+  async (request) => {
+    const session = await requireAdmin(request, { mutation: true });
     const data = await bodyJson(request);
-    const now = Math.floor(Date.now() / 1000);
+    const now = nowSeconds();
+    const audit = (action: string) =>
+      auditStatement(action, event.id, session.actor, now);
+
     if (data.action === 'purge') {
       if (data.confirm !== '全参加データを削除')
-        return json({ error: '確認文字が一致しません。' }, 400);
-      await database().batch([
-        database()
-          .prepare('DELETE FROM stamps WHERE event_id=?')
-          .bind(event.id),
-        database()
-          .prepare('DELETE FROM spot_activity WHERE event_id=?')
-          .bind(event.id),
-        database()
-          .prepare('DELETE FROM spot_reports WHERE event_id=?')
-          .bind(event.id),
-        database()
-          .prepare('DELETE FROM participants WHERE event_id=?')
-          .bind(event.id),
-        database()
-          .prepare(
-            'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
-          )
-          .bind('purge_event', event.id, now),
+        throw new UserError('確認文字が一致しません。');
+      await writeBatch([
+        db().delete(stamps).where(eq(stamps.eventId, event.id)),
+        db().delete(spotActivity).where(eq(spotActivity.eventId, event.id)),
+        db().delete(spotReports).where(eq(spotReports.eventId, event.id)),
+        db().delete(participants).where(eq(participants.eventId, event.id)),
+        audit('purge_event'),
       ]);
       return json({ ok: true });
     }
-    /**
-     * The word visitors type before the participant screens answer. Clearing
-     * it reopens the site; changing it invalidates every pass already handed
-     * out, because the signature covers the stored hash.
-     */
-    if (data.action === 'sitePassword') {
+
+    const secret =
+      typeof data.action === 'string' && Object.hasOwn(secretRules, data.action)
+        ? secretRules[data.action]
+        : null;
+    if (secret) {
       if (data.clear === true) {
-        await database().batch([
-          saveSitePasswordStatement(null),
-          database()
-            .prepare(
-              'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
-            )
-            .bind('site_password_clear', event.id, now),
+        await writeBatch([
+          saveSecretStatement(secret.name, null),
+          audit(secret.audit + '_clear'),
         ]);
-        return json({ ok: true, sitePasswordSet: false });
+        return json({ ok: true, [secret.result]: false });
       }
-      const password =
-        typeof data.password === 'string' ? data.password.trim() : '';
-      if (password.length < 4 || password.length > 64)
-        throw new Error('合言葉は4〜64文字で入力してください。');
-      await database().batch([
-        saveSitePasswordStatement(await hashSitePassword(password)),
-        database()
-          .prepare(
-            'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
-          )
-          .bind('site_password_set', event.id, now),
+      const raw = data[secret.field];
+      const value = typeof raw === 'string' ? raw.trim() : '';
+      if (!secret.valid(value)) throw new UserError(secret.message);
+      await writeBatch([
+        saveSecretStatement(secret.name, await hashSecret(secret.name, value)),
+        audit(secret.audit + '_set'),
       ]);
-      return json({ ok: true, sitePasswordSet: true });
+      return json({ ok: true, [secret.result]: true });
     }
-    if (data.action === 'staffPin') {
-      const pin = typeof data.pin === 'string' ? data.pin.trim() : '';
-      if (data.clear === true) {
-        await database().batch([
-          saveStaffPinStatement(null),
-          database()
-            .prepare(
-              'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
-            )
-            .bind('staff_pin_clear', event.id, now),
-        ]);
-        return json({ ok: true, staffPinSet: false });
-      }
-      if (!/^\d{4,8}$/.test(pin))
-        throw new Error('係員用暗証番号は4〜8桁の数字で入力してください。');
-      await database().batch([
-        saveStaffPinStatement(await hashStaffPin(pin)),
-        database()
-          .prepare(
-            'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
-          )
-          .bind('staff_pin_set', event.id, now),
-      ]);
-      return json({ ok: true, staffPinSet: true });
-    }
-    const config = data.settings as Record<string, unknown>;
-    if (!config) throw new Error('設定がありません。');
-    const list = (v: unknown, max: number) => {
-      if (!Array.isArray(v) || !v.length || v.length > max)
-        throw new Error('学年・組を1つ以上入力してください。');
-      const a = v.map((x: unknown) => (typeof x === 'string' ? x.trim() : ''));
-      if (a.some((x) => !x || x.length > 12) || new Set(a).size !== a.length)
-        throw new Error(
-          '学年・組は重複しない12文字以内の名称を入力してください。',
-        );
-      return a;
-    };
-    const grades = list(config.grades, 20),
-      classes = list(config.classes, 50),
-      maxNumber = Number(config.maxNumber),
-      title = (typeof config.title === 'string' ? config.title : '').trim();
-    if (
-      !title ||
-      title.length > 60 ||
-      !Number.isInteger(maxNumber) ||
-      maxNumber < 1 ||
-      maxNumber > 999
-    )
-      throw new Error('文化祭名と出席番号の上限を確認してください。');
-    const rawWords = config.nicknameBlockedWords ?? [];
-    if (
-      !Array.isArray(rawWords) ||
-      rawWords.length > 100 ||
-      rawWords.some(
-        (x: unknown) =>
-          typeof x !== 'string' || x.trim().length < 1 || x.length > 40,
-      )
-    )
-      throw new Error('追加禁止語は40文字以内、100件までで入力してください。');
-    const nicknameBlockedWords = [
-      ...new Set((rawWords as string[]).map((x) => x.trim())),
-    ];
-    const value = JSON.stringify({
-      title,
-      grades,
-      classes,
-      maxNumber,
-      registrationOpen: config.registrationOpen === true,
-      nicknameBlockedWords,
-    });
-    await database().batch([
-      database()
-        .prepare(
-          'INSERT INTO settings (event_id,value) VALUES (?,?) ON CONFLICT(event_id) DO UPDATE SET value=excluded.value',
-        )
-        .bind(event.id, value),
-      database()
-        .prepare(
-          'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
-        )
-        .bind('save_settings', event.id, now),
+
+    const settings = validateSettings(data.settings);
+    await writeBatch([
+      saveConfigurationStatement(settings),
+      audit('save_settings'),
     ]);
     return json({ ok: true });
-  } catch (e) {
-    return json(
-      {
-        error:
-          e instanceof Error && /入力|確認|設定/.test(e.message)
-            ? e.message
-            : '設定を保存できませんでした。',
-      },
-      400,
-    );
-  }
-}
+  },
+);

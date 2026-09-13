@@ -1,220 +1,241 @@
-import { database } from '@/db';
+import { and, asc, eq, sql } from 'drizzle-orm';
+import { db, writeBatch } from '@/db';
+import { locations, participants, stamps } from '@/db/schema';
+import { requireAdmin } from '@/lib/admin';
+import { auditStatement } from '@/lib/audit';
+import { studentFields } from '@/lib/data';
 import { event } from '@/lib/event';
-import { json, retentionSeconds, logFailure } from '@/lib/server';
-import { guard } from '@/lib/admin';
-import { bodyJson, configuration, studentFields } from '@/lib/data';
-import { progressSql, progressArgs, statistics } from '@/lib/progress';
-import { nicknameKey } from '@/lib/nickname';
-export async function GET(request: Request) {
-  const denied = await guard(request);
-  if (denied) return denied;
-  try {
+import {
+  bodyJson,
+  isUniqueViolation,
+  json,
+  nowSeconds,
+  route,
+  UserError,
+} from '@/lib/http';
+import { participantPage } from '@/lib/progress';
+import { retentionSeconds } from '@/lib/session';
+import { configuration } from '@/lib/settings';
+
+async function findParticipant(id: number) {
+  const row = await db()
+    .select({ hash: participants.hash, kind: participants.kind })
+    .from(participants)
+    .where(and(eq(participants.id, id), eq(participants.eventId, event.id)))
+    .get();
+  if (!row) throw new UserError('参加者が見つかりません。', 404);
+  return row;
+}
+
+export const GET = route(
+  'GET /api/admin/participants',
+  '参加者一覧を取得できませんでした。',
+  async (request) => {
+    await requireAdmin(request);
     const url = new URL(request.url);
     if (url.searchParams.has('id')) {
       const id = Number(url.searchParams.get('id'));
-      const row = await database()
-        .prepare('SELECT hash FROM participants WHERE id=? AND event_id=?')
-        .bind(id, event.id)
-        .first<{ hash: string }>();
-      if (!row) return json({ error: '参加者が見つかりません。' }, 404);
-      const stamps = await database()
-        .prepare(
-          'SELECT COALESCE(l.name,s.spot_id) AS name,s.created_at AS createdAt FROM stamps s LEFT JOIN locations l ON l.id=s.spot_id AND l.event_id=s.event_id WHERE s.event_id=? AND s.participant_hash=? ORDER BY s.created_at',
-        )
-        .bind(event.id, row.hash)
-        .all();
-      const spots = await database()
-        .prepare(
-          'SELECT l.id,l.name,l.location,l.active,CASE WHEN s.created_at>? THEN 1 ELSE 0 END AS collected,CASE WHEN s.created_at>? THEN s.created_at END AS collectedAt FROM locations l LEFT JOIN participants p ON p.id=? AND p.event_id=l.event_id LEFT JOIN stamps s ON s.spot_id=l.id AND s.event_id=l.event_id AND s.participant_hash=p.hash WHERE l.event_id=? ORDER BY l.sort_order,l.id',
-        )
-        .bind(
-          Math.floor(Date.now() / 1000) - retentionSeconds,
-          Math.floor(Date.now() / 1000) - retentionSeconds,
-          id,
-          event.id,
-        )
-        .all();
-      return json({ stamps: stamps.results, spots: spots.results });
+      const { hash } = await findParticipant(id);
+      const since = nowSeconds() - retentionSeconds;
+      const [history, spots] = await Promise.all([
+        db()
+          .select({
+            name: sql<string>`COALESCE(${locations.name}, ${stamps.spotId})`,
+            createdAt: stamps.createdAt,
+          })
+          .from(stamps)
+          .leftJoin(
+            locations,
+            and(
+              eq(locations.id, stamps.spotId),
+              eq(locations.eventId, stamps.eventId),
+            ),
+          )
+          .where(
+            and(eq(stamps.eventId, event.id), eq(stamps.participantHash, hash)),
+          )
+          .orderBy(asc(stamps.createdAt)),
+        db()
+          .select({
+            id: locations.id,
+            name: locations.name,
+            location: locations.location,
+            active: locations.active,
+            collected: sql<number>`CASE WHEN ${stamps.createdAt} > ${since} THEN 1 ELSE 0 END`,
+            collectedAt: sql<
+              number | null
+            >`CASE WHEN ${stamps.createdAt} > ${since} THEN ${stamps.createdAt} END`,
+          })
+          .from(locations)
+          .leftJoin(
+            stamps,
+            and(
+              eq(stamps.spotId, locations.id),
+              eq(stamps.eventId, locations.eventId),
+              eq(stamps.participantHash, hash),
+            ),
+          )
+          .where(eq(locations.eventId, event.id))
+          .orderBy(asc(locations.sortOrder), asc(locations.id)),
+      ]);
+      return json({ stamps: history, spots });
     }
     const page = Math.max(
       1,
       Math.min(10000, Math.floor(Number(url.searchParams.get('page'))) || 1),
     );
-    const kind = url.searchParams.get('kind') ?? '';
-    const q = (url.searchParams.get('q') ?? '').slice(0, 80);
-    const order =
-      url.searchParams.get('sort') === 'rank'
-        ? 'stampCount DESC,lastStamp ASC,id'
-        : 'id DESC';
-    // The search box matches how an administrator refers to a participant:
-    // "1年 A組 12番" or "#4" for the identifier, and the nickname. Nicknames are
-    // compared through the same normalised key the registration stores, so
-    // case and full-width characters do not have to match.
-    const filter = ` WHERE (?='' OR kind=?) AND (?='' OR (COALESCE(grade,'') || '年 ' || COALESCE(className,'') || '組 ' || COALESCE(number,'') || '番 #' || COALESCE(guestNumber,'')) LIKE ? ESCAPE '!' OR COALESCE(nicknameKey,'') LIKE ? ESCAPE '!')`;
-    const escape = (value: string) =>
-      '%' + value.replace(/[!%_]/g, '!$&') + '%';
-    const pattern = escape(q);
-    const nicknamePattern = escape(nicknameKey(q));
-    const args = [...progressArgs(), kind, kind, q, pattern, nicknamePattern];
-    const [rows, count, stats] = await Promise.all([
-      database()
-        .prepare(
-          progressSql +
-            ' SELECT * FROM ranked' +
-            filter +
-            ` ORDER BY ${order} LIMIT 50 OFFSET ?`,
-        )
-        .bind(...args, (page - 1) * 50)
-        .all(),
-      database()
-        .prepare(progressSql + ' SELECT COUNT(*) AS count FROM ranked' + filter)
-        .bind(...args)
-        .first<{ count: number }>(),
-      statistics(),
-    ]);
-    return json({ rows: rows.results, count: count?.count ?? 0, page, stats });
-  } catch (e) {
-    logFailure('GET /api/admin/participants', e);
-    return json({ error: '参加者一覧を取得できませんでした。' }, 503);
-  }
-}
-export async function POST(request: Request) {
-  const denied = await guard(request, true);
-  if (denied) return denied;
-  try {
+    const result = await participantPage({
+      kind: url.searchParams.get('kind') ?? '',
+      query: (url.searchParams.get('q') ?? '').slice(0, 80),
+      page,
+      sort: url.searchParams.get('sort') === 'rank' ? 'rank' : 'recent',
+    });
+    return json({ ...result, page });
+  },
+);
+
+export const POST = route(
+  'POST /api/admin/participants',
+  '更新できませんでした。',
+  async (request) => {
+    const session = await requireAdmin(request, { mutation: true });
     const data = await bodyJson(request);
     const id = Number(data.id);
     if (!Number.isInteger(id) || id < 1)
-      return json({ error: '参加者を選んでください。' }, 400);
-    const row = await database()
-      .prepare('SELECT hash,kind FROM participants WHERE id=? AND event_id=?')
-      .bind(id, event.id)
-      .first<{ hash: string; kind: string }>();
-    if (!row) return json({ error: '参加者が見つかりません。' }, 404);
-    const log = database()
-      .prepare(
-        'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
-      )
-      .bind(String(data.action), String(id), Math.floor(Date.now() / 1000));
+      throw new UserError('参加者を選んでください。');
+    const row = await findParticipant(id);
+    const now = nowSeconds();
+    const byId = and(
+      eq(participants.id, id),
+      eq(participants.eventId, event.id),
+    );
+    const audit = (action: string, target = String(id)) =>
+      auditStatement(action, target, session.actor, now);
+
     if (data.action === 'stamp') {
-      if (
-        typeof data.spotId !== 'string' ||
-        typeof data.collected !== 'boolean'
-      )
-        return json({ error: 'スタンプの指定を確認してください。' }, 400);
-      const spot = await database()
-        .prepare('SELECT id FROM locations WHERE id=? AND event_id=?')
-        .bind(data.spotId, event.id)
-        .first();
-      if (!spot) return json({ error: '設置場所が見つかりません。' }, 404);
-      const now = Math.floor(Date.now() / 1000);
+      const spotId = data.spotId;
+      if (typeof spotId !== 'string' || typeof data.collected !== 'boolean')
+        throw new UserError('スタンプの指定を確認してください。');
+      const spot = await db()
+        .select({ id: locations.id })
+        .from(locations)
+        .where(and(eq(locations.id, spotId), eq(locations.eventId, event.id)))
+        .get();
+      if (!spot) throw new UserError('設置場所が見つかりません。', 404);
+      // A new stamp takes the current time; one already held within the
+      // retention window keeps its original time.
       const change = data.collected
-        ? database()
-            .prepare(
-              'INSERT INTO stamps (event_id,participant_hash,spot_id,created_at) SELECT event_id,hash,?,? FROM participants WHERE id=? AND event_id=? ON CONFLICT(event_id,participant_hash,spot_id) DO UPDATE SET created_at=excluded.created_at WHERE stamps.created_at<=?',
-            )
-            .bind(data.spotId, now, id, event.id, now - retentionSeconds)
-        : database()
-            .prepare(
-              'DELETE FROM stamps WHERE event_id=? AND spot_id=? AND participant_hash=(SELECT hash FROM participants WHERE id=? AND event_id=?)',
-            )
-            .bind(event.id, data.spotId, id, event.id);
-      await database().batch([
+        ? db()
+            .insert(stamps)
+            .values({
+              eventId: event.id,
+              participantHash: row.hash,
+              spotId,
+              createdAt: now,
+            })
+            .onConflictDoUpdate({
+              target: [stamps.eventId, stamps.participantHash, stamps.spotId],
+              set: { createdAt: now },
+              setWhere: sql`${stamps.createdAt} <= ${now - retentionSeconds}`,
+            })
+        : db()
+            .delete(stamps)
+            .where(
+              and(
+                eq(stamps.eventId, event.id),
+                eq(stamps.spotId, spotId),
+                eq(stamps.participantHash, row.hash),
+              ),
+            );
+      await writeBatch([
         change,
-        database()
-          .prepare(
-            'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
-          )
-          .bind(
-            data.collected ? 'stamp_grant' : 'stamp_revoke',
-            String(id) + ':' + data.spotId,
-            now,
-          ),
+        audit(
+          data.collected ? 'stamp_grant' : 'stamp_revoke',
+          `${id}:${spotId}`,
+        ),
       ]);
     } else if (data.action === 'redeem') {
       if (typeof data.redeemed !== 'boolean')
-        return json({ error: '交換状態を指定してください。' }, 400);
-      const now = Math.floor(Date.now() / 1000);
+        throw new UserError('交換状態を指定してください。');
       if (data.redeemed) {
         // Hand-over recorded at the desk: keep the participant's own last
         // stamp as the completion time when one exists.
-        const progress = await database()
-          .prepare(
-            'SELECT MAX(s.created_at) AS lastStamp FROM stamps s JOIN locations l ON l.id=s.spot_id AND l.event_id=s.event_id AND l.active=1 WHERE s.event_id=? AND s.participant_hash=?',
+        const progress = await db()
+          .select({ lastStamp: sql<number | null>`MAX(${stamps.createdAt})` })
+          .from(stamps)
+          .innerJoin(
+            locations,
+            and(
+              eq(locations.id, stamps.spotId),
+              eq(locations.eventId, stamps.eventId),
+              eq(locations.active, 1),
+            ),
           )
-          .bind(event.id, row.hash)
-          .first<{ lastStamp: number | null }>();
-        await database().batch([
-          database()
-            .prepare(
-              'UPDATE participants SET redeemed_at=COALESCE(redeemed_at,?),completed_at=COALESCE(completed_at,?) WHERE id=? AND event_id=?',
-            )
-            .bind(now, progress?.lastStamp ?? now, id, event.id),
-          database()
-            .prepare(
-              'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
-            )
-            .bind('reward_grant', String(id), now),
+          .where(
+            and(
+              eq(stamps.eventId, event.id),
+              eq(stamps.participantHash, row.hash),
+            ),
+          )
+          .get();
+        await writeBatch([
+          db()
+            .update(participants)
+            .set({
+              redeemedAt: sql`COALESCE(${participants.redeemedAt}, ${now})`,
+              completedAt: sql`COALESCE(${participants.completedAt}, ${progress?.lastStamp ?? now})`,
+            })
+            .where(byId),
+          audit('reward_grant'),
         ]);
-      } else {
-        await database().batch([
-          database()
-            .prepare(
-              'UPDATE participants SET redeemed_at=NULL,completed_at=NULL WHERE id=? AND event_id=?',
-            )
-            .bind(id, event.id),
-          database()
-            .prepare(
-              'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
-            )
-            .bind('reward_revoke', String(id), now),
+      } else
+        await writeBatch([
+          db()
+            .update(participants)
+            .set({ redeemedAt: null, completedAt: null })
+            .where(byId),
+          audit('reward_revoke'),
         ]);
-      }
     } else if (data.action === 'edit') {
       if (row.kind !== 'student')
-        return json({ error: '一般客のIDは変更できません。' }, 400);
-      const f = studentFields(data, await configuration());
-      await database().batch([
-        database()
-          .prepare(
-            'UPDATE participants SET grade=?,class_name=?,number=? WHERE id=? AND event_id=?',
-          )
-          .bind(f.grade, f.className, f.number, id, event.id),
-        log,
+        throw new UserError('一般客のIDは変更できません。');
+      const fields = studentFields(data, await configuration());
+      try {
+        await writeBatch([
+          db().update(participants).set(fields).where(byId),
+          audit('edit'),
+        ]);
+      } catch (error) {
+        if (isUniqueViolation(error))
+          throw new UserError('この学年・組・出席番号は使用されています。');
+        throw error;
+      }
+    } else if (data.action === 'reset' && data.confirm === 'スタンプをリセット')
+      await writeBatch([
+        db()
+          .delete(stamps)
+          .where(
+            and(
+              eq(stamps.eventId, event.id),
+              eq(stamps.participantHash, row.hash),
+            ),
+          ),
+        audit('reset'),
       ]);
-    } else if (
-      data.action === 'reset' &&
-      data.confirm === 'スタンプをリセット'
-    ) {
-      await database().batch([
-        database()
-          .prepare('DELETE FROM stamps WHERE event_id=? AND participant_hash=?')
-          .bind(event.id, row.hash),
-        log,
+    else if (data.action === 'delete' && data.confirm === '参加者を削除')
+      await writeBatch([
+        db()
+          .delete(stamps)
+          .where(
+            and(
+              eq(stamps.eventId, event.id),
+              eq(stamps.participantHash, row.hash),
+            ),
+          ),
+        db().delete(participants).where(byId),
+        audit('delete'),
       ]);
-    } else if (data.action === 'delete' && data.confirm === '参加者を削除') {
-      await database().batch([
-        database()
-          .prepare('DELETE FROM stamps WHERE event_id=? AND participant_hash=?')
-          .bind(event.id, row.hash),
-        database()
-          .prepare('DELETE FROM participants WHERE id=? AND event_id=?')
-          .bind(id, event.id),
-        log,
-      ]);
-    } else
-      return json({ error: '操作内容と確認文字を確認してください。' }, 400);
+    else throw new UserError('操作内容と確認文字を確認してください。');
     return json({ ok: true });
-  } catch (e) {
-    return json(
-      {
-        error: String(e).includes('UNIQUE')
-          ? 'この学年・組・出席番号は使用されています。'
-          : e instanceof Error && /確認/.test(e.message)
-            ? e.message
-            : '更新できませんでした。',
-      },
-      400,
-    );
-  }
-}
+  },
+);

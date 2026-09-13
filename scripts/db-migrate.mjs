@@ -7,18 +7,35 @@
 //   $env:TURSO_DATABASE_URL='libsql://<db>.turso.io'
 //   $env:TURSO_AUTH_TOKEN='<token>'
 //   node scripts/db-migrate.mjs
+import { readFileSync } from 'node:fs';
 import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 
 const url = process.env.TURSO_DATABASE_URL;
 const authToken = process.env.TURSO_AUTH_TOKEN;
-// `--if-configured` is for the build step: a checkout with no database still
-// builds, while a production build without one stops rather than shipping code
-// that cannot read its own tables.
-const optional = process.argv.includes('--if-configured');
+// `--if-configured` is for the build step (`npm run build`, which runs this
+// after `next build` succeeds).
+const onBuild = process.argv.includes('--if-configured');
+const vercelEnv = process.env.VERCEL_ENV;
+
+if (onBuild && vercelEnv && vercelEnv !== 'production') {
+  // A preview deployment is built from an unmerged branch. If it shares the
+  // production database's variables, migrating here would change the schema
+  // under the live site before the branch is reviewed. A preview with its own
+  // database opts in with MIGRATE_PREVIEW_DATABASE=1.
+  if (process.env.MIGRATE_PREVIEW_DATABASE !== '1') {
+    console.log(
+      `db-migrate: skipped on a ${vercelEnv} deployment (set MIGRATE_PREVIEW_DATABASE=1 for a preview-only database).`,
+    );
+    process.exit(0);
+  }
+}
+
 if (!url) {
-  if (optional && process.env.VERCEL_ENV !== 'production') {
+  // A checkout with no database still builds, while a production build
+  // without one stops rather than shipping code that cannot read its tables.
+  if (onBuild && vercelEnv !== 'production') {
     console.log('db-migrate: no TURSO_DATABASE_URL, skipping migrations.');
     process.exit(0);
   }
@@ -37,11 +54,6 @@ if (url.startsWith('libsql://') && !authToken) {
 }
 
 const client = createClient({ url, authToken });
-const columns = async () => {
-  const result = await client.execute('PRAGMA table_info(locations)');
-  // PRAGMA returns cid, name, type, ... per column; the name is index 1.
-  return result.rows.map((row) => JSON.stringify(row[1]).replaceAll('"', ''));
-};
 const applied = async () => {
   try {
     const result = await client.execute(
@@ -53,7 +65,6 @@ const applied = async () => {
     return 0;
   }
 };
-
 const rows = async (table) => {
   try {
     const result = await client.execute('SELECT COUNT(*) FROM ' + table);
@@ -63,17 +74,18 @@ const rows = async (table) => {
   }
 };
 
+const expected = JSON.parse(readFileSync('drizzle/meta/_journal.json', 'utf8'))
+  .entries.length;
+
 console.log('database : ' + url);
 console.log(
   'token    : ' + (authToken ? 'set (' + authToken.length + ' chars)' : 'none'),
 );
-const before = await applied();
-console.log('applied  : ' + before + ' migration(s) before');
-console.log('locations: ' + (await columns()).join(', '));
+console.log('applied  : ' + (await applied()) + ' migration(s) before');
 // A production database has the real locations and participants in it; an
 // empty one is a sign that this is the local file or a spare database.
 console.log(
-  'contents: ' +
+  'contents : ' +
     (await rows('locations')) +
     ' locations, ' +
     (await rows('participants')) +
@@ -83,11 +95,11 @@ console.log(
 await migrate(drizzle(client), { migrationsFolder: 'drizzle' });
 
 const after = await applied();
-const now = await columns();
 console.log('applied  : ' + after + ' migration(s) after');
-console.log('locations: ' + now.join(', '));
-console.log(
-  now.includes('icon')
-    ? 'OK: locations.icon exists on this database.'
-    : 'WARNING: locations.icon is still missing - this is not the database the site uses.',
-);
+if (after < expected) {
+  console.error(
+    `WARNING: ${expected} migrations exist in drizzle/, but this database records ${after}.`,
+  );
+  process.exit(1);
+}
+console.log(`OK: all ${expected} migrations are applied to this database.`);

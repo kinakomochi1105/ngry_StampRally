@@ -1,31 +1,30 @@
-import { database } from '@/db';
+import { and, eq, isNull } from 'drizzle-orm';
+import { db, writeBatch } from '@/db';
+import { participants } from '@/db/schema';
+import { auditStatement } from '@/lib/audit';
+import { safeEqual } from '@/lib/crypto';
 import { event } from '@/lib/event';
+import { requireGate } from '@/lib/gate';
 import {
+  bodyJson,
+  clientAddress,
   json,
-  participant,
-  sign,
-  safeEqual,
-  validOrigin,
-  logFailure,
-} from '@/lib/server';
-import { bodyJson, staffPinHash, hashStaffPin } from '@/lib/data';
-import { gate } from '@/lib/gate';
+  nowSeconds,
+  requireSameOrigin,
+  route,
+  UserError,
+} from '@/lib/http';
+import {
+  countStatement,
+  forgetStatement,
+  limitKey,
+  limits,
+  refundStatement,
+  tooMany,
+} from '@/lib/limits';
 import { issueRewardCode, rewardProgress } from '@/lib/reward';
-
-type Pass = {
-  id: number;
-  completedAt: number | null;
-  redeemedAt: number | null;
-};
-
-async function findPass(hash: string) {
-  return database()
-    .prepare(
-      'SELECT id,completed_at AS completedAt,redeemed_at AS redeemedAt FROM participants WHERE event_id=? AND hash=?',
-    )
-    .bind(event.id, hash)
-    .first<Pass>();
-}
+import { requireParticipant } from '@/lib/session';
+import { hashSecret, secretHash } from '@/lib/settings';
 
 /**
  * The code for the reward desk, asked for again every few seconds while the
@@ -33,118 +32,108 @@ async function findPass(hash: string) {
  * the hand-over happened on the staff side: once it has, the answer is the
  * record instead of a code.
  */
-export async function GET(request: Request) {
-  const closed = await gate(request);
-  if (closed) return closed;
-  try {
-    const hash = await participant(request);
-    const row = hash ? await findPass(hash) : null;
-    if (!hash || !row)
-      return json({ error: '参加登録を行ってから操作してください。' }, 401);
-    if (row.redeemedAt)
-      return json({ redeemedAt: row.redeemedAt, completedAt: row.completedAt });
-    const now = Math.floor(Date.now() / 1000);
-    if (!(await rewardProgress(hash, now)).complete)
-      return json({ error: 'まだ全てのスタンプが集まっていません。' }, 409);
-    return json(await issueRewardCode(row.id, now));
-  } catch (e) {
-    logFailure('GET /api/reward', e);
-    return json(
-      {
-        error: '引き換えコードを表示できませんでした。通信を確認してください。',
-      },
-      503,
-    );
-  }
-}
+export const GET = route(
+  'GET /api/reward',
+  '引き換えコードを表示できませんでした。通信を確認してください。',
+  async (request) => {
+    await requireGate(request);
+    const person = await requireParticipant(request);
+    if (person.redeemedAt)
+      return json({
+        redeemedAt: person.redeemedAt,
+        completedAt: person.completedAt,
+      });
+    const now = nowSeconds();
+    if (!(await rewardProgress(person.hash, now)).complete)
+      throw new UserError('まだ全てのスタンプが集まっていません。', 409);
+    return json(await issueRewardCode(person.id, now));
+  },
+);
 
-// A 4-6 digit PIN is typed on the participant's own phone, so brute force has
-// to be bounded per participant rather than per IP.
-const maxAttempts = 8;
-const windowSeconds = 900;
-
-export async function POST(request: Request) {
-  if (!validOrigin(request))
-    return json({ error: 'ページを開き直してください。' }, 403);
-  const closed = await gate(request);
-  if (closed) return closed;
-  try {
-    const hash = await participant(request);
-    if (!hash)
-      return json({ error: '参加登録を行ってから操作してください。' }, 401);
-    const row = await findPass(hash);
-    if (!row)
-      return json({ error: '参加登録を行ってから操作してください。' }, 401);
+/**
+ * The fallback for a desk with no scanner: staff type the PIN on the
+ * participant's own phone.
+ *
+ * A 6-8 digit PIN is only as strong as the limit on guessing it, so:
+ * - only a finished pass may try at all (checked before the PIN);
+ * - wrong PINs are counted per participant *row*, which a new device or a
+ *   recovery sign-in does not reset;
+ * - and per connection, so registering many passes does not buy more guesses.
+ * Every attempt is counted up front, so parallel requests cannot slip past the
+ * limit, and a correct PIN takes its attempt back.
+ */
+export const POST = route(
+  'POST /api/reward',
+  '交換を記録できませんでした。もう一度お試しください。',
+  async (request) => {
+    requireSameOrigin(request);
+    await requireGate(request);
+    const person = await requireParticipant(request);
     // Re-confirming an already handed-over reward returns the original record
     // instead of overwriting the timestamp.
-    if (row.redeemedAt)
+    if (person.redeemedAt)
       return json({
         ok: true,
         alreadyRedeemed: true,
-        redeemedAt: row.redeemedAt,
-        completedAt: row.completedAt,
+        redeemedAt: person.redeemedAt,
+        completedAt: person.completedAt,
       });
 
-    const expected = await staffPinHash();
+    const expected = await secretHash('staff-pin');
     if (!expected)
-      return json(
-        {
-          error: '係員用の暗証番号が未設定です。運営本部にお知らせください。',
-        },
+      throw new UserError(
+        '係員用の暗証番号が未設定です。運営本部にお知らせください。',
         503,
       );
 
-    const now = Math.floor(Date.now() / 1000);
-    const bucket = await sign('reward:' + hash);
-    const attempt = await database()
-      .prepare(
-        'INSERT INTO login_attempts (key,attempts,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=CASE WHEN expires_at<=? THEN 1 ELSE attempts+1 END,expires_at=CASE WHEN expires_at<=? THEN ? ELSE expires_at END RETURNING attempts',
-      )
-      .bind(bucket, now + windowSeconds, now, now, now + windowSeconds)
-      .first<{ attempts: number }>();
-    if ((attempt?.attempts ?? 99) > maxAttempts)
-      return json(
-        { error: '入力回数が多いため、15分後にお試しください。' },
-        429,
+    const now = nowSeconds();
+    const progress = await rewardProgress(person.hash, now);
+    if (!progress.complete)
+      throw new UserError('まだ全てのスタンプが集まっていません。', 409);
+
+    const participantKey = await limitKey('staff-pin', event.id, person.id);
+    const addressKey = await limitKey(
+      'staff-pin-address',
+      clientAddress(request),
+    );
+    const [[byParticipant], [byAddress]] = await writeBatch([
+      countStatement(participantKey, limits.staffPinParticipant.window, now),
+      countStatement(addressKey, limits.staffPinAddress.window, now),
+    ]).then((results) =>
+      results.map((result) => result.rows.map((row) => Number(row.attempts))),
+    );
+    if (
+      byParticipant > limits.staffPinParticipant.max ||
+      byAddress > limits.staffPinAddress.max
+    )
+      throw tooMany(
+        limits.staffPinParticipant.window,
+        '入力回数が多いため、15分後にお試しください。',
       );
 
     const data = await bodyJson(request, 1024);
     if (
       typeof data.pin !== 'string' ||
-      !safeEqual(await hashStaffPin(data.pin), expected)
+      !safeEqual(await hashSecret('staff-pin', data.pin), expected)
     )
-      return json({ error: '暗証番号が違います。係員にご確認ください。' }, 401);
-
-    const progress = await rewardProgress(hash, now);
-    if (!progress.complete)
-      return json({ error: 'まだ全てのスタンプが集まっていません。' }, 409);
+      throw new UserError('暗証番号が違います。係員にご確認ください。', 401);
 
     const completedAt = progress.lastStamp ?? now;
-    await database().batch([
-      database()
-        .prepare(
-          'UPDATE participants SET redeemed_at=?,completed_at=? WHERE event_id=? AND hash=? AND redeemed_at IS NULL',
-        )
-        .bind(now, completedAt, event.id, hash),
-      database()
-        .prepare('DELETE FROM login_attempts WHERE key=? OR expires_at<=?')
-        .bind(bucket, now),
-      database()
-        .prepare(
-          'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
-        )
-        .bind('reward_redeem', String(row.id), now),
+    await writeBatch([
+      db()
+        .update(participants)
+        .set({ redeemedAt: now, completedAt })
+        .where(
+          and(
+            eq(participants.id, person.id),
+            eq(participants.eventId, event.id),
+            isNull(participants.redeemedAt),
+          ),
+        ),
+      forgetStatement(participantKey, now),
+      refundStatement(addressKey),
+      auditStatement('reward_redeem', String(person.id), 'participant', now),
     ]);
     return json({ ok: true, redeemedAt: now, completedAt });
-  } catch (e) {
-    return json(
-      {
-        error:
-          e instanceof Error && /入力|JSON/.test(e.message)
-            ? e.message
-            : '交換を記録できませんでした。もう一度お試しください。',
-      },
-      400,
-    );
-  }
-}
+  },
+);

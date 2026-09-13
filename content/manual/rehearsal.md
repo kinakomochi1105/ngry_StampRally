@@ -3,7 +3,7 @@ title: リハーサルと実機検証
 category: 開催準備
 audience: 技術担当
 summary: 本番前に実機で通す確認項目と、ローカル試験では分からないことの切り分けです。
-updated: 2026-09-11
+updated: 2026-09-13
 order: 60
 tags: [検証, テスト, カメラ]
 ---
@@ -13,12 +13,15 @@ tags: [検証, テスト, カメラ]
 自動テストは論理の検査です。**カメラ・会場回線・実機のブラウザは手で確認するしかありません。**
 
 ```powershell
-node --env-file=.env tests/api.mjs
-node tests/i18n.mjs
-node tests/manual.mjs
-npx tsc --noEmit
+npm run typecheck
+npm run lint
+npm test
+npm run test:api
+npm run test:i18n
 npm run build
 ```
+
+`test:api` と `test:i18n` はdev serverを起動してから実行します（[開催前セットアップ](./setup.md)）。GitHubへpushすると同じ検査がCIでも走るので、その結果が緑になっていることも確認します。
 
 ## 実機での通し稽古
 

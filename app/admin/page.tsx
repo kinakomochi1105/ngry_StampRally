@@ -103,6 +103,8 @@ export default function Admin() {
       </main>
     );
 
+  const desk = admin.role === 'desk';
+
   if (!admin.authorized)
     return (
       <AdminLogin
@@ -122,8 +124,13 @@ export default function Admin() {
             <ShieldCheck size={17} aria-hidden="true" />
           </span>
           <span>
-            <strong>{t('文化祭 管理センター')}</strong>
-            <small>FESTIVAL CONTROL</small>
+            <strong>
+              {t(desk ? '文化祭 景品引き換え' : '文化祭 管理センター')}
+            </strong>
+            <small>
+              {admin.label ? admin.label + ' · ' : ''}
+              {desk ? 'REWARD DESK' : 'FESTIVAL CONTROL'}
+            </small>
           </span>
         </p>
         {/* The manual is its own screen at /admin/wiki, not a tab here. */}
@@ -154,32 +161,38 @@ export default function Admin() {
       </header>
 
       <main className="admin-shell">
-        <div className="admin-stats">
-          {counters.map(({ Icon, label, of }) => (
-            <article key={label + of}>
-              <Icon size={22} aria-hidden="true" />
-              <span>{t(label)}</span>
-              <strong>
-                {admin.stats[of].toLocaleString()}
-                <small>{t('人')}</small>
-              </strong>
-            </article>
-          ))}
-        </div>
+        {/* A desk device only reads reward codes: the totals and the other
+            tabs come from APIs its role cannot call. */}
+        {!desk && (
+          <div className="admin-stats">
+            {counters.map(({ Icon, label, of }) => (
+              <article key={label + of}>
+                <Icon size={22} aria-hidden="true" />
+                <span>{t(label)}</span>
+                <strong>
+                  {admin.stats[of].toLocaleString()}
+                  <small>{t('人')}</small>
+                </strong>
+              </article>
+            ))}
+          </div>
+        )}
 
-        <nav className="admin-tabs" aria-label={t('管理メニュー')}>
-          {tabs.map(({ id, Icon, label }) => (
-            <button
-              key={id}
-              className={admin.tab === id ? 'active' : ''}
-              aria-current={admin.tab === id ? 'page' : undefined}
-              onClick={() => admin.chooseTab(id as AdminTab)}
-            >
-              <Icon size={18} aria-hidden="true" />
-              {t(label)}
-            </button>
-          ))}
-        </nav>
+        {!desk && (
+          <nav className="admin-tabs" aria-label={t('管理メニュー')}>
+            {tabs.map(({ id, Icon, label }) => (
+              <button
+                key={id}
+                className={admin.tab === id ? 'active' : ''}
+                aria-current={admin.tab === id ? 'page' : undefined}
+                onClick={() => admin.chooseTab(id as AdminTab)}
+              >
+                <Icon size={18} aria-hidden="true" />
+                {t(label)}
+              </button>
+            ))}
+          </nav>
+        )}
 
         {admin.error && (
           <output className="form-error">{t(admin.error)}</output>
@@ -210,7 +223,9 @@ export default function Admin() {
 
         {/* Refreshing after a hand-over keeps the "redeemed" counter above
             the desk in step with what it has just recorded. */}
-        {admin.tab === 'redeem' && <RedeemPanel onChanged={admin.load} />}
+        {admin.tab === 'redeem' && (
+          <RedeemPanel onChanged={desk ? undefined : admin.load} />
+        )}
 
         {admin.tab === 'spots' && (
           <SpotsPanel
@@ -250,6 +265,8 @@ export default function Admin() {
             settings={admin.settings}
             staffPinSet={admin.staffPinSet}
             sitePasswordSet={admin.sitePasswordSet}
+            deskPasswordSet={admin.deskPasswordSet}
+            warnings={admin.warnings}
             logs={admin.logs}
             busy={admin.busy}
             onSave={save}
@@ -310,13 +327,19 @@ export default function Admin() {
 
         <footer>
           <span>
-            {t('管理者専用 · 参加者情報は取り扱いに注意してください。')}
+            {t(
+              desk
+                ? '引き換え係 · 参加者情報は取り扱いに注意してください。'
+                : '管理者専用 · 参加者情報は取り扱いに注意してください。',
+            )}
           </span>
-          <span>
-            {t('表示中の対象スポット：')}
-            {admin.stats.spotCount}
-            {t('か所')}
-          </span>
+          {!desk && (
+            <span>
+              {t('表示中の対象スポット：')}
+              {admin.stats.spotCount}
+              {t('か所')}
+            </span>
+          )}
         </footer>
       </main>
     </div>

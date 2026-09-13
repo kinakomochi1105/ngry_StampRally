@@ -1,6 +1,9 @@
-import { database } from '@/db';
+import { and, count, eq, gt, max, sql } from 'drizzle-orm';
+import { db } from '@/db';
+import { locations, stamps } from '@/db/schema';
+import { safeEqual, sign } from './crypto';
 import { event } from './event';
-import { retentionSeconds, safeEqual, sign } from './server';
+import { retentionSeconds } from './session';
 
 /**
  * The code a finished participant shows at the reward desk, as a barcode, a
@@ -81,12 +84,29 @@ export async function checkRewardCode(
  * moment of hand-over. The client's own tally is never trusted for this.
  */
 export async function rewardProgress(hash: string, now: number) {
-  const row = await database()
-    .prepare(
-      'SELECT (SELECT COUNT(*) FROM locations WHERE event_id=? AND active=1) AS total,COUNT(l.id) AS collected,MAX(s.created_at) AS lastStamp FROM stamps s JOIN locations l ON l.id=s.spot_id AND l.event_id=s.event_id AND l.active=1 WHERE s.event_id=? AND s.participant_hash=? AND s.created_at>?',
+  const row = await db()
+    .select({
+      total: sql<number>`(SELECT COUNT(*) FROM ${locations} WHERE ${locations.eventId}=${event.id} AND ${locations.active}=1)`,
+      collected: count(locations.id),
+      lastStamp: max(stamps.createdAt),
+    })
+    .from(stamps)
+    .innerJoin(
+      locations,
+      and(
+        eq(locations.id, stamps.spotId),
+        eq(locations.eventId, stamps.eventId),
+        eq(locations.active, 1),
+      ),
     )
-    .bind(event.id, event.id, hash, now - retentionSeconds)
-    .first<{ total: number; collected: number; lastStamp: number | null }>();
+    .where(
+      and(
+        eq(stamps.eventId, event.id),
+        eq(stamps.participantHash, hash),
+        gt(stamps.createdAt, now - retentionSeconds),
+      ),
+    )
+    .get();
   const total = Number(row?.total ?? 0);
   const collected = Number(row?.collected ?? 0);
   return {

@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit and manual tests
+        run: npm test
+
+      # Everything the server needs, made up for this run: throwaway secrets,
+      # a SQLite file, and a blocklist encrypted under a fresh key, so no real
+      # secret has to be stored in the repository settings.
+      - name: Prepare a disposable environment
+        run: |
+          echo "RALLY_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "ADMIN_PASSWORD=$(openssl rand -hex 16)" >> "$GITHUB_ENV"
+          echo "TURSO_DATABASE_URL=file:ci.db" >> "$GITHUB_ENV"
+          node tests/support/blocklist.mjs "$RUNNER_TEMP/forbidden" うんこ >> "$GITHUB_ENV"
+
+      # `npm run build` builds, then applies the migrations to ci.db.
+      - name: Build
+        run: npm run build
+
+      - name: API and page tests against the production server
+        run: |
+          npx next start -p 3000 > "$RUNNER_TEMP/server.log" 2>&1 &
+          for attempt in $(seq 1 60); do
+            curl -sf http://localhost:3000/api/gate > /dev/null && break
+            sleep 1
+          done
+          npm run test:api
+          npm run test:i18n
+
+      - name: Server log
+        if: failure()
+        run: cat "$RUNNER_TEMP/server.log"

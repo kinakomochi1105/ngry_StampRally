@@ -1,7 +1,6 @@
 'use client';
 import { useI18n } from '@/components/language';
 import { useEffect, useRef, useState } from 'react';
-import jsQR from 'jsqr';
 import { Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,6 +10,10 @@ import {
   DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog';
+import { createQrDecoder, type QrDecoder } from '@/lib/qr-decoder';
+/** Camera frames are scaled to this before decoding; photos to twice it. */
+const frameEdge = 800;
+const photoEdge = 1600;
 export function Scanner({
   open,
   onClose,
@@ -27,6 +30,17 @@ export function Scanner({
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [retry, setRetry] = useState(0);
+  // One decoder (and so at most one worker) for the life of the scanner,
+  // started the first time it is needed.
+  const decoder = useRef<Promise<QrDecoder> | null>(null);
+  const qrDecoder = () => (decoder.current ??= createQrDecoder());
+  useEffect(
+    () => () => {
+      void decoder.current?.then((ready) => ready.close());
+      decoder.current = null;
+    },
+    [],
+  );
   // Live camera frames need a secure context. Over plain HTTP the OS camera is
   // still reachable through a file input with `capture`, which is not gated the
   // same way, so the dialog switches to a shoot-then-decode flow instead of
@@ -88,29 +102,24 @@ export function Scanner({
         }
         video.current.srcObject = media;
         await video.current.play();
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        function tick() {
+        const reader = await qrDecoder();
+        // The next frame is only looked at once this one has been decoded, so
+        // a slow phone never queues frames up behind each other.
+        async function tick() {
           if (cancelled || handled.current) return;
           const v = video.current;
-          if (v && ctx && v.readyState >= 2 && v.videoWidth) {
-            canvas.width = Math.min(800, v.videoWidth);
-            canvas.height = Math.round(
-              (v.videoHeight * canvas.width) / v.videoWidth,
-            );
-            ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-            const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(data.data, data.width, data.height, {
-              inversionAttempts: 'attemptBoth',
-            });
-            if (code) {
-              void accept(code.data);
-              return;
-            }
+          const text =
+            v && v.readyState >= 2 && v.videoWidth
+              ? await reader.detect(v, frameEdge)
+              : null;
+          if (cancelled || handled.current) return;
+          if (text) {
+            void accept(text);
+            return;
           }
-          timer = setTimeout(tick, 220);
+          timer = setTimeout(() => void tick(), 220);
         }
-        tick();
+        void tick();
       } catch (e) {
         stop();
         if (!cancelled)
@@ -142,23 +151,17 @@ export function Scanner({
     setBusy(true);
     try {
       const bitmap = await createImageBitmap(file);
-      const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
-      const c = document.createElement('canvas');
-      c.width = Math.round(bitmap.width * scale);
-      c.height = Math.round(bitmap.height * scale);
-      const ctx = c.getContext('2d');
-      if (!ctx) throw new Error('画像を開けませんでした。');
-      ctx.drawImage(bitmap, 0, 0, c.width, c.height);
-      bitmap.close();
-      const pixels = ctx.getImageData(0, 0, c.width, c.height);
-      const qr = jsQR(pixels.data, pixels.width, pixels.height, {
-        inversionAttempts: 'attemptBoth',
-      });
-      if (!qr)
+      let text: string | null;
+      try {
+        text = await (await qrDecoder()).detect(bitmap, photoEdge);
+      } finally {
+        bitmap.close();
+      }
+      if (!text)
         throw new Error(
           'QRコードが見つかりません。QRコード全体が鮮明に写った画像を選択してください。',
         );
-      await onScan(qr.data);
+      await onScan(text);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : '読み取れませんでした。');

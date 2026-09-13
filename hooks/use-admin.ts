@@ -27,7 +27,14 @@ export type Stats = {
 };
 
 export type ManagedSpot = Spot & { code: string };
-export type Audit = { action: string; target: string; createdAt: number };
+export type Audit = {
+  action: string;
+  target: string;
+  actor: string;
+  createdAt: number;
+};
+/** `admin` can do everything; `desk` only reads reward codes. */
+export type AdminRole = 'admin' | 'desk';
 export type AdminTab =
   | 'participants'
   | 'ranking'
@@ -63,6 +70,8 @@ export const api = (path: string, data?: unknown) =>
  */
 export function useAdmin() {
   const [authorized, setAuthorized] = useState(false);
+  const [role, setRole] = useState<AdminRole>('admin');
+  const [label, setLabel] = useState('');
   const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -82,6 +91,8 @@ export function useAdmin() {
   const [settings, setSettings] = useState<FestivalSettings>(defaultSettings);
   const [staffPinSet, setStaffPinSet] = useState(false);
   const [sitePasswordSet, setSitePasswordSet] = useState(false);
+  const [deskPasswordSet, setDeskPasswordSet] = useState(false);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [logs, setLogs] = useState<Audit[]>([]);
   // Bumped whenever settings arrive, so the settings form remounts with the
   // values from the server instead of syncing field by field.
@@ -96,13 +107,23 @@ export function useAdmin() {
     setBusy(true);
     setError('');
     try {
+      // Who this device is signed in as decides what there is to load: a
+      // desk device may not read the participant list at all.
+      const session = await api('session');
+      const signedInAs = session.role === 'desk' ? 'desk' : 'admin';
+      setRole(signedInAs);
+      setLabel(typeof session.label === 'string' ? session.label : '');
+      setAuthorized(true);
+      if (signedInAs === 'desk') {
+        setTab('redeem');
+        return;
+      }
       const list = await api(
         `participants?kind=${encodeURIComponent(kind)}&q=${encodeURIComponent(search)}&page=${page}&sort=${tab === 'ranking' ? 'rank' : 'recent'}`,
       );
       setRows(list.rows as Row[]);
       setCount(list.count as number);
       setStats(list.stats as Stats);
-      setAuthorized(true);
       if (tab === 'spots') {
         const result = await api('spots');
         setSpots(result.spots as ManagedSpot[]);
@@ -121,6 +142,10 @@ export function useAdmin() {
         setSettings(result.settings as FestivalSettings);
         setStaffPinSet(result.staffPinSet === true);
         setSitePasswordSet(result.sitePasswordSet === true);
+        setDeskPasswordSet(result.deskPasswordSet === true);
+        setWarnings(
+          Array.isArray(result.warnings) ? (result.warnings as string[]) : [],
+        );
         setLogs(result.logs as Audit[]);
         setSettingsVersion((v) => v + 1);
       }
@@ -173,11 +198,11 @@ export function useAdmin() {
   );
 
   const signIn = useCallback(
-    async (password: string) => {
+    async (password: string, deviceName: string) => {
       setBusy(true);
       setError('');
       try {
-        await api('login', { password });
+        await api('login', { password, label: deviceName });
         await load();
       } catch (problem) {
         failure(problem);
@@ -234,6 +259,8 @@ export function useAdmin() {
 
   return {
     authorized,
+    role,
+    label,
     checking,
     busy,
     error,
@@ -255,6 +282,8 @@ export function useAdmin() {
     settings,
     staffPinSet,
     sitePasswordSet,
+    deskPasswordSet,
+    warnings,
     logs,
     settingsVersion,
     load,

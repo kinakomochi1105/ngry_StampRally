@@ -32,7 +32,43 @@ const fallbackBlockedWords = [
   'administrator',
   'moderator',
 ];
-export function validateNickname(value: unknown, additional: string[] = []) {
+/**
+ * Ordinary words and names that contain a blocked word. Matching is by
+ * substring, so without these "Yamashita" reads as "shit" and "シネマ" as
+ * "しね". Romanised Japanese is listed with the vowel before "shi" so a name is
+ * let through while the English word on its own is not.
+ */
+const builtInAllowedWords = [
+  ...['a', 'i', 'u', 'e', 'o'].flatMap((vowel) =>
+    ['shita', 'shite', 'shito', 'shitsu'].map((tail) => vowel + tail),
+  ),
+  'badminton',
+  'essex',
+  'sussex',
+  'middlesex',
+  'シネマ',
+  'ころすけ',
+];
+const keys = (words: readonly string[]) =>
+  words.map(moderationKey).filter((word) => word.length > 0);
+/**
+ * The part of a nickname that is checked against the blocked words: its
+ * moderation key with every allowed word cut out. The cut leaves a separator
+ * behind, so a blocked word cannot be formed across the gap.
+ */
+export function screenedKey(nickname: string, allowed: readonly string[] = []) {
+  let key = moderationKey(nickname);
+  for (const word of keys([...builtInAllowedWords, ...allowed]).sort(
+    (a, b) => b.length - a.length,
+  ))
+    key = key.replaceAll(word, '|');
+  return key;
+}
+export function validateNickname(
+  value: unknown,
+  blocked: readonly string[] = [],
+  allowed: readonly string[] = [],
+) {
   if (typeof value !== 'string')
     throw new Error('ニックネームを入力してください。');
   const nickname = value.normalize('NFKC').trim();
@@ -45,12 +81,11 @@ export function validateNickname(value: unknown, additional: string[] = []) {
     throw new Error(
       'ニックネームは2〜20文字の文字・数字・「-」「_」で入力してください。',
     );
-  const key = moderationKey(nickname);
+  const key = screenedKey(nickname, allowed);
   if (
-    [...fallbackBlockedWords, ...additional].some((word) => {
-      const normalized = moderationKey(word);
-      return normalized.length > 0 && key.includes(normalized);
-    })
+    keys([...fallbackBlockedWords, ...blocked]).some((word) =>
+      key.includes(word),
+    )
   )
     throw new Error(
       'このニックネームは使用できません。別の名前を入力してください。',

@@ -303,11 +303,6 @@ export function usePassport({
 }
 
 /**
- * Registers the read-only "show the locations" tool with the host, when the
- * page is opened by one that offers `document.modelContext`. Participant data
- * is never exposed: only the names and rooms already printed on the page.
- */
-/**
  * The venue maps, asked for once rather than on every poll: an organiser
  * uploads them before the festival and rarely touches them during it, and the
  * pictures themselves are fetched by the browser as ordinary images.
@@ -334,6 +329,11 @@ export function useVenueMaps(ready: boolean) {
   return maps;
 }
 
+/**
+ * Registers the read-only "show the locations" tool with the host, when the
+ * page is opened by one that offers `document.modelContext`. Participant data
+ * is never exposed: only the names and rooms already printed on the page.
+ */
 export function useLocationsTool(spots: Spot[], onShow: () => void) {
   useEffect(() => {
     const context = (

@@ -4,8 +4,8 @@
 // way to get continuous scanning on a network with no internet access.
 //
 // Participants still see a browser warning once per device, because nothing
-// vouches for this certificate. Prefer a real certificate (Cloudflare Tunnel or
-// hosted deployment) whenever the venue has internet.
+// vouches for this certificate. Prefer the Vercel deployment, which has a real
+// certificate, whenever the venue has internet.
 import { mkdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { networkInterfaces } from 'node:os';

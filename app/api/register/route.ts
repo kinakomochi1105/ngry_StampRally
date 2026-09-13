@@ -1,107 +1,91 @@
-import { database } from '@/db';
+import { sql } from 'drizzle-orm';
+import { db, writeBatch } from '@/db';
+import { guestSequence, participants } from '@/db/schema';
+import { studentFields } from '@/lib/data';
 import { event } from '@/lib/event';
-import { json, participant, newParticipant, validOrigin } from '@/lib/server';
-import { bodyJson, configuration, studentFields } from '@/lib/data';
-import { validateNickname } from '@/lib/nickname';
-import { loadForbiddenWords } from '@/lib/forbidden';
+import { checkNickname } from '@/lib/forbidden';
+import { requireGate } from '@/lib/gate';
+import {
+  bodyJson,
+  clientAddress,
+  isUniqueViolation,
+  json,
+  nowSeconds,
+  requireSameOrigin,
+  route,
+  UserError,
+} from '@/lib/http';
+import { enforce, limitKey, limits } from '@/lib/limits';
 import { makeRecovery } from '@/lib/recovery';
-import { gate } from '@/lib/gate';
-export async function POST(request: Request) {
-  if (!validOrigin(request))
-    return json({ error: 'ページを開き直してください。' }, 403);
-  const closed = await gate(request);
-  if (closed) return closed;
-  try {
+import { currentParticipant, newParticipant } from '@/lib/session';
+import { configuration } from '@/lib/settings';
+
+export const POST = route(
+  'POST /api/register',
+  '登録を完了できませんでした。時間をおいて再試行してください。',
+  async (request) => {
+    requireSameOrigin(request);
+    await requireGate(request);
     const data = await bodyJson(request);
     const config = await configuration();
     if (!config.registrationOpen)
-      return json({ error: 'ただいま新規受付を停止しています。' }, 409);
-    const existingHash = await participant(request);
-    if (existingHash) {
-      const existing = await database()
-        .prepare('SELECT id FROM participants WHERE event_id=? AND hash=?')
-        .bind(event.id, existingHash)
-        .first();
-      if (existing) return json({ ok: true });
-    }
+      throw new UserError('ただいま新規受付を停止しています。', 409);
+    if (await currentParticipant(request)) return json({ ok: true });
     if (data.kind !== 'student' && data.kind !== 'guest')
-      return json({ error: '生徒または一般客を選んでください。' }, 400);
-    const name = validateNickname(data.nickname, [
-      ...(await loadForbiddenWords()),
-      ...(config.nicknameBlockedWords ?? []),
-    ]);
-    const recovery = await makeRecovery();
+      throw new UserError('生徒または一般客を選んでください。');
+    const name = await checkNickname(data.nickname, config);
     const profile =
       data.kind === 'student' ? studentFields(data, config) : null;
-    const created = existingHash
-      ? { hash: existingHash, cookie: '' }
-      : await newParticipant(request);
+    // Counted only once the form is valid, so a typo costs nothing; what is
+    // limited is how many passes one connection can create.
+    await enforce(
+      await limitKey('register', clientAddress(request)),
+      limits.register,
+      '短時間に多くの登録がありました。しばらくしてからお試しください。',
+    );
+    const recovery = await makeRecovery();
+    const created = await newParticipant(request);
+    const now = nowSeconds();
+    const common = {
+      eventId: event.id,
+      hash: created.hash,
+      createdAt: now,
+      nickname: name.nickname,
+      nicknameKey: name.key,
+      recoveryHash: recovery.hash,
+    };
     try {
-      if (data.kind === 'guest') {
-        await database().batch([
-          database()
-            .prepare(
-              'INSERT INTO guest_sequence (event_id,next_number) VALUES (?,1) ON CONFLICT(event_id) DO UPDATE SET next_number=next_number+1',
-            )
-            .bind(event.id),
-          database()
-            .prepare(
-              "INSERT INTO participants (event_id,hash,kind,guest_number,created_at,nickname,nickname_key,recovery_hash) SELECT ?,?,'guest',next_number,?,?,?,? FROM guest_sequence WHERE event_id=?",
-            )
-            .bind(
-              event.id,
-              created.hash,
-              Math.floor(Date.now() / 1000),
-              name.nickname,
-              name.key,
-              recovery.hash,
-              event.id,
-            ),
+      if (profile)
+        await db()
+          .insert(participants)
+          .values({ ...common, kind: 'student', ...profile });
+      else
+        // The next number is taken in the same transaction as the insert, so
+        // two guests registering at once never share one.
+        await writeBatch([
+          db()
+            .insert(guestSequence)
+            .values({ eventId: event.id, nextNumber: 1 })
+            .onConflictDoUpdate({
+              target: guestSequence.eventId,
+              set: { nextNumber: sql`${guestSequence.nextNumber} + 1` },
+            }),
+          sql`INSERT INTO participants (event_id,hash,kind,guest_number,created_at,nickname,nickname_key,recovery_hash)
+ SELECT ${common.eventId},${common.hash},'guest',next_number,${now},${common.nickname},${common.nicknameKey},${common.recoveryHash}
+ FROM guest_sequence WHERE event_id=${event.id}`,
         ]);
-      } else {
-        await database()
-          .prepare(
-            "INSERT INTO participants (event_id,hash,kind,grade,class_name,number,created_at,nickname,nickname_key,recovery_hash) VALUES (?,?,'student',?,?,?,?,?,?,?)",
-          )
-          .bind(
-            event.id,
-            created.hash,
-            profile!.grade,
-            profile!.className,
-            profile!.number,
-            Math.floor(Date.now() / 1000),
-            name.nickname,
-            name.key,
-            recovery.hash,
-          )
-          .run();
-      }
-    } catch (e) {
-      if (String(e).includes('UNIQUE'))
-        return json(
-          {
-            error:
-              'この学年・組・出席番号は登録済みです。元のブラウザで開くか、受付で管理者にご相談ください。',
-          },
+    } catch (error) {
+      if (isUniqueViolation(error))
+        throw new UserError(
+          'この学年・組・出席番号は登録済みです。元のブラウザで開くか、受付で管理者にご相談ください。',
           409,
         );
-      throw e;
+      throw error;
     }
     return json(
       { ok: true, nickname: name.nickname, recoveryCode: recovery.code },
       201,
-      created.cookie ? { 'Set-Cookie': created.cookie } : {},
+      { 'Set-Cookie': created.cookie },
     );
-  } catch (e) {
-    return json(
-      {
-        error:
-          e instanceof Error &&
-          /確認|入力|JSON|ニックネーム|名前/.test(e.message)
-            ? e.message
-            : '登録を完了できませんでした。時間をおいて再試行してください。',
-      },
-      400,
-    );
-  }
-}
+  },
+);

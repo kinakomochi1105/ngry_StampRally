@@ -1,60 +1,74 @@
-import { database } from '@/db';
+import { sql } from 'drizzle-orm';
+import { db, writeBatch } from '@/db';
+import { locations } from '@/db/schema';
+import { requireAdmin } from '@/lib/admin';
+import { auditStatement } from '@/lib/audit';
+import { allSpots, seedSpotStatements, validId } from '@/lib/data';
 import { event } from '@/lib/event';
-import { json, sign, logFailure, siteOrigin, stampPath } from '@/lib/server';
-import { guard } from '@/lib/admin';
-import { allSpots, bodyJson, seedSpots, audit } from '@/lib/data';
+import {
+  bodyJson,
+  json,
+  nowSeconds,
+  route,
+  siteOrigin,
+  UserError,
+} from '@/lib/http';
+import { qrSignature, stampPath } from '@/lib/qr';
 import { maxSpotIconLength, validSpotIcon } from '@/lib/types';
-export async function GET(request: Request) {
-  const denied = await guard(request);
-  if (denied) return denied;
-  try {
-    const rows = await allSpots(false);
+
+export const GET = route(
+  'GET /api/admin/spots',
+  '設置場所を取得できませんでした。',
+  async (request) => {
+    await requireAdmin(request);
+    const rows = await allSpots({ activeOnly: false, withIconData: true });
     const origin = siteOrigin(request);
     return json({
       spots: await Promise.all(
-        rows.map(async (s) => ({
-          ...s,
+        rows.map(async (spot) => ({
+          ...spot,
           // A link, so a phone camera app can open it without the in-app
-          // scanner. Signed per spot; see verifyQr.
-          code: origin + stampPath(s.id, await sign(`qr:${event.id}:${s.id}`)),
+          // scanner. Signed per spot; see lib/qr.ts.
+          code: origin + stampPath(spot.id, await qrSignature(spot.id)),
         })),
       ),
     });
-  } catch (e) {
-    logFailure('GET /api/admin/spots', e);
-    return json({ error: '設置場所を取得できませんでした。' }, 503);
-  }
-}
-export async function POST(request: Request) {
-  const denied = await guard(request, true);
-  if (denied) return denied;
-  try {
+  },
+);
+
+const text = (value: unknown) =>
+  (typeof value === 'string' ? value : '').trim();
+
+export const POST = route(
+  'POST /api/admin/spots',
+  '設置場所を保存できませんでした。',
+  async (request) => {
+    const session = await requireAdmin(request, { mutation: true });
     // An uploaded icon travels inline with the location, so this route
     // accepts more than the default 8KB body.
     const data = await bodyJson(request, maxSpotIconLength + 8192);
+    const now = nowSeconds();
     if (data.action === 'seed') {
-      await seedSpots();
-      await audit('seed_spots', event.id);
+      await writeBatch([
+        ...seedSpotStatements(),
+        auditStatement('seed_spots', event.id, session.actor, now),
+      ]);
       return json({ ok: true });
     }
     const id =
       typeof data.id === 'string' ? data.id : 'spot-' + crypto.randomUUID();
-    const name = (typeof data.name === 'string' ? data.name : '').trim(),
-      location = (
-        typeof data.location === 'string' ? data.location : ''
-      ).trim(),
-      description = (
-        typeof data.description === 'string' ? data.description : ''
-      ).trim(),
-      icon = (typeof data.icon === 'string' ? data.icon : '').trim(),
-      sortOrder = Number(data.sortOrder ?? 0),
-      active = data.active === true || data.active === 1 ? 1 : 0;
+    const name = text(data.name);
+    const location = text(data.location);
+    const description = text(data.description);
+    const icon = text(data.icon);
+    const sortOrder = Number(data.sortOrder ?? 0);
+    const active = data.active === true || data.active === 1 ? 1 : 0;
     if (!validSpotIcon(icon))
-      throw new Error(
+      throw new UserError(
         'アイコンを確認してください。画像はPNGかJPEGで、小さいものを選んでください。',
       );
     if (
-      !/^[a-z0-9-]{1,64}$/.test(id) ||
+      !validId(id) ||
       !name ||
       name.length > 60 ||
       !location ||
@@ -64,38 +78,29 @@ export async function POST(request: Request) {
       sortOrder < 0 ||
       sortOrder > 999
     )
-      throw new Error('名称・場所・表示順を確認してください。');
-    await database().batch([
-      database()
-        .prepare(
-          'INSERT INTO locations (id,event_id,name,location,description,icon,sort_order,active) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,location=excluded.location,description=excluded.description,icon=excluded.icon,sort_order=excluded.sort_order,active=excluded.active WHERE locations.event_id=excluded.event_id',
-        )
-        .bind(
-          id,
-          event.id,
-          name,
-          location,
-          description,
-          icon,
-          sortOrder,
-          active,
-        ),
-      database()
-        .prepare(
-          'INSERT INTO audit_log (action,target,created_at) VALUES (?,?,?)',
-        )
-        .bind('save_spot', id, Math.floor(Date.now() / 1000)),
+      throw new UserError('名称・場所・表示順を確認してください。');
+    const values = {
+      name,
+      location,
+      description,
+      icon,
+      sortOrder,
+      active,
+      updatedAt: now,
+    };
+    await writeBatch([
+      db()
+        .insert(locations)
+        .values({ id, eventId: event.id, ...values })
+        .onConflictDoUpdate({
+          target: locations.id,
+          set: values,
+          // An id belongs to one festival; another festival's row is never
+          // overwritten through this one's console.
+          setWhere: sql`${locations.eventId} = ${event.id}`,
+        }),
+      auditStatement('save_spot', id, session.actor, now),
     ]);
     return json({ ok: true });
-  } catch (e) {
-    return json(
-      {
-        error:
-          e instanceof Error && /確認/.test(e.message)
-            ? e.message
-            : '設置場所を保存できませんでした。',
-      },
-      400,
-    );
-  }
-}
+  },
+);

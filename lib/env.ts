@@ -1,7 +1,5 @@
-// Cloudflare exposed secrets as Worker bindings through `cloudflare:workers`.
-// On Node they are plain environment variables. Reading them through getters
-// keeps the call sites unchanged and defers the lookup to request time, so a
-// missing value surfaces as a handled 503 rather than a module-load crash.
+// Read at request time rather than at module load, so a missing value surfaces
+// as a handled 503 with a log line instead of a crash on import.
 export const env = {
   get RALLY_SECRET() {
     return process.env.RALLY_SECRET ?? '';
@@ -12,5 +10,21 @@ export const env = {
   },
   get ADMIN_PASSWORD() {
     return process.env.ADMIN_PASSWORD ?? '';
+  },
+  /** AES-256 key (32 bytes) that `Config/forbidden` is encrypted with. */
+  get NICKNAME_BLOCKLIST_KEY() {
+    return process.env.NICKNAME_BLOCKLIST_KEY ?? '';
+  },
+  /** AES-CBC IV (16 bytes) that `Config/forbidden` is encrypted with. */
+  get NICKNAME_BLOCKLIST_IV() {
+    return process.env.NICKNAME_BLOCKLIST_IV ?? '';
+  },
+  /** Optional path to an encrypted blocklist other than Config/forbidden (CI). */
+  get NICKNAME_BLOCKLIST_PATH() {
+    return process.env.NICKNAME_BLOCKLIST_PATH ?? '';
+  },
+  /** Set by Vercel on every deployment; its edge rewrites the forwarded headers. */
+  get VERCEL() {
+    return process.env.VERCEL === '1';
   },
 };

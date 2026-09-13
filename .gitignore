@@ -13,7 +13,6 @@
 
 # next.js
 /.next/
-/.vinext/
 /out/
 
 # misc
@@ -39,15 +38,8 @@ next-env.d.ts
 /work/
 
 !.env.example
-/.dev.vars*
 
 *.tsbuildinfo
-
-# Cloudflare Tunnel: the config names a credentials file that grants tunnel
-# access. Only the example template is committed.
-/cloudflared.yml
-/*.cloudflared.json
-
 
 # Self-signed development certificate for LAN HTTPS (scripts/setup-https.mjs).
 # Regenerate locally; never reuse a private key across machines.

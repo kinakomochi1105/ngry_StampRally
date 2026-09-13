@@ -32,7 +32,13 @@
   ],
   "rules": {
     "no-array-constructor": "error",
-    "no-use-before-define": ["error", { "functions": false, "classes": false }],
+    "no-use-before-define": [
+      "error",
+      {
+        "functions": false,
+        "classes": false
+      }
+    ],
     "no-var": "error",
     "prefer-const": "error",
     "prefer-rest-params": "error",
@@ -52,5 +58,15 @@
     "typescript/no-require-imports": "error",
     "typescript/no-unnecessary-type-constraint": "error",
     "typescript/no-unsafe-function-type": "error"
-  }
+  },
+  "overrides": [
+    {
+      "files": [
+        "tests/**"
+      ],
+      "rules": {
+        "typescript/no-floating-promises": "off"
+      }
+    }
+  ]
 }

@@ -70,7 +70,7 @@ const historySize = 6;
  * Each read is judged and recorded in one request, and the verdict fills the
  * card below in a colour that can be read from across the table.
  */
-export function RedeemPanel({ onChanged }: { onChanged: () => void }) {
+export function RedeemPanel({ onChanged }: { onChanged?: () => void }) {
   const { t, locale } = useI18n();
   const field = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState('');
@@ -93,7 +93,7 @@ export function RedeemPanel({ onChanged }: { onChanged: () => void }) {
           ].slice(0, historySize),
         );
         setValue('');
-        if (outcome.status === 'redeemed') onChanged();
+        if (outcome.status === 'redeemed') onChanged?.();
       } catch (problem) {
         setError(errorMessage(problem, '引き換えを記録できませんでした。'));
       } finally {
@@ -112,17 +112,15 @@ export function RedeemPanel({ onChanged }: { onChanged: () => void }) {
     setBusy(true);
     setError('');
     try {
-      await api('participants', {
-        id: entry.person.id,
-        action: 'redeem',
-        redeemed: false,
-      });
+      // Through the desk's own route: a desk device may take back a scan it
+      // has just made, but not open the participant list.
+      await api('reward', { action: 'undo', id: entry.person.id });
       setEntries((list) =>
         list.map((item) =>
           item.key === entry.key ? { ...item, undone: true } : item,
         ),
       );
-      onChanged();
+      onChanged?.();
     } catch (problem) {
       setError(errorMessage(problem, '交換の記録を取り消せませんでした。'));
     } finally {

@@ -1,4 +1,3 @@
-import { requestOrigin } from '@/lib/server';
 /**
  * Landing point for a poster QR opened by the phone's own camera app. The
  * stamp is never granted on this navigation: the participant cookie is
@@ -6,17 +5,18 @@ import { requestOrigin } from '@/lib/server';
  * site or from an in-app browser. Forwarding to the participant screen lets
  * that page send the code as a same-origin request, which always carries the
  * cookie and passes the same CSRF check as an in-app scan.
+ *
+ * The Location is relative, so no request header can point it at another host.
  */
 export const dynamic = 'force-dynamic';
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ spot: string; code: string }> },
 ) {
   const { spot, code } = await params;
-  const target = new URL('/', requestOrigin(request));
-  target.searchParams.set('stamp', `${spot}.${code}`);
+  const query = new URLSearchParams({ stamp: `${spot}.${code}` });
   return new Response(null, {
     status: 303,
-    headers: { location: target.toString(), 'Cache-Control': 'no-store' },
+    headers: { location: `/?${query}`, 'Cache-Control': 'no-store' },
   });
 }

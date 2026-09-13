@@ -52,8 +52,9 @@ export function SpotIcon({
   if (isCustomSpotIcon(value))
     return (
       <>
-        {/* The picture is a data URL kept in the database, not a file on a
-            server, so there is nothing for next/image to optimise. */}
+        {/* A data URL on the console, or /api/spot-icon/<id> on the
+            participant screens: a stored picture already sized for this, so
+            there is nothing for next/image to optimise. */}
         {/* eslint-disable-next-line next/no-img-element */}
         <img
           className="spot-icon-image"

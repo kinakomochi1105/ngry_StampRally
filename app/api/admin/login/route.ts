@@ -1,51 +1,60 @@
-import { env } from '@/lib/env';
-import { database } from '@/db';
 import {
-  json,
-  sign,
-  safeEqual,
-  validOrigin,
+  actorName,
+  adminCookie,
+  deviceLabel,
+  minimumAdminPassword,
+  type AdminRole,
+} from '@/lib/admin';
+import { auditStatement } from '@/lib/audit';
+import { safeEqual, sign } from '@/lib/crypto';
+import { env } from '@/lib/env';
+import {
+  bodyJson,
   clientAddress,
-} from '@/lib/server';
-import { bodyJson, audit } from '@/lib/data';
-import { adminCookie } from '@/lib/admin';
-export async function POST(request: Request) {
-  if (!validOrigin(request))
-    return json({ error: 'ページを開き直してください。' }, 403);
-  try {
-    if (!env.ADMIN_PASSWORD || env.ADMIN_PASSWORD.length < 16)
-      return json({ error: '管理者パスワードが未設定です。' }, 503);
+  json,
+  requireSameOrigin,
+  route,
+  UserError,
+} from '@/lib/http';
+import { enforce, forgetStatement, limitKey, limits } from '@/lib/limits';
+import { hashSecret, secretHash } from '@/lib/settings';
+
+/**
+ * Signs a console device in. The admin password opens everything; the desk
+ * password, when an admin has set one, opens the reward desk only.
+ */
+export const POST = route(
+  'POST /api/admin/login',
+  'ログインできませんでした。',
+  async (request) => {
+    requireSameOrigin(request);
+    if (env.ADMIN_PASSWORD.length < minimumAdminPassword)
+      throw new UserError('管理者パスワードが未設定です。', 503);
     const data = await bodyJson(request, 1024);
-    const now = Math.floor(Date.now() / 1000);
-    const bucket = await sign('login:' + clientAddress(request));
-    const result = await database()
-      .prepare(
-        'INSERT INTO login_attempts (key,attempts,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=CASE WHEN expires_at<=? THEN 1 ELSE attempts+1 END,expires_at=CASE WHEN expires_at<=? THEN ? ELSE expires_at END RETURNING attempts',
-      )
-      .bind(bucket, now + 900, now, now, now + 900)
-      .first<{ attempts: number }>();
-    if ((result?.attempts ?? 99) > 10)
-      return json(
-        { error: '試行回数が多いため、15分後にお試しください。' },
-        429,
-      );
+    const bucket = await limitKey('admin-login', clientAddress(request));
+    await enforce(bucket, limits.adminLogin);
+    const password = typeof data.password === 'string' ? data.password : '';
+    let role: AdminRole | null = null;
+    // Compared as HMACs, so the comparison takes the same time whatever the
+    // lengths of the two passwords.
     if (
-      typeof data.password !== 'string' ||
-      !safeEqual(
-        await sign('password:' + data.password),
+      safeEqual(
+        await sign('password:' + password),
         await sign('password:' + env.ADMIN_PASSWORD),
       )
     )
-      return json({ error: 'パスワードが違います。' }, 401);
-    await database()
-      .prepare('DELETE FROM login_attempts WHERE key=? OR expires_at<=?')
-      .bind(bucket, now)
-      .run();
-    await audit('admin_login', 'admin');
-    return json({ ok: true }, 200, {
-      'Set-Cookie': await adminCookie(request),
+      role = 'admin';
+    else {
+      const desk = await secretHash('desk-password');
+      if (desk && safeEqual(await hashSecret('desk-password', password), desk))
+        role = 'desk';
+    }
+    if (!role) throw new UserError('パスワードが違います。', 401);
+    const label = deviceLabel(data.label);
+    await forgetStatement(bucket);
+    await auditStatement(role + '_login', role, actorName(role, label));
+    return json({ ok: true, role, label }, 200, {
+      'Set-Cookie': await adminCookie(request, role, label),
     });
-  } catch {
-    return json({ error: 'ログインできませんでした。' }, 400);
-  }
-}
+  },
+);

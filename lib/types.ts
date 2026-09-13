@@ -3,7 +3,11 @@ export type Spot = {
   name: string;
   location: string;
   description: string;
-  /** A template key, an uploaded PNG/JPEG data URL, or '' for the default. */
+  /**
+   * A template key, or '' for the default. An uploaded picture is a PNG/JPEG
+   * data URL on the console, and the URL it is served from
+   * (`/api/spot-icon/<id>?v=<updatedAt>`) on the participant screens.
+   */
   icon: string;
   sortOrder: number;
   active: number;
@@ -27,8 +31,12 @@ export const spotIconKeys = [
 export const defaultSpotIconKeys = spotIconKeys.slice(0, 6);
 /** Uploaded icons are stored inline, so they stay small: 128px, up to 96KB. */
 export const maxSpotIconLength = 96000;
+/** Where an uploaded icon is served from, so the passport poll never carries it. */
+export const spotIconPath = '/api/spot-icon/';
+export const spotIconUrl = (id: string, updatedAt: number) =>
+  `${spotIconPath}${id}?v=${updatedAt}`;
 export const isCustomSpotIcon = (icon: string) =>
-  icon.startsWith('data:image/');
+  icon.startsWith('data:image/') || icon.startsWith(spotIconPath);
 export const validSpotIcon = (icon: string) =>
   icon === '' ||
   spotIconKeys.includes(icon) ||
@@ -140,7 +148,10 @@ export type FestivalSettings = {
   classes: string[];
   maxNumber: number;
   registrationOpen: boolean;
-  nicknameBlockedWords?: string[];
+  /** Refused in new nicknames, on top of the built-in and encrypted lists. */
+  nicknameBlockedWords: string[];
+  /** Words that never count as a blocked word inside them (badminton, シネマ). */
+  nicknameAllowedWords: string[];
 };
 export const defaultSettings: FestivalSettings = {
   title: '文化祭スタンプラリー',
@@ -148,6 +159,8 @@ export const defaultSettings: FestivalSettings = {
   classes: ['A', 'B', 'C', 'D', 'E'],
   maxNumber: 50,
   registrationOpen: true,
+  nicknameBlockedWords: [],
+  nicknameAllowedWords: [],
 };
 export const gradeLabel = (value: string, locale = 'ja') =>
   /^\d+$/.test(value)

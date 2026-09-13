@@ -1,28 +1,10 @@
-import ts from 'typescript';
-import fs from 'node:fs';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
-// The wiki's two modules are plain TypeScript with no framework imports, so they
-// run here the same way `tests/i18n.mjs` runs the translation helper: transpile
-// and evaluate. No server is needed — the pages come from the repository.
-const nodeRequire = createRequire(new URL('../lib/manual.ts', import.meta.url));
-function load(path, stubs = {}) {
-  const module = { exports: {} };
-  new Function(
-    'require',
-    'module',
-    'exports',
-    ts.transpileModule(fs.readFileSync(path, 'utf8'), {
-      compilerOptions: {
-        module: ts.ModuleKind.CommonJS,
-        esModuleInterop: true,
-      },
-    }).outputText,
-  )((id) => stubs[id] ?? nodeRequire(id), module, module.exports);
-  return module.exports;
-}
-const markdown = load('lib/markdown.ts');
-const manual = load('lib/manual.ts', { './markdown': markdown });
+// The wiki's two modules are plain TypeScript with no framework imports, so
+// they run here directly through the test loader (tests/support/register.mjs).
+// No server is needed — the pages come from the repository.
+//   npm run test:manual
+import * as markdown from '../lib/markdown.ts';
+import * as manual from '../lib/manual.ts';
 const { renderMarkdown, markdownText } = markdown;
 const { parseManual, manualPages, manualIndex, manualPage, searchManual } =
   manual;

@@ -1,5 +1,5 @@
 /**
- * Serving a stored map picture.
+ * Serving a stored picture: a venue map or an uploaded location icon.
  *
  * The picture is kept as the data URL the organiser's browser produced, which
  * is what both the participant route and the console route hand back — decoded
@@ -16,9 +16,7 @@ export function imageResponse(dataUrl: string | null, cacheSeconds: number) {
       headers: { 'Cache-Control': 'no-store' },
     });
   const [, type, encoded] = match;
-  const binary = atob(encoded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const bytes = Buffer.from(encoded, 'base64');
   return new Response(bytes, {
     headers: {
       'Content-Type': type,

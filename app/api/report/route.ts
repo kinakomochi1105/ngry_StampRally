@@ -1,102 +1,118 @@
-import { database } from '@/db';
-import { event } from '@/lib/event';
-import { bodyJson } from '@/lib/data';
-import { gate } from '@/lib/gate';
-import { json, participant, sign, validOrigin } from '@/lib/server';
+import { and, avg, count, eq, gt, lt } from 'drizzle-orm';
+import { db, writeBatch } from '@/db';
+import { locations, spotReports } from '@/db/schema';
 import {
   averageLevel,
   reportCooldown,
   reportWindow,
   validReading,
 } from '@/lib/crowd';
+import { validId } from '@/lib/data';
+import { event } from '@/lib/event';
+import { requireGate } from '@/lib/gate';
+import {
+  bodyJson,
+  clientAddress,
+  json,
+  nowSeconds,
+  requireSameOrigin,
+  route,
+  UserError,
+} from '@/lib/http';
+import {
+  enforce,
+  hit,
+  limitKey,
+  limits,
+  purgeExpiredStatement,
+  tooMany,
+} from '@/lib/limits';
+import { requireParticipant } from '@/lib/session';
 
 /**
  * A participant's own reading of how busy a location is.
  *
  * The stored row carries the level and the time only — the same anonymous
  * shape as `spot_activity`. Repeat reports are held off through a short-lived
- * key in `login_attempts`, which is a hash of the participant and the spot, so
- * the reading itself never has an identifier beside it.
+ * counter keyed by an HMAC of the participant and the spot, so the reading
+ * itself never has an identifier beside it. The participant is identified by
+ * row id, which survives a recovery sign-in, so moving devices does not reset
+ * the hold-off; and a connection can only send so many, so a script creating
+ * passes cannot drown out the people actually standing in the queue.
  */
-export async function POST(request: Request) {
-  if (!validOrigin(request))
-    return json({ error: 'ページを開き直してください。' }, 403);
-  const closed = await gate(request);
-  if (closed) return closed;
-  try {
+export const POST = route(
+  'POST /api/report',
+  '混み具合を報告できませんでした。時間をおいてお試しください。',
+  async (request) => {
+    requireSameOrigin(request);
+    await requireGate(request);
     const data = await bodyJson(request, 1024);
-    const hash = await participant(request);
-    if (!hash)
-      return json({ error: '参加登録を行ってから操作してください。' }, 401);
+    const person = await requireParticipant(request);
 
-    const spotId = typeof data.spotId === 'string' ? data.spotId : '';
     const level = Number(data.level);
-    if (!validReading(level))
-      return json({ error: '混み具合を選んでください。' }, 400);
-    if (
-      !/^[a-z0-9-]{1,64}$/.test(spotId) ||
-      !(await database()
-        .prepare(
-          'SELECT id FROM locations WHERE id=? AND event_id=? AND active=1',
-        )
-        .bind(spotId, event.id)
-        .first())
-    )
-      return json({ error: 'この設置場所は選べません。' }, 400);
-
-    const now = Math.floor(Date.now() / 1000);
-    const key = await sign(`report:${event.id}:${spotId}:${hash}`);
-    const attempts = Number(
-      (
-        await database()
-          .prepare(
-            'INSERT INTO login_attempts (key,attempts,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=CASE WHEN expires_at<=? THEN 1 ELSE attempts+1 END,expires_at=CASE WHEN expires_at<=? THEN ? ELSE expires_at END RETURNING attempts',
+    if (!validReading(level)) throw new UserError('混み具合を選んでください。');
+    const spotId = data.spotId;
+    const spot = validId(spotId)
+      ? await db()
+          .select({ id: locations.id })
+          .from(locations)
+          .where(
+            and(
+              eq(locations.id, spotId),
+              eq(locations.eventId, event.id),
+              eq(locations.active, 1),
+            ),
           )
-          .bind(key, now + reportCooldown, now, now, now + reportCooldown)
-          .first<{ attempts: number }>()
-      )?.attempts ?? 0,
-    );
-    if (attempts > 1)
-      return json({ error: '同じ場所の報告は5分に1回までです。' }, 429);
+          .get()
+      : undefined;
+    if (!spot) throw new UserError('この設置場所は選べません。');
 
-    await database().batch([
-      database()
-        .prepare(
-          'INSERT INTO spot_reports (event_id,spot_id,level,created_at) VALUES (?,?,?,?)',
-        )
-        .bind(event.id, spotId, level, now),
+    await enforce(
+      await limitKey('report-address', clientAddress(request)),
+      limits.reportAddress,
+    );
+    const now = nowSeconds();
+    const holdOff = await limitKey('report', event.id, spot.id, person.id);
+    if ((await hit(holdOff, reportCooldown, now)) > 1)
+      throw tooMany(reportCooldown, '同じ場所の報告は5分に1回までです。');
+
+    await writeBatch([
+      db()
+        .insert(spotReports)
+        .values({ eventId: event.id, spotId: spot.id, level, createdAt: now }),
       // The display window is short, so anything older is of no use to anyone.
-      database()
-        .prepare('DELETE FROM spot_reports WHERE event_id=? AND created_at<?')
-        .bind(event.id, now - reportWindow),
-      database()
-        .prepare('DELETE FROM login_attempts WHERE expires_at<=?')
-        .bind(now),
+      db()
+        .delete(spotReports)
+        .where(
+          and(
+            eq(spotReports.eventId, event.id),
+            lt(spotReports.createdAt, now - reportWindow),
+          ),
+        ),
+      purgeExpiredStatement(now),
     ]);
 
-    const summary = await database()
-      .prepare(
-        'SELECT COUNT(*) AS reportCount,AVG(level) AS reportAverage FROM spot_reports WHERE event_id=? AND spot_id=? AND created_at>?',
+    const summary = await db()
+      .select({
+        reportCount: count(),
+        reportAverage: avg(spotReports.level),
+      })
+      .from(spotReports)
+      .where(
+        and(
+          eq(spotReports.eventId, event.id),
+          eq(spotReports.spotId, spot.id),
+          gt(spotReports.createdAt, now - reportWindow),
+        ),
       )
-      .bind(event.id, spotId, now - reportWindow)
-      .first<{ reportCount: number; reportAverage: number }>();
+      .get();
     const reportCount = Number(summary?.reportCount ?? 0);
     const reportAverage = reportCount ? Number(summary?.reportAverage) : null;
     return json({
-      spotId,
+      spotId: spot.id,
       reportCount,
       reportAverage,
       level: reportAverage === null ? null : averageLevel(reportAverage),
     });
-  } catch (e) {
-    return json(
-      {
-        error:
-          e instanceof Error && /入力|JSON/.test(e.message)
-            ? e.message
-            : '混み具合を報告できませんでした。時間をおいてお試しください。',
-      },
-      400,
-    );
-  }
-}
+  },
+);

@@ -109,6 +109,9 @@ export const locations = sqliteTable(
     icon: text('icon').notNull().default(''),
     sortOrder: integer('sort_order').notNull().default(0),
     active: integer('active').notNull().default(1),
+    // Bumped on every save. An uploaded icon is served from its own URL that
+    // carries this value, so a replaced icon never comes from a browser cache.
+    updatedAt: integer('updated_at').notNull().default(0),
   },
   (t) => [index('locations_event_idx').on(t.eventId, t.active, t.sortOrder)],
 );
@@ -149,6 +152,8 @@ export const auditLog = sqliteTable('audit_log', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   action: text('action').notNull(),
   target: text('target').notNull(),
+  /** Who did it: the role and the device name given at sign-in, e.g. 'desk:受付1'. */
+  actor: text('actor').notNull().default(''),
   createdAt: integer('created_at').notNull(),
 });
 

@@ -6,7 +6,10 @@ const base = process.env.TEST_BASE_URL || 'http://localhost:3000';
 if (!['localhost', '127.0.0.1'].includes(new URL(base).hostname))
   throw Error('Tests write data and must run locally.');
 const password = process.env.ADMIN_PASSWORD;
-if (!password) throw Error('Run with --env-file=.env');
+if (!password)
+  throw Error(
+    'Run with `npm run test:api`, which loads ADMIN_PASSWORD from .env',
+  );
 const tracked = [];
 let adminCookie = '';
 async function req(path, { data, cookie = '', origin = base } = {}) {
@@ -61,9 +64,25 @@ try {
     (await req('/api/admin/login', { data: { password: 'incorrect' } })).status,
     401,
   );
-  const login = await req('/api/admin/login', { data: { password } });
+  const login = await req('/api/admin/login', {
+    data: { password, label: 'API試験' },
+  });
   assert.equal(login.status, 200);
+  assert.equal(login.data.role, 'admin');
   adminCookie = login.cookie;
+  assert.deepEqual((await adm('session')).data, {
+    role: 'admin',
+    label: 'API試験',
+  });
+  // Every response carries the security headers from next.config.ts.
+  const home = await fetch(base + '/');
+  assert.match(
+    home.headers.get('content-security-policy') ?? '',
+    /frame-ancestors 'none'/,
+  );
+  assert.equal(home.headers.get('x-frame-options'), 'DENY');
+  assert.equal(home.headers.get('referrer-policy'), 'same-origin');
+  console.log('PASS: admin session role/label and security headers.');
   original = (await adm('settings')).data.settings;
   const seeded = await adm('spots');
   if (!seeded.data.spots.length)
@@ -217,8 +236,16 @@ try {
   );
   assert.ok(trafficPoint);
   assert.ok(trafficPoint.recentCount >= 24);
-  assert.equal(trafficPoint.reportCount, 0);
-  assert.equal(trafficPoint.reportAverage, null);
+  // Reports stay on display for 20 minutes, so a run shortly after another
+  // starts with that run's reports. Everything below is measured from here.
+  const priorCount = trafficPoint.reportCount;
+  const priorSum = (trafficPoint.reportAverage ?? 0) * priorCount;
+  assert.equal(trafficPoint.reportAverage === null, priorCount === 0);
+  const averageAfter = (...levels) =>
+    (priorSum + levels.reduce((a, b) => a + b, 0)) /
+    (priorCount + levels.length);
+  const levelOf = (average) =>
+    average >= 7 / 3 ? 'busy' : average >= 5 / 3 ? 'moving' : 'quiet';
 
   // Participant crowd reports: authentication, validation, the once-per-five-
   // minutes hold-off, CSRF, and the average the screens display.
@@ -260,9 +287,10 @@ try {
     data: { spotId: managed[0].id, level: 3 },
   });
   assert.equal(firstReport.status, 200, JSON.stringify(firstReport.data));
-  assert.equal(firstReport.data.reportCount, 1);
-  assert.equal(firstReport.data.reportAverage, 3);
-  assert.equal(firstReport.data.level, 'busy');
+  assert.equal(firstReport.data.reportCount, priorCount + 1);
+  assert.equal(firstReport.data.reportAverage, averageAfter(3));
+  assert.equal(firstReport.data.level, levelOf(averageAfter(3)));
+  if (!priorCount) assert.equal(firstReport.data.level, 'busy');
   // The same participant is held off, while another one still counts.
   assert.equal(
     (
@@ -279,16 +307,17 @@ try {
     data: { spotId: managed[0].id, level: 1 },
   });
   assert.equal(secondReport.status, 200);
-  assert.equal(secondReport.data.reportCount, 2);
-  assert.equal(secondReport.data.reportAverage, 2);
-  assert.equal(secondReport.data.level, 'moving');
+  assert.equal(secondReport.data.reportCount, priorCount + 2);
+  assert.equal(secondReport.data.reportAverage, averageAfter(3, 1));
+  assert.equal(secondReport.data.level, levelOf(averageAfter(3, 1)));
+  if (!priorCount) assert.equal(secondReport.data.level, 'moving');
   const reportedPass = (await req('/api/passport', { cookie: student.cookie }))
     .data;
   const reportedPoint = reportedPass.traffic.find(
     (point) => point.spotId === managed[0].id,
   );
-  assert.equal(reportedPoint.reportCount, 2);
-  assert.equal(reportedPoint.reportAverage, 2);
+  assert.equal(reportedPoint.reportCount, priorCount + 2);
+  assert.equal(reportedPoint.reportAverage, averageAfter(3, 1));
   // A report never reveals who sent it.
   assert.ok(
     !JSON.stringify(reportedPass.traffic).includes(String(student.profile.id)),
@@ -319,10 +348,16 @@ try {
   // accepted, because only the signature binds a code to this festival.
   const poster = new URL(managed[0].code);
   const signature = poster.pathname.split('/').pop();
-  const forwarded = await fetch(base + poster.pathname, { redirect: 'manual' });
+  const forwarded = await fetch(base + poster.pathname, {
+    redirect: 'manual',
+    // A forged forwarding header must not point the redirect at another host.
+    headers: { 'x-forwarded-host': 'attacker.invalid' },
+  });
   assert.equal(forwarded.status, 303);
+  const landing = new URL(forwarded.headers.get('location'), base);
+  assert.equal(landing.origin, new URL(base).origin);
   assert.equal(
-    new URL(forwarded.headers.get('location')).searchParams.get('stamp'),
+    landing.searchParams.get('stamp'),
     managed[0].id + '.' + signature,
   );
   for (const code of [
@@ -399,6 +434,16 @@ try {
       await req('/api/stamp', {
         cookie: beforeCookie,
         data: { code: managed[0].code },
+      })
+    ).status,
+    401,
+  );
+  // A signed cookie whose pass has moved to another device reports nothing.
+  assert.equal(
+    (
+      await req('/api/report', {
+        cookie: beforeCookie,
+        data: { spotId: managed[0].id, level: 1 },
       })
     ).status,
     401,
@@ -489,8 +534,15 @@ try {
       400,
       'Rejected invalid nickname',
     );
-  const nickConfig = { ...original, nicknameBlockedWords: ['禁止見本'] };
+  const nickConfig = {
+    ...original,
+    nicknameBlockedWords: ['禁止見本'],
+    nicknameAllowedWords: ['禁止見本市'],
+  };
   assert.equal((await adm('settings', { settings: nickConfig })).status, 200);
+  assert.deepEqual((await adm('settings')).data.settings.nicknameAllowedWords, [
+    '禁止見本市',
+  ]);
   assert.equal(
     (
       await req('/api/register', {
@@ -499,6 +551,12 @@ try {
     ).status,
     400,
   );
+  // An ordinary name that merely contains a blocked word gets through, both
+  // from the built-in allowances and from the organiser's own.
+  for (const nickname of ['Yamashita', 'シネマ好き', '禁止見本市']) {
+    const allowed = await register({ kind: 'guest', nickname });
+    assert.equal(allowed.profile.nickname, nickname);
+  }
   assert.equal((await adm('settings', { settings: original })).status, 200);
   const ranking = await adm('participants?sort=rank');
   assert.equal(ranking.status, 200, JSON.stringify(ranking.data));
@@ -591,6 +649,19 @@ try {
         .icon,
       picture,
     );
+    // Participants get the icon's URL, not the picture, in every passport.
+    const iconUrl = (
+      await req('/api/passport', { cookie: student.cookie })
+    ).data.spots.find((s) => s.id === originalSpot.id).icon;
+    assert.match(iconUrl, /^\/api\/spot-icon\/[a-z0-9-]+\?v=\d+$/);
+    const icon = await fetch(base + iconUrl);
+    assert.equal(icon.status, 200);
+    assert.equal(icon.headers.get('content-type'), 'image/png');
+    assert.equal(
+      Buffer.from(await icon.arrayBuffer()).toString(),
+      'a'.repeat(600),
+    );
+    assert.equal((await fetch(base + '/api/spot-icon/missing')).status, 404);
     for (const icon of [
       'javascript:alert(1)',
       'data:text/html;base64,AAAA',
@@ -921,6 +992,11 @@ try {
   // The PIN typed on the participant's phone still works beside the barcode.
   // Only exercised when no PIN is configured, so a real one is never replaced.
   if (!(await adm('settings')).data.staffPinSet) {
+    // Four digits fall to guessing too quickly for a PIN typed on a visitor's phone.
+    assert.equal(
+      (await adm('settings', { action: 'staffPin', pin: '4829' })).status,
+      400,
+    );
     const pin = '482913';
     assert.equal(
       (await adm('settings', { action: 'staffPin', pin })).status,
@@ -953,6 +1029,121 @@ try {
       assert.ok(byPin.data.redeemedAt);
     } finally {
       await adm('settings', { action: 'staffPin', clear: true });
+    }
+  }
+
+  // The desk role: a password that opens the reward desk and nothing else.
+  // Only exercised when none is configured, so a real one is never replaced.
+  if (!(await adm('settings')).data.deskPasswordSet) {
+    const deskPassword = 'desk-test-password';
+    assert.equal(
+      (await adm('settings', { action: 'deskPassword', password: 'short' }))
+        .status,
+      400,
+    );
+    assert.equal(
+      (
+        await adm('settings', {
+          action: 'deskPassword',
+          password: deskPassword,
+        })
+      ).status,
+      200,
+    );
+    try {
+      const deskLogin = await req('/api/admin/login', {
+        data: { password: deskPassword, label: '受付テスト' },
+      });
+      assert.equal(deskLogin.status, 200);
+      assert.equal(deskLogin.data.role, 'desk');
+      const desk = (path, data) =>
+        req('/api/admin/' + path, { data, cookie: deskLogin.cookie });
+      assert.deepEqual((await desk('session')).data, {
+        role: 'desk',
+        label: '受付テスト',
+      });
+      // Nothing outside the desk.
+      for (const path of [
+        'participants',
+        'settings',
+        'spots',
+        'maps',
+        'export',
+      ])
+        assert.equal((await desk(path)).status, 403, path);
+      assert.equal(
+        (
+          await desk('settings', {
+            action: 'purge',
+            confirm: '全参加データを削除',
+          })
+        ).status,
+        403,
+      );
+      assert.equal((await desk('manual')).status, 200);
+      // The desk reads codes, and takes back a hand-over it has just made.
+      const deskFinisher = await register({ kind: 'guest' });
+      for (const spot of managed)
+        await req('/api/stamp', {
+          cookie: deskFinisher.cookie,
+          data: { code: spot.code },
+        });
+      const deskCode = (
+        await req('/api/reward', { cookie: deskFinisher.cookie })
+      ).data.code;
+      assert.equal(
+        (await desk('reward', { code: deskCode })).data.status,
+        'redeemed',
+      );
+      assert.equal(
+        (await desk('reward', { action: 'undo', id: deskFinisher.profile.id }))
+          .status,
+        200,
+      );
+      // A hand-over the admin records by hand is, within ten minutes, as
+      // undoable from the desk as a scan (the ten-minute cut-off itself is
+      // exercised through the SQL condition, which a test cannot wait for).
+      assert.equal(
+        (
+          await adm('participants', {
+            id: deskFinisher.profile.id,
+            action: 'redeem',
+            redeemed: true,
+          })
+        ).status,
+        200,
+      );
+      assert.equal(
+        (await desk('reward', { action: 'undo', id: deskFinisher.profile.id }))
+          .status,
+        200,
+        'a hand-over recorded just now is still within the desk window',
+      );
+      const history = (await adm('settings')).data.logs;
+      assert.ok(
+        history.some(
+          (l) => l.action === 'reward_scan' && l.actor === 'desk:受付テスト',
+        ),
+      );
+      assert.ok(
+        history.some(
+          (l) => l.action === 'desk_login' && l.actor === 'desk:受付テスト',
+        ),
+      );
+      assert.ok(history.some((l) => l.actor === 'admin:API試験'));
+      // Changing the desk password signs every desk device out.
+      assert.equal(
+        (
+          await adm('settings', {
+            action: 'deskPassword',
+            password: deskPassword + '-2',
+          })
+        ).status,
+        200,
+      );
+      assert.equal((await desk('session')).status, 401);
+    } finally {
+      await adm('settings', { action: 'deskPassword', clear: true });
     }
   }
 

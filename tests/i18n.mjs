@@ -1,18 +1,8 @@
 import ts from 'typescript';
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
-const require = createRequire(new URL('../lib/i18n.ts', import.meta.url));
-const module = { exports: {} };
-new Function(
-  'require',
-  'module',
-  'exports',
-  ts.transpileModule(fs.readFileSync('lib/i18n.ts', 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true },
-  }).outputText,
-)(require, module, module.exports);
-const { translate, detectLocale } = module.exports;
+// Runs through the test loader: npm run test:i18n (with the dev server up).
+import { translate, detectLocale } from '../lib/i18n.ts';
 assert.equal(detectLocale(['en-US', 'ja']), 'en');
 assert.equal(detectLocale(['ja-JP', 'en']), 'ja');
 assert.equal(detectLocale(['fr', 'en-GB']), 'en');

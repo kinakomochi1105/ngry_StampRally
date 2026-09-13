@@ -1,26 +1,22 @@
-import { database } from '@/db';
-import { guard } from '@/lib/admin';
-import { json, logFailure } from '@/lib/server';
-import { progressSql, progressArgs } from '@/lib/progress';
-import { audit } from '@/lib/data';
-export async function GET(request: Request) {
-  const denied = await guard(request);
-  if (denied) return denied;
-  try {
-    const rows = (
-      await database()
-        .prepare(progressSql + ' SELECT * FROM ranked ORDER BY id LIMIT 10001')
-        .bind(...progressArgs())
-        .all<Record<string, string | number | null>>()
-    ).results;
-    if (rows.length > 10000)
-      return json({ error: '一度に出力できる上限は10000人です。' }, 400);
-    const cell = (value: string | number | null) => {
-      let s = String(value ?? '');
-      if (/^[=+\-@\t\r\n]/.test(s)) s = "'" + s;
-      return '"' + s.replaceAll('"', '""') + '"';
-    };
-    const lines = [
+import { requireAdmin } from '@/lib/admin';
+import { auditStatement } from '@/lib/audit';
+import { csvDocument } from '@/lib/csv';
+import { route, UserError } from '@/lib/http';
+import { allProgress } from '@/lib/progress';
+
+const maxRows = 10000;
+const iso = (seconds: number | null) =>
+  seconds ? new Date(Number(seconds) * 1000).toISOString() : '';
+
+export const GET = route(
+  'GET /api/admin/export',
+  'CSVを作成できませんでした。',
+  async (request) => {
+    const session = await requireAdmin(request);
+    const rows = await allProgress(maxRows + 1);
+    if (rows.length > maxRows)
+      throw new UserError(`一度に出力できる上限は${maxRows}人です。`);
+    const body = csvDocument([
       [
         '管理番号',
         '種別',
@@ -47,30 +43,22 @@ export async function GET(request: Request) {
         r.guestNumber ? `#${r.guestNumber}` : '',
         r.stampCount,
         r.ranking,
-        new Date(Number(r.createdAt) * 1000).toISOString(),
-        r.lastStamp ? new Date(Number(r.lastStamp) * 1000).toISOString() : '',
+        iso(r.createdAt),
+        iso(r.lastStamp),
         r.redeemedAt ? '交換済み' : '未交換',
-        r.completedAt
-          ? new Date(Number(r.completedAt) * 1000).toISOString()
-          : '',
-        r.redeemedAt ? new Date(Number(r.redeemedAt) * 1000).toISOString() : '',
+        iso(r.completedAt),
+        iso(r.redeemedAt),
       ]),
-    ];
-    await audit('export_csv', String(rows.length));
-    return new Response(
-      '\uFEFF' + lines.map((r) => r.map(cell).join(',')).join('\r\n'),
-      {
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition':
-            'attachment; filename="festival-participants.csv"',
-          'Cache-Control': 'no-store',
-          'X-Content-Type-Options': 'nosniff',
-        },
+    ]);
+    await auditStatement('export_csv', String(rows.length), session.actor);
+    return new Response(body, {
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition':
+          'attachment; filename="festival-participants.csv"',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
       },
-    );
-  } catch (e) {
-    logFailure('GET /api/admin/export', e);
-    return json({ error: 'CSVを作成できませんでした。' }, 503);
-  }
-}
+    });
+  },
+);

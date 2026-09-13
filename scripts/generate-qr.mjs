@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createHmac } from 'node:crypto';
 import QRCode from 'qrcode';
-import { spots, event } from '../lib/event.ts';
+import { sampleSpots, event } from '../lib/event.ts';
 const secret = process.env.RALLY_SECRET;
 if (!secret || secret.length < 32)
   throw new Error('Load RALLY_SECRET with node --env-file=.env');
@@ -17,7 +17,7 @@ mkdirSync('outputs', { recursive: true });
 const esc = (s) =>
   s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
 let cards = '';
-for (const [index, spot] of spots.entries()) {
+for (const [index, spot] of sampleSpots.entries()) {
   const signature = createHmac('sha256', secret)
     .update(`qr:${event.id}:${spot.id}`)
     .digest('hex');

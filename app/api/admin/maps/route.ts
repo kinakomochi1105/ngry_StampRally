@@ -1,49 +1,50 @@
-import { database } from '@/db';
+import { and, eq } from 'drizzle-orm';
+import { db, writeBatch } from '@/db';
+import { venueMaps } from '@/db/schema';
+import { requireAdmin } from '@/lib/admin';
+import { auditStatement } from '@/lib/audit';
+import { allMaps, allSpots, validId } from '@/lib/data';
 import { event } from '@/lib/event';
-import { json, logFailure } from '@/lib/server';
-import { guard } from '@/lib/admin';
-import { allMaps, allSpots, bodyJson, audit } from '@/lib/data';
-import {
-  maxMapImageLength,
-  readMapAreas,
-  validMapImage,
-  type MapArea,
-} from '@/lib/types';
+import { bodyJson, json, nowSeconds, route, UserError } from '@/lib/http';
+import { maxMapImageLength, readMapAreas, validMapImage } from '@/lib/types';
 
 /** Every map, published or not, with the locations the areas can point at. */
-export async function GET(request: Request) {
-  const denied = await guard(request);
-  if (denied) return denied;
-  try {
-    return json({ maps: await allMaps(false), spots: await allSpots(false) });
-  } catch (e) {
-    logFailure('GET /api/admin/maps', e);
-    return json({ error: '会場マップを取得できませんでした。' }, 503);
-  }
-}
+export const GET = route(
+  'GET /api/admin/maps',
+  '会場マップを取得できませんでした。',
+  async (request) => {
+    await requireAdmin(request);
+    const [maps, spots] = await Promise.all([
+      allMaps(false),
+      allSpots({ activeOnly: false }),
+    ]);
+    return json({ maps, spots });
+  },
+);
 
 /**
  * Saves one map. The picture is optional on an edit: leaving it out keeps the
  * one already stored, so moving a few areas does not re-upload a megabyte.
  */
-export async function POST(request: Request) {
-  const denied = await guard(request, true);
-  if (denied) return denied;
-  try {
+export const POST = route(
+  'POST /api/admin/maps',
+  '会場マップを保存できませんでした。',
+  async (request) => {
+    const session = await requireAdmin(request, { mutation: true });
     // The picture travels inline, so this route accepts a far larger body
     // than the 8KB default.
     const data = await bodyJson(request, maxMapImageLength + 32768);
     const id =
       typeof data.id === 'string' ? data.id : 'map-' + crypto.randomUUID();
-    if (!/^[a-z0-9-]{1,64}$/.test(id))
-      throw new Error('マップを確認してください。');
+    if (!validId(id)) throw new UserError('マップを確認してください。');
+    const now = nowSeconds();
+    const byId = and(eq(venueMaps.eventId, event.id), eq(venueMaps.id, id));
 
     if (data.action === 'delete') {
-      await database()
-        .prepare('DELETE FROM venue_maps WHERE event_id=? AND id=?')
-        .bind(event.id, id)
-        .run();
-      await audit('delete_map', id);
+      await writeBatch([
+        db().delete(venueMaps).where(byId),
+        auditStatement('delete_map', id, session.actor, now),
+      ]);
       return json({ ok: true });
     }
 
@@ -53,9 +54,8 @@ export async function POST(request: Request) {
     const height = Number(data.height ?? 0);
     const sortOrder = Number(data.sortOrder ?? 0);
     const active = data.active === true || data.active === 1 ? 1 : 0;
-    const areas: MapArea[] = readMapAreas(data.areas);
     if (!name || name.length > 40)
-      throw new Error('マップの名前を確認してください。');
+      throw new UserError('マップの名前を確認してください。');
     if (
       !Number.isInteger(width) ||
       !Number.isInteger(height) ||
@@ -67,58 +67,49 @@ export async function POST(request: Request) {
       sortOrder < 0 ||
       sortOrder > 999
     )
-      throw new Error('マップの大きさと表示順を確認してください。');
+      throw new UserError('マップの大きさと表示順を確認してください。');
     if (image && !validMapImage(image))
-      throw new Error(
+      throw new UserError(
         '画像を確認してください。PNGかJPEGで、小さめの画像を選んでください。',
       );
     // Areas point at locations of this event, and nothing else.
-    const known = new Set((await allSpots(false)).map((spot) => spot.id));
-    const linked = areas.map((area) => ({
+    const known = new Set(
+      (await allSpots({ activeOnly: false })).map((spot) => spot.id),
+    );
+    const areas = readMapAreas(data.areas).map((area) => ({
       ...area,
       spotId: known.has(area.spotId) ? area.spotId : '',
     }));
-    if (linked.some((area) => !area.spotId && !area.label))
-      throw new Error('リンク先か表示名のどちらかを設定してください。');
+    if (areas.some((area) => !area.spotId && !area.label))
+      throw new UserError('リンク先か表示名のどちらかを設定してください。');
 
-    const now = Math.floor(Date.now() / 1000);
-    const payload = JSON.stringify(linked);
+    const values = {
+      name,
+      areas: JSON.stringify(areas),
+      sortOrder,
+      active,
+      updatedAt: now,
+    };
     if (image) {
-      await database()
-        .prepare(
-          'INSERT INTO venue_maps (id,event_id,name,image,width,height,areas,sort_order,active,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,image=excluded.image,width=excluded.width,height=excluded.height,areas=excluded.areas,sort_order=excluded.sort_order,active=excluded.active,updated_at=excluded.updated_at WHERE venue_maps.event_id=excluded.event_id',
-        )
-        .bind(
-          id,
-          event.id,
-          name,
-          image,
-          width,
-          height,
-          payload,
-          sortOrder,
-          active,
-          now,
-        )
-        .run();
+      const withImage = { ...values, image, width, height };
+      await writeBatch([
+        db()
+          .insert(venueMaps)
+          .values({ id, eventId: event.id, ...withImage })
+          .onConflictDoUpdate({
+            target: venueMaps.id,
+            set: withImage,
+            setWhere: eq(venueMaps.eventId, event.id),
+          }),
+        auditStatement('save_map', id, session.actor, now),
+      ]);
     } else {
-      const changed = await database()
-        .prepare(
-          'UPDATE venue_maps SET name=?,areas=?,sort_order=?,active=?,updated_at=? WHERE event_id=? AND id=?',
-        )
-        .bind(name, payload, sortOrder, active, now, event.id, id)
-        .run();
-      if (!changed.meta.changes) throw new Error('画像を選んでください。');
+      const [changed] = await writeBatch([
+        db().update(venueMaps).set(values).where(byId),
+        auditStatement('save_map', id, session.actor, now),
+      ]);
+      if (!changed.rowsAffected) throw new UserError('画像を選んでください。');
     }
-    await audit('save_map', id);
     return json({ ok: true, id });
-  } catch (e) {
-    const message =
-      e instanceof Error && /確認|選んで|設定/.test(e.message)
-        ? e.message
-        : '会場マップを保存できませんでした。';
-    if (message === '会場マップを保存できませんでした。')
-      logFailure('POST /api/admin/maps', e);
-    return json({ error: message }, 400);
-  }
-}
+  },
+);

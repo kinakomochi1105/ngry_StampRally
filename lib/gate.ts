@@ -1,14 +1,15 @@
-import { database } from '@/db';
+import { safeEqual, sign } from './crypto';
 import { event } from './event';
-import { hashSitePassword, sitePasswordHash } from './data';
 import {
   clientAddress,
   isSecureRequest,
-  json,
-  retentionSeconds,
-  safeEqual,
-  sign,
-} from './server';
+  nowSeconds,
+  readCookie,
+  UserError,
+} from './http';
+import { forgetStatement, limitKey, limits, enforce } from './limits';
+import { retentionSeconds } from './session';
+import { hashSecret, secretHash } from './settings';
 
 /**
  * The site-wide access word.
@@ -25,26 +26,15 @@ import {
 
 const cookieName = 'rally_gate';
 
-export async function gateCookie(request: Request, passwordHash: string) {
-  const expires = Math.floor(Date.now() / 1000) + retentionSeconds;
+async function gateCookie(request: Request, passwordHash: string) {
+  const expires = nowSeconds() + retentionSeconds;
   const signature = await sign(`gate:${event.id}:${expires}:${passwordHash}`);
   const secure = isSecureRequest(request) ? '; Secure' : '';
   return `${cookieName}=${expires}.${signature}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${retentionSeconds}${secure}`;
 }
 
-/** Clears the pass, so a changed word takes effect on the next request. */
-export function clearGateCookie(request: Request) {
-  const secure = isSecureRequest(request) ? '; Secure' : '';
-  return `${cookieName}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secure}`;
-}
-
 async function hasPass(request: Request, passwordHash: string) {
-  const value = request.headers
-    .get('cookie')
-    ?.split(';')
-    .map((part) => part.trim())
-    .find((part) => part.startsWith(cookieName + '='))
-    ?.slice(cookieName.length + 1);
+  const value = readCookie(request, cookieName);
   if (!value) return false;
   const [expires, signature] = value.split('.');
   if (!/^\d{10}$/.test(expires ?? '') || Number(expires) <= Date.now() / 1000)
@@ -56,65 +46,34 @@ async function hasPass(request: Request, passwordHash: string) {
 }
 
 /**
- * Returns a response to send back when the visitor may not pass, or null when
- * they may. `code: 'gate'` is what the participant screen watches for: it is
- * the one 401 that means "ask for the word", not "sign in again".
+ * Throws the one 401 the participant screen reads as "ask for the word"
+ * (`code: 'gate'`) rather than "sign in again", unless the visitor may pass.
  */
-export async function gate(request: Request) {
-  const expected = await sitePasswordHash();
-  if (!expected) return null;
-  if (await hasPass(request, expected)) return null;
-  return json({ error: '合言葉を入力してください。', code: 'gate' }, 401);
+export async function requireGate(request: Request) {
+  const expected = await secretHash('site-password');
+  if (!expected || (await hasPass(request, expected))) return;
+  throw new UserError('合言葉を入力してください。', 401, { code: 'gate' });
 }
 
 /** Whether a word is set at all, for the screen that has to ask for it. */
-export const gateRequired = async () => (await sitePasswordHash()) !== null;
+export const gateRequired = async () =>
+  (await secretHash('site-password')) !== null;
 
 /**
- * Checks a submitted word. Attempts are counted per connection, the same way
- * the organiser login is, so a shared venue line still allows a whole class to
- * type a word they were told.
+ * Checks a submitted word and returns the pass cookie, or null when no word
+ * is set. Attempts are counted per connection, so a shared venue line still
+ * allows a whole class to type a word they were told.
  */
 export async function openGate(request: Request, password: unknown) {
-  const expected = await sitePasswordHash();
-  if (!expected)
-    return { ok: true as const, cookie: null, error: null, status: 200 };
-
-  const now = Math.floor(Date.now() / 1000);
-  const bucket = await sign('gate-ip:' + clientAddress(request));
-  const attempt = await database()
-    .prepare(
-      'INSERT INTO login_attempts (key,attempts,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=CASE WHEN expires_at<=? THEN 1 ELSE attempts+1 END,expires_at=CASE WHEN expires_at<=? THEN ? ELSE expires_at END RETURNING attempts',
-    )
-    .bind(bucket, now + 900, now, now, now + 900)
-    .first<{ attempts: number }>();
-  if ((attempt?.attempts ?? 99) > 60)
-    return {
-      ok: false as const,
-      cookie: null,
-      error: '試行回数が多いため、15分後にお試しください。',
-      status: 429,
-    };
-
+  const expected = await secretHash('site-password');
+  if (!expected) return null;
+  const bucket = await limitKey('gate', clientAddress(request));
+  await enforce(bucket, limits.gate);
   if (
     typeof password !== 'string' ||
-    !safeEqual(await hashSitePassword(password), expected)
+    !safeEqual(await hashSecret('site-password', password), expected)
   )
-    return {
-      ok: false as const,
-      cookie: null,
-      error: '合言葉が違います。掲示や案内をご確認ください。',
-      status: 401,
-    };
-
-  await database()
-    .prepare('DELETE FROM login_attempts WHERE key=? OR expires_at<=?')
-    .bind(bucket, now)
-    .run();
-  return {
-    ok: true as const,
-    cookie: await gateCookie(request, expected),
-    error: null,
-    status: 200,
-  };
+    throw new UserError('合言葉が違います。掲示や案内をご確認ください。', 401);
+  await forgetStatement(bucket);
+  return gateCookie(request, expected);
 }

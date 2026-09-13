@@ -1,6 +1,6 @@
 import { defineConfig } from 'drizzle-kit';
 
-// Migrations are plain SQLite, so the same files that ran on D1 run on libSQL.
+// Migrations are plain SQLite, applied to libSQL (Turso, or a local file).
 // `file:` keeps `drizzle-kit generate` working without any credentials.
 export default defineConfig({
   out: './drizzle',

@@ -1,9 +1,13 @@
-import { json, validOrigin } from '@/lib/server';
-export async function POST(request: Request) {
-  if (!validOrigin(request))
-    return json({ error: 'アクセスできません。' }, 403);
-  return json({ ok: true }, 200, {
-    'Set-Cookie':
-      'rally_admin=; HttpOnly; SameSite=Strict; Path=/api/admin; Max-Age=0',
-  });
-}
+import { clearAdminCookie } from '@/lib/admin';
+import { json, requireSameOrigin, route } from '@/lib/http';
+
+export const POST = route(
+  'POST /api/admin/logout',
+  'ログアウトできませんでした。',
+  async (request) => {
+    requireSameOrigin(request);
+    return json({ ok: true }, 200, {
+      'Set-Cookie': clearAdminCookie(request),
+    });
+  },
+);

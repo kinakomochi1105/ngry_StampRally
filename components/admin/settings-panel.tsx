@@ -23,6 +23,8 @@ export function SettingsPanel({
   settings,
   staffPinSet,
   sitePasswordSet,
+  deskPasswordSet,
+  warnings,
   logs,
   busy,
   onSave,
@@ -32,6 +34,8 @@ export function SettingsPanel({
   settings: FestivalSettings;
   staffPinSet: boolean;
   sitePasswordSet: boolean;
+  deskPasswordSet: boolean;
+  warnings: string[];
   logs: Audit[];
   busy: boolean;
   onSave: (path: string, data: unknown, message: string) => Promise<boolean>;
@@ -43,10 +47,14 @@ export function SettingsPanel({
   const [grades, setGrades] = useState(settings.grades.join(','));
   const [classes, setClasses] = useState(settings.classes.join(','));
   const [blockedWords, setBlockedWords] = useState(
-    (settings.nicknameBlockedWords ?? []).join('\n'),
+    settings.nicknameBlockedWords.join('\n'),
+  );
+  const [allowedWords, setAllowedWords] = useState(
+    settings.nicknameAllowedWords.join('\n'),
   );
   const [staffPin, setStaffPin] = useState('');
   const [sitePassword, setSitePassword] = useState('');
+  const [deskPassword, setDeskPassword] = useState('');
 
   return (
     <section className="admin-panel">
@@ -61,6 +69,12 @@ export function SettingsPanel({
         </div>
       </div>
 
+      {warnings.map((warning) => (
+        <output key={warning} className="form-error">
+          {t(warning)}
+        </output>
+      ))}
+
       <form
         className="admin-form settings-form"
         onSubmit={(e) => {
@@ -71,6 +85,7 @@ export function SettingsPanel({
               settings: {
                 ...config,
                 nicknameBlockedWords: asList(blockedWords),
+                nicknameAllowedWords: asList(allowedWords),
                 grades: asList(grades),
                 classes: asList(classes),
               },
@@ -144,6 +159,20 @@ export function SettingsPanel({
           <small>
             {t(
               '標準の禁止語に加えて判定します。100件まで。登録済みの名前を自動変更するものではありません。',
+            )}
+          </small>
+        </label>
+        <label>
+          {t('ニックネームで許可する語（1行に1つ）')}
+          <textarea
+            value={allowedWords}
+            onChange={(e) => setAllowedWords(e.target.value)}
+            rows={3}
+            placeholder={t('禁止語を含むだけの普通の言葉を入力')}
+          />
+          <small>
+            {t(
+              '禁止語を部分的に含むだけの名前が弾かれるときに登録します。「シネマ」「Yamashita」「badminton」などは標準で許可しています。100件まで。',
             )}
           </small>
         </label>
@@ -255,7 +284,7 @@ export function SettingsPanel({
           )}
         </p>
         <label>
-          {t('新しい暗証番号（4〜8桁の数字）')}
+          {t('新しい暗証番号（6〜8桁の数字）')}
           <input
             value={staffPin}
             onChange={(e) =>
@@ -264,7 +293,7 @@ export function SettingsPanel({
             inputMode="numeric"
             type="password"
             autoComplete="new-password"
-            placeholder="••••"
+            placeholder="••••••"
           />
           <small>
             {t(
@@ -273,7 +302,7 @@ export function SettingsPanel({
           </small>
         </label>
         <div className="staff-pin-actions">
-          <Button type="submit" disabled={busy || staffPin.length < 4}>
+          <Button type="submit" disabled={busy || staffPin.length < 6}>
             {t('暗証番号を保存')}
           </Button>
           {staffPinSet && (
@@ -298,6 +327,82 @@ export function SettingsPanel({
               }}
             >
               {t('暗証番号を削除')}
+            </Button>
+          )}
+        </div>
+      </form>
+
+      {/* The password a reward-desk device signs in with. It opens the desk
+          and nothing else, so it can be given to volunteers at the table. */}
+      <form
+        className="admin-form staff-pin-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void onSave(
+            'settings',
+            { action: 'deskPassword', password: deskPassword },
+            '引き換え係のパスワードを保存しました。',
+          ).then((ok) => {
+            if (ok) setDeskPassword('');
+          });
+        }}
+      >
+        <h3>{t('景品引き換え係のパスワード')}</h3>
+        <p
+          className={
+            deskPasswordSet ? 'staff-pin-state set' : 'staff-pin-state unset'
+          }
+        >
+          {t(
+            deskPasswordSet
+              ? '設定済みです。このパスワードでログインした端末は景品引き換えだけを使えます。'
+              : '未設定です。景品引き換えには管理者パスワードでのログインが必要です。',
+          )}
+        </p>
+        <label>
+          {t('新しいパスワード（8〜64文字）')}
+          <input
+            value={deskPassword}
+            onChange={(e) => setDeskPassword(e.target.value)}
+            type="password"
+            autoComplete="new-password"
+            maxLength={64}
+          />
+          <small>
+            {t(
+              '引き換え窓口の係員に伝えてください。参加者一覧・設定・データ削除は操作できません。変更すると、ログイン中の引き換え端末はすべてログアウトされます。',
+            )}
+          </small>
+        </label>
+        <div className="staff-pin-actions">
+          <Button
+            type="submit"
+            disabled={busy || deskPassword.trim().length < 8}
+          >
+            {t('パスワードを保存')}
+          </Button>
+          {deskPasswordSet && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    t(
+                      'パスワードを削除すると、引き換え係の端末はログインできなくなります。よろしいですか？',
+                    ),
+                  )
+                )
+                  return;
+                void onSave(
+                  'settings',
+                  { action: 'deskPassword', clear: true },
+                  '引き換え係のパスワードを削除しました。',
+                );
+              }}
+            >
+              {t('パスワードを削除')}
             </Button>
           )}
         </div>
@@ -333,6 +438,12 @@ export function SettingsPanel({
               {dateTime(log.createdAt, locale)} · {log.action}
               {t('· 対象')}
               {log.target}
+              {log.actor && (
+                <>
+                  {t('· 操作')}
+                  {log.actor}
+                </>
+              )}
             </li>
           ))}
         </ul>
