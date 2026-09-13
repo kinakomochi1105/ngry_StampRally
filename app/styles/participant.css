@@ -8,8 +8,9 @@
 --------------------------------------------------------------------------- */
 
 .participant-app {
-  /* Space the fixed bottom bar needs; shared with the toast area. */
-  --dock-clearance: 84px;
+  /* Space the fixed bottom bar needs, including the scan button that rises
+     above it; shared with the toast area. */
+  --dock-clearance: 96px;
   min-height: 100dvh;
   background: var(--page-bg);
 }
@@ -1773,20 +1774,25 @@
 
 /* Bottom bar (phone and tablet) -------------------------------------------- */
 
-/* Navigation and the scan action share one bar: four tabs around a filled
-   scan cell. One row instead of a stacked button keeps roughly 70px of the
-   screen for the stamp book itself.
+/* Navigation and the scan action share one bar: four tabs of exactly equal
+   width, two either side of a round scan button raised over the bar's edge.
+   One row instead of a stacked button keeps roughly 70px of the screen for
+   the stamp book itself.
 
-   Two tabs stand either side of the scan cell, which puts it on the screen's
-   centre line and gives every tab the same width — the thumb finds the action
-   in the middle of the bar, and no tab reads as the odd one out. */
+   `minmax(0, 1fr)` rather than `1fr`: a plain fraction may not shrink below
+   its label, so a longer name would quietly take width from the others. The
+   middle column is only as wide as the button, which puts it on the screen's
+   centre line. */
 .rally-bottom-nav {
+  --scan-size: 60px;
   position: fixed;
   inset-inline: 0;
   bottom: 0;
   z-index: 45;
   display: grid;
-  grid-template-columns: 1fr 1fr 1.45fr 1fr 1fr;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr)) calc(var(--scan-size) + 14px)
+    repeat(2, minmax(0, 1fr));
   align-items: stretch;
   gap: 6px;
   padding: 7px max(8px, env(safe-area-inset-left))
@@ -1843,25 +1849,41 @@
   color: #fff;
 }
 
+/* The scan button. The cell itself stays a plain tab so its label lines up
+   with the others; the circle is pulled up by everything above a tab icon's
+   height, which leaves it taking the same room in the row as an icon does —
+   the bar keeps its height and the circle rises over the edge. The ring in
+   the page colour cuts it out of whatever scrolls behind. */
 .scan-tab {
-  background: linear-gradient(
-    140deg,
-    var(--brand),
-    var(--brand-strong)
-  ) !important;
-  color: var(--brand-ink) !important;
-  box-shadow: var(--shadow-md);
+  color: var(--accent-ink);
 }
 
-.scan-tab:disabled {
-  background: var(--soft-bg) !important;
-  color: var(--faint-ink) !important;
-  box-shadow: none;
+.rally-bottom-nav .scan-tab > span {
+  display: grid;
+  place-items: center;
+  width: var(--scan-size);
+  height: var(--scan-size);
+  margin-top: calc(21px - var(--scan-size));
+  border-radius: var(--radius-pill);
+  background: linear-gradient(140deg, var(--brand), var(--brand-strong));
+  color: var(--brand-ink);
+  box-shadow:
+    0 0 0 5px var(--page-bg),
+    var(--shadow-md);
 }
 
 .scan-tab strong {
-  font-size: 12px;
   font-weight: 800;
+}
+
+.scan-tab:disabled {
+  color: var(--faint-ink);
+}
+
+.rally-bottom-nav .scan-tab:disabled > span {
+  background: var(--soft-bg);
+  color: var(--faint-ink);
+  box-shadow: 0 0 0 5px var(--page-bg);
 }
 
 /* Desktop rail ------------------------------------------------------------- */
@@ -2067,10 +2089,12 @@
     display: none;
   }
 
-  /* Five cells leave little width each, and at this size the longest label,
-     "スタンプ帳", is the first to break onto a second line. A tighter gutter
-     and a step down in the label keep every tab on one line. */
+  /* Four tabs and the scan button leave little width each, and at this size
+     the longest label, "スタンプ帳", is the first to break onto a second
+     line. A smaller button, a tighter gutter and a step down in the label
+     keep every tab on one line. */
   .rally-bottom-nav {
+    --scan-size: 54px;
     gap: 4px;
   }
 

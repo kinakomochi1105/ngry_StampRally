@@ -25,9 +25,10 @@ type Props = {
 };
 
 /**
- * Phone navigation. The scan action lives inside the bar rather than above it,
- * which keeps the whole dock to one row and leaves the screen to the stamp
- * book — the thing a participant actually came to look at.
+ * Phone navigation. The scan action is a round button in the middle of the
+ * bar, raised over its edge, rather than a second row above it: the dock stays
+ * one row and leaves the screen to the stamp book — the thing a participant
+ * actually came to look at.
  */
 export function RallyBottomNav({
   tab,
@@ -49,7 +50,7 @@ export function RallyBottomNav({
         onClick={onScan}
       >
         <span>
-          <QrCode size={22} aria-hidden="true" />
+          <QrCode size={26} aria-hidden="true" />
         </span>
         <strong>{t('読み取る')}</strong>
       </button>
