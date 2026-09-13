@@ -31,6 +31,7 @@ export type Audit = { action: string; target: string; createdAt: number };
 export type AdminTab =
   | 'participants'
   | 'ranking'
+  | 'redeem'
   | 'spots'
   | 'maps'
   | 'settings';

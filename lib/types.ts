@@ -161,7 +161,10 @@ export const classLabel = (value: string, locale = 'ja') =>
     : value.endsWith('組')
       ? value
       : value + '組';
-export const profileLabel = (p: Profile, locale = 'ja') =>
+export const profileLabel = (
+  p: Pick<Profile, 'kind' | 'grade' | 'className' | 'number' | 'guestNumber'>,
+  locale = 'ja',
+) =>
   p.kind === 'guest'
     ? (locale === 'en' ? 'Guest #' : '一般客 #') + p.guestNumber
     : gradeLabel(p.grade ?? '', locale) +

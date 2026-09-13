@@ -57,6 +57,7 @@ for (const path of [
   'components/admin/spot-dialog.tsx',
   'components/admin/person-dialog.tsx',
   'components/admin/poster-dialog.tsx',
+  'components/admin/redeem-panel.tsx',
   'components/admin/maps-panel.tsx',
   'components/admin/map-dialog.tsx',
   'components/theme-toggle.tsx',

@@ -6,10 +6,57 @@ import {
   sign,
   safeEqual,
   validOrigin,
-  retentionSeconds,
+  logFailure,
 } from '@/lib/server';
 import { bodyJson, staffPinHash, hashStaffPin } from '@/lib/data';
 import { gate } from '@/lib/gate';
+import { issueRewardCode, rewardProgress } from '@/lib/reward';
+
+type Pass = {
+  id: number;
+  completedAt: number | null;
+  redeemedAt: number | null;
+};
+
+async function findPass(hash: string) {
+  return database()
+    .prepare(
+      'SELECT id,completed_at AS completedAt,redeemed_at AS redeemedAt FROM participants WHERE event_id=? AND hash=?',
+    )
+    .bind(event.id, hash)
+    .first<Pass>();
+}
+
+/**
+ * The code for the reward desk, asked for again every few seconds while the
+ * participant's claim screen is open. The same call is how that screen learns
+ * the hand-over happened on the staff side: once it has, the answer is the
+ * record instead of a code.
+ */
+export async function GET(request: Request) {
+  const closed = await gate(request);
+  if (closed) return closed;
+  try {
+    const hash = await participant(request);
+    const row = hash ? await findPass(hash) : null;
+    if (!hash || !row)
+      return json({ error: '参加登録を行ってから操作してください。' }, 401);
+    if (row.redeemedAt)
+      return json({ redeemedAt: row.redeemedAt, completedAt: row.completedAt });
+    const now = Math.floor(Date.now() / 1000);
+    if (!(await rewardProgress(hash, now)).complete)
+      return json({ error: 'まだ全てのスタンプが集まっていません。' }, 409);
+    return json(await issueRewardCode(row.id, now));
+  } catch (e) {
+    logFailure('GET /api/reward', e);
+    return json(
+      {
+        error: '引き換えコードを表示できませんでした。通信を確認してください。',
+      },
+      503,
+    );
+  }
+}
 
 // A 4-6 digit PIN is typed on the participant's own phone, so brute force has
 // to be bounded per participant rather than per IP.
@@ -25,16 +72,7 @@ export async function POST(request: Request) {
     const hash = await participant(request);
     if (!hash)
       return json({ error: '参加登録を行ってから操作してください。' }, 401);
-    const row = await database()
-      .prepare(
-        'SELECT id,completed_at AS completedAt,redeemed_at AS redeemedAt FROM participants WHERE event_id=? AND hash=?',
-      )
-      .bind(event.id, hash)
-      .first<{
-        id: number;
-        completedAt: number | null;
-        redeemedAt: number | null;
-      }>();
+    const row = await findPass(hash);
     if (!row)
       return json({ error: '参加登録を行ってから操作してください。' }, 401);
     // Re-confirming an already handed-over reward returns the original record
@@ -77,19 +115,11 @@ export async function POST(request: Request) {
     )
       return json({ error: '暗証番号が違います。係員にご確認ください。' }, 401);
 
-    // Completion is recomputed here; the client is never trusted for it.
-    const progress = await database()
-      .prepare(
-        'SELECT (SELECT COUNT(*) FROM locations WHERE event_id=? AND active=1) AS total,COUNT(l.id) AS collected,MAX(s.created_at) AS lastStamp FROM stamps s JOIN locations l ON l.id=s.spot_id AND l.event_id=s.event_id AND l.active=1 WHERE s.event_id=? AND s.participant_hash=? AND s.created_at>?',
-      )
-      .bind(event.id, event.id, hash, now - retentionSeconds)
-      .first<{ total: number; collected: number; lastStamp: number | null }>();
-    const total = Number(progress?.total ?? 0);
-    const collected = Number(progress?.collected ?? 0);
-    if (!total || collected < total)
+    const progress = await rewardProgress(hash, now);
+    if (!progress.complete)
       return json({ error: 'まだ全てのスタンプが集まっていません。' }, 409);
 
-    const completedAt = progress?.lastStamp ?? now;
+    const completedAt = progress.lastStamp ?? now;
     await database().batch([
       database()
         .prepare(

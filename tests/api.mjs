@@ -814,6 +814,152 @@ try {
   assert.equal((await adm('settings')).data.sitePasswordSet, false);
   assert.equal((await req('/api/passport')).status, 200);
 
+  // Reward desk: the code a finished pass shows, read on the staff side.
+  const finisher = await register({ kind: 'guest' });
+  const unfinished = await register({ kind: 'guest' });
+  assert.equal((await req('/api/reward')).status, 401);
+  assert.equal(
+    (await req('/api/reward', { cookie: unfinished.cookie })).status,
+    409,
+  );
+  for (const spot of managed)
+    assert.equal(
+      (
+        await req('/api/stamp', {
+          cookie: finisher.cookie,
+          data: { code: spot.code },
+        })
+      ).status,
+      200,
+    );
+  const issued = await req('/api/reward', { cookie: finisher.cookie });
+  assert.equal(issued.status, 200, JSON.stringify(issued.data));
+  const { code } = issued.data;
+  assert.match(code, /^\d{14,}$/);
+  assert.equal(code.length % 2, 0, 'Code128 C packs digits in pairs');
+  assert.ok(issued.data.refreshAt > Date.now() / 1000);
+  // Staff only, and never from another site.
+  assert.equal(
+    (await req('/api/admin/reward', { data: { code } })).status,
+    401,
+  );
+  assert.equal(
+    (
+      await req('/api/admin/reward', {
+        data: { code },
+        cookie: adminCookie,
+        origin: 'https://rally.example.invalid',
+      })
+    ).status,
+    403,
+  );
+  // The pass number is visible; the check digits are what cannot be made up.
+  const forged =
+    code.slice(0, -8) +
+    String((Number(code.slice(-8)) + 1) % 1e8).padStart(8, '0');
+  for (const attempt of [forged, 'not a code', '', '0'.repeat(14)])
+    assert.equal(
+      (await adm('reward', { code: attempt })).data.status,
+      'invalid',
+    );
+  // A stamp taken away after the code was shown: recognised, not honoured.
+  const revoke = {
+    id: finisher.profile.id,
+    action: 'stamp',
+    spotId: managed[0].id,
+  };
+  assert.equal(
+    (await adm('participants', { ...revoke, collected: false })).status,
+    200,
+  );
+  const short = await adm('reward', { code });
+  assert.equal(short.data.status, 'incomplete');
+  assert.equal(short.data.collected, managed.length - 1);
+  assert.equal(short.data.total, managed.length);
+  assert.equal(
+    (await adm('participants', { ...revoke, collected: true })).status,
+    200,
+  );
+  // Full-width digits and spaces, as a scanner behind a Japanese IME types them.
+  const typed = code
+    .replace(/\d/g, (d) => String.fromCharCode(0xff10 + Number(d)))
+    .replace(/(.{4})/g, '$1 ');
+  const recorded = await adm('reward', { code: typed });
+  assert.equal(recorded.status, 200, JSON.stringify(recorded.data));
+  assert.equal(recorded.data.status, 'redeemed');
+  assert.equal(recorded.data.person.id, finisher.profile.id);
+  assert.equal(recorded.data.person.hash, undefined);
+  assert.ok(recorded.data.person.redeemedAt);
+  // The claim screen learns it from the same poll it gets codes from.
+  const receipt = await req('/api/reward', { cookie: finisher.cookie });
+  assert.equal(receipt.data.redeemedAt, recorded.data.person.redeemedAt);
+  assert.equal(receipt.data.code, undefined);
+  assert.equal(
+    (await req('/api/passport', { cookie: finisher.cookie })).data.profile
+      .redeemedAt,
+    recorded.data.person.redeemedAt,
+  );
+  // Scanning the same screen again, at this desk or another, records nothing new.
+  const repeat = await adm('reward', { code });
+  assert.equal(repeat.data.status, 'already');
+  assert.equal(repeat.data.person.redeemedAt, recorded.data.person.redeemedAt);
+  // Undone from the desk, the pass can claim again and gets a code again.
+  assert.equal(
+    (
+      await adm('participants', {
+        id: finisher.profile.id,
+        action: 'redeem',
+        redeemed: false,
+      })
+    ).status,
+    200,
+  );
+  assert.match(
+    (await req('/api/reward', { cookie: finisher.cookie })).data.code,
+    /^\d{14,}$/,
+  );
+  // The PIN typed on the participant's phone still works beside the barcode.
+  // Only exercised when no PIN is configured, so a real one is never replaced.
+  if (!(await adm('settings')).data.staffPinSet) {
+    const pin = '482913';
+    assert.equal(
+      (await adm('settings', { action: 'staffPin', pin })).status,
+      200,
+    );
+    try {
+      assert.equal(
+        (
+          await req('/api/reward', {
+            cookie: finisher.cookie,
+            data: { pin: '000000' },
+          })
+        ).status,
+        401,
+      );
+      assert.equal(
+        (
+          await req('/api/reward', {
+            cookie: unfinished.cookie,
+            data: { pin },
+          })
+        ).status,
+        409,
+      );
+      const byPin = await req('/api/reward', {
+        cookie: finisher.cookie,
+        data: { pin },
+      });
+      assert.equal(byPin.status, 200, JSON.stringify(byPin.data));
+      assert.ok(byPin.data.redeemedAt);
+    } finally {
+      await adm('settings', { action: 'staffPin', clear: true });
+    }
+  }
+
+  console.log(
+    'PASS: reward desk (code issued only to a finished pass, staff-only and CSRF, forged and junk codes refused, stamp removed after issue reads as incomplete, full-width scanner input, recorded once, claim screen sees it, repeat scan reads as already, undo reopens the claim, PIN fallback).',
+  );
+
   console.log(
     'PASS: site access word (set/clear, validation, every participant entry point closed, admin still reachable, wrong word, CSRF, pass issued, old pass invalidated on change), crowd reports (auth, range, unknown spot, CSRF, 5-minute hold-off, anonymous average), QR link forwarding/legacy token/refused codes, nickname rules/custom blocklist, recovery preserves stamps and IDs, wrong factors rejected, session revocation, code reissue, recovery throttle, student enrollment/duplicates, 12 concurrent unique guest IDs/no reuse, profile isolation, 24 simultaneous stamps, completion/ranking, custom grade/class, admin edits/reset/delete/CSV, registration pause, protected APIs, CSRF, invalid QR, QR decoder.',
   );

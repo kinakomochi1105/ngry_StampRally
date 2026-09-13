@@ -10,6 +10,7 @@ import {
   LogOut,
   Map as MapIcon,
   MapPin,
+  ScanBarcode,
   Settings,
   ShieldCheck,
   Trophy,
@@ -21,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { AdminLogin } from '@/components/admin/admin-login';
 import { ParticipantsPanel } from '@/components/admin/participants-panel';
 import { PersonDialog } from '@/components/admin/person-dialog';
+import { RedeemPanel } from '@/components/admin/redeem-panel';
 import {
   PosterDialog,
   PurgeDialog,
@@ -50,6 +52,7 @@ const counters = [
 const tabs = [
   { id: 'participants', Icon: Users, label: '参加者・進行状況' },
   { id: 'ranking', Icon: Trophy, label: 'ランキング' },
+  { id: 'redeem', Icon: ScanBarcode, label: '景品引き換え' },
   { id: 'spots', Icon: MapPin, label: '設置場所・QRコード' },
   { id: 'maps', Icon: MapIcon, label: '会場マップ' },
   { id: 'settings', Icon: Settings, label: '設定・データ管理' },
@@ -204,6 +207,10 @@ export default function Admin() {
             onOpen={(row) => setEditingPerson({ ...row })}
           />
         )}
+
+        {/* Refreshing after a hand-over keeps the "redeemed" counter above
+            the desk in step with what it has just recorded. */}
+        {admin.tab === 'redeem' && <RedeemPanel onChanged={admin.load} />}
 
         {admin.tab === 'spots' && (
           <SpotsPanel

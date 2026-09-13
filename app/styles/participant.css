@@ -1079,6 +1079,102 @@
   color: #fff;
 }
 
+/* The code the desk reads. A white card in every theme: a scanner needs dark
+   bars on light ground with a clear margin, and a dark-mode palette would
+   invert exactly the contrast it reads. */
+.reward-code {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 14px 12px 16px;
+  border-radius: var(--radius-lg);
+  background: #ffffff;
+  color: #000000;
+  box-shadow: var(--shadow-sm);
+}
+
+.reward-code-bars {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+}
+
+.reward-code-digits {
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.reward-code-qr {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.reward-code-loading {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  font-size: var(--fs-sm);
+  color: var(--muted-ink);
+}
+
+.reward-code-status {
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: var(--muted-ink);
+  text-align: center;
+}
+
+.reward-code-status:empty {
+  display: none;
+}
+
+/* The PIN typed on this phone, kept for a desk with no scanner. */
+.reward-pin-fallback {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.reward-pin-fallback > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 10px 16px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--muted-ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.reward-pin-fallback > summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 2px solid var(--muted-ink);
+  border-bottom: 2px solid var(--muted-ink);
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 0.18s ease;
+}
+
+.reward-pin-fallback[open] > summary::after {
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+
+.reward-pin-fallback > summary::-webkit-details-marker {
+  display: none;
+}
+
+.reward-pin-fallback > .reward-pin-form {
+  padding: 0 16px 16px;
+}
+
 .reward-pin-form {
   display: grid;
   gap: 14px;
