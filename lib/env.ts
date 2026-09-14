@@ -23,6 +23,10 @@ export const env = {
   get NICKNAME_BLOCKLIST_PATH() {
     return process.env.NICKNAME_BLOCKLIST_PATH ?? '';
   },
+  /** `1` answers every participant page and API with 503 (lib/maintenance.ts). */
+  get MAINTENANCE_MODE() {
+    return process.env.MAINTENANCE_MODE === '1';
+  },
   /** Set by Vercel on every deployment; its edge rewrites the forwarded headers. */
   get VERCEL() {
     return process.env.VERCEL === '1';

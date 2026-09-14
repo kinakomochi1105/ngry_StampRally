@@ -24,6 +24,7 @@ for (const path of [
   'app/help/page.tsx',
   'app/admin/page.tsx',
   'components/enrollment.tsx',
+  'components/error-screen.tsx',
   'components/recovery.tsx',
   'components/scanner.tsx',
   'components/reward.tsx',

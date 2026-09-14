@@ -646,5 +646,12 @@
   "取り消せるのは10分以内の記録だけです。運営本部にご相談ください。": "Only hand-overs from the last 10 minutes can be undone here. Please ask the organisers.",
   "短時間に多くの登録がありました。しばらくしてからお試しください。": "Too many registrations in a short time. Please try again later.",
   "許可する語は40文字以内、100件までで入力してください。": "Enter up to 100 allowed words, each no more than 40 characters.",
-  "ニックネームの禁止語リストを読み込めないため、新規登録ができません。NICKNAME_BLOCKLIST_KEY と NICKNAME_BLOCKLIST_IV を確認してください。": "The nickname blocklist cannot be read, so new registrations are refused. Check NICKNAME_BLOCKLIST_KEY and NICKNAME_BLOCKLIST_IV."
+  "ニックネームの禁止語リストを読み込めないため、新規登録ができません。NICKNAME_BLOCKLIST_KEY と NICKNAME_BLOCKLIST_IV を確認してください。": "The nickname blocklist cannot be read, so new registrations are refused. Check NICKNAME_BLOCKLIST_KEY and NICKNAME_BLOCKLIST_IV.",
+  "ページが見つかりません": "Page not found",
+  "URLが間違っているか、ページが移動した可能性があります。QRコードから開いた場合は、スタンプラリーの「読み取る」から読み取り直してください。": "The address may be wrong, or the page may have moved. If you opened it from a QR code, scan it again with Scan in the stamp rally.",
+  "一時的に表示できません": "This page can't be shown right now",
+  "画面の読み込み中に問題が起きました。集めたスタンプは消えていません。少し待ってから、もう一度読み込んでください。": "Something went wrong while loading this screen. Your stamps are safe. Wait a moment and try again.",
+  "もう一度読み込む": "Try again",
+  "エラーID": "Error ID",
+  "ただいまメンテナンス中です。しばらくしてからもう一度お試しください。": "The stamp rally is under maintenance. Please try again in a little while."
 }

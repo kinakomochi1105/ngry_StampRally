@@ -15,6 +15,12 @@ const stored = () => {
   }
 };
 
+/** Puts the stored choice back on a document React has just replaced. */
+export function applyStoredTheme() {
+  const value = stored();
+  if (value) document.documentElement.dataset.theme = value;
+}
+
 const deviceTheme = (): Theme =>
   window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 

@@ -169,6 +169,21 @@ $env:TURSO_DATABASE_URL='libsql://<db>.turso.io'; $env:TURSO_AUTH_TOKEN='<token>
 
 データベースへはDrizzle ORM（`drizzle-orm/libsql`）でアクセスし、列名と結果の型を `db/schema.ts` から得ます。複数の文を1つの書き込みトランザクションで流すときは `db/index.ts` の `writeBatch`（libSQLの `write` モード）を使います。順位計算など集計の重いクエリは `sql` テンプレートで書いています。
 
+## エラーページとメンテナンスモード
+
+- **404**：存在しないURLは `app/not-found.tsx` の「ページが見つかりません」を表示します。
+- **500**：画面の描画中に例外が起きると `app/error.tsx`（ルートレイアウト自体の失敗は `app/global-error.tsx`）が「一時的に表示できません」と再読み込みボタンを出します。エラーIDはサーバーログのdigestと同じ値です。
+- **503**：環境変数 `MAINTENANCE_MODE=1` のあいだ、`proxy.ts` が参加者ページとAPIをすべて本物の503で返します。ページには「ただいまメンテナンス中です」、APIには `{ "error": "…", "code": "maintenance" }` を返します。アプリ本体やデータベースが壊れていても表示できるよう、ページは `lib/maintenance.ts` の単独のHTMLです。**管理画面（`/admin`・`/api/admin`）は対象外**なので、メンテナンス中も操作できます。
+
+Vercelでの切り替え（環境変数の変更は次のデプロイから反映されます）。秘密の値ではないので、あとから `vercel env ls` で値を確認できるConfig型で登録します：
+
+```bash
+vercel env add MAINTENANCE_MODE production --type config --value 1
+vercel redeploy https://ngry-stamp-rally.vercel.app
+```
+
+解除は `vercel env rm MAINTENANCE_MODE production` のあとに同じく `vercel redeploy` します。
+
 ## データの保護と1000人規模の運用
 
 参加者は署名付きHttpOnly/SameSite=Strict Cookieで識別し、HTTPSではSecure属性を付けます。有効期限は30日。ニックネーム、生徒の学年・組・出席番号と一般客IDはlibSQL（Turso）に保存します。氏名・メール・位置情報は収集しません。カメラ映像・画像はアップロードしません。CookieやQRの署名検証はサーバー側です。

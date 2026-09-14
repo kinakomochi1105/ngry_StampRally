@@ -1563,6 +1563,95 @@
   color: var(--faint-ink);
 }
 
+/* Error pages -------------------------------------------------------------- */
+
+/* 404 and the error boundaries (components/error-screen.tsx). They draw no
+   bottom bar, so the column keeps no room for one. */
+.error-page {
+  --dock-clearance: 0px;
+}
+
+.error-screen {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 14px;
+  min-height: min(64dvh, 560px);
+  padding: 32px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--brand-soft) 0%, transparent 60%),
+    var(--surface);
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}
+
+/* The status is pressed onto the card like a rally stamp: a double ring,
+   tilted, in the brand colour. The tilt sits on the outer element so the
+   press animation (motion.css) can end at `transform: none`. */
+.error-stamp {
+  margin: 0 0 4px;
+  transform: rotate(-8deg);
+}
+
+.error-stamp > span {
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  width: 132px;
+  height: 132px;
+  border: 3px solid var(--brand);
+  border-radius: 50%;
+  outline: 1.5px solid var(--brand-line);
+  outline-offset: 5px;
+  color: var(--brand);
+}
+
+.error-stamp strong {
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.error-stamp small {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.error-screen h1 {
+  font-size: var(--fs-xl);
+  line-height: 1.4;
+}
+
+.error-lead {
+  max-width: 34em;
+  font-size: var(--fs-md);
+  line-height: 1.75;
+  color: var(--muted-ink);
+}
+
+.error-actions {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 360px;
+  padding-top: 4px;
+}
+
+.error-digest {
+  font-size: var(--fs-xs);
+  color: var(--faint-ink);
+  overflow-wrap: anywhere;
+}
+
+.error-screen > small {
+  color: var(--faint-ink);
+}
+
 /* Registration and sign-in ------------------------------------------------- */
 
 .access-tabs {
